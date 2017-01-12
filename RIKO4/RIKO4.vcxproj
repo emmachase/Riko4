@@ -124,7 +124,6 @@
   <ItemGroup>
     <ClCompile Include="GPULib.cpp" />
     <ClCompile Include="riko.cpp" />
-    <ClCompile Include="shader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rikoGPU.h" />

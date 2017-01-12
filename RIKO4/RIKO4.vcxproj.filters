@@ -18,9 +18,6 @@
     <ClCompile Include="riko.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="shader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="GPULib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
