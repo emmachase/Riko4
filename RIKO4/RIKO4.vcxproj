@@ -122,10 +122,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AudioLib.cpp" />
     <ClCompile Include="GPULib.cpp" />
     <ClCompile Include="riko.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="rikoAudio.h" />
     <ClInclude Include="rikoGPU.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

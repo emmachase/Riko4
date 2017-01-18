@@ -12,6 +12,7 @@
 #include <LuaBridge/LuaBridge.h>
 
 #include <rikoGPU.h>
+#include <rikoAudio.h>
 
 SDL_Window *window;
 
@@ -45,6 +46,7 @@ void createLuaInstance(const char* filename) {
 	luaL_openlibs(state);
 
 	luaopen_gpu(state);
+	luaopen_aud(state);
 
 	mainThread = lua_newthread(state);
 
@@ -125,7 +127,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	// Dark blue background
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClearColor(24.0/255.0f, 24.0 / 255.0f, 24.0 / 255.0f, 24.0 / 255.0f);
 
 
 	SDL_Event event;
@@ -217,7 +219,7 @@ int main(int argc, char* argv[]) {
 				return 1;
 				//break;
 			}
-		}
+		}	
 
 		pushedArgs = 0;
 		SDL_Delay(1);

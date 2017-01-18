@@ -21,9 +21,15 @@
     <ClCompile Include="GPULib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AudioLib.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rikoGPU.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rikoAudio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
