@@ -124,11 +124,13 @@
   <ItemGroup>
     <ClCompile Include="AudioLib.cpp" />
     <ClCompile Include="GPULib.cpp" />
+    <ClCompile Include="ImageLib.cpp" />
     <ClCompile Include="riko.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rikoAudio.h" />
     <ClInclude Include="rikoGPU.h" />
+    <ClInclude Include="rikoImage.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

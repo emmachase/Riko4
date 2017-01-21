@@ -12,7 +12,7 @@ extern SDL_Window *window;
 static float pWid = 1 / 170.0f;
 static float pHei = 1 / 100.0f;
 
-static unsigned char palette[16][3] = {
+char16_t palette[16][3] = {
 	{24, 24, 24},
 	{100, 100, 100},
 	{0, 18, 144},
@@ -139,7 +139,7 @@ static const luaL_Reg gpuLib[] = {
 };
 
 LUALIB_API int luaopen_gpu(lua_State *L) {
-	luaL_register(L, RIKO_GPU_NAME, gpuLib);
+	luaL_openlib(L, RIKO_GPU_NAME, gpuLib, 0);
 	lua_pushnumber(L, 340);
 	lua_setfield(L, -2, "width");
 	lua_pushnumber(L, 200);

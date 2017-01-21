@@ -13,6 +13,7 @@
 
 #include <rikoGPU.h>
 #include <rikoAudio.h>
+#include <rikoImage.h>
 
 SDL_Window *window;
 
@@ -47,6 +48,7 @@ void createLuaInstance(const char* filename) {
 
 	luaopen_gpu(state);
 	luaopen_aud(state);
+	luaopen_image(state);
 
 	mainThread = lua_newthread(state);
 

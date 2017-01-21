@@ -24,12 +24,18 @@
     <ClCompile Include="AudioLib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ImageLib.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rikoGPU.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="rikoAudio.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rikoImage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
