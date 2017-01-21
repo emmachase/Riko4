@@ -1,11 +1,17 @@
+local editorTheme = {
+  bg = 0,
+  text = 15,
+  selBar = 1,
+  selChar = 13
+}
 local syntaxTheme = {
-  keyword = 8,     -- purple
-  func = 6,        -- cyanish
-  special = 6,
+  keyword = 10,     -- purple
+  func = 7,        -- cyanish
+  special = 7,
   string = 5,      -- lime green
-  primitive = 3,   -- orange,
-  catch = 1,       -- everything else is white
-  comment = 10
+  primitive = 9,   -- orange,
+  catch = 15,       -- everything else is white
+  comment = 1
 }
 
 local sleep = sleep
@@ -32,6 +38,23 @@ local needsRedraw = true
 local cursorLine = 4
 local cursorPos = #content[4]
 local blinkTimeCorrection = os.clock()
+
+local running = true
+
+local inMenu = false
+local menuItems = { "Save", "Run", "Exit" }
+local menuFunctions = {
+  function() -- SAVE
+
+  end,
+  function() -- RUN
+
+  end,
+  function() -- EXIT
+    running = false
+  end,
+}
+local menuSelected = 1
 
 local keywords = {
   ["local"] = true,
@@ -69,7 +92,6 @@ local function colorizeLine(line)
 
   while #text > 0 do
     local beginp, endp = text:find("[a-zA-Z0-9%_]+")
-    --"[^ ^%;^%,^%(^%)^%.^%\"^%\\^%{^%}^%[^%]^%+^%-^%=^%%^%#^%^^%*]+")
 
     if not beginp then
       local lastun = ""
@@ -169,7 +191,7 @@ local function pullEvent(filter)
 end
 
 local drawOffsets = {0, 0}
-local lines = math.floor(224 / 8) - 1
+local lines = math.floor(190 / 8) - 1
 local hintText = "Press <ctrl> to open menu"
 
 local function drawCursor(force, which)
@@ -177,10 +199,10 @@ local function drawCursor(force, which)
 
   if ((ctime == 0 or force)) or which == 1 then
     -- Place cursor
-    write("_", (cursorPos + drawOffsets[1]) * 7 + 2, (cursorLine + drawOffsets[2] - 1) * 8 + 4, 1)
+    write("_", (cursorPos + drawOffsets[1]) * 7 + 2, (cursorLine - drawOffsets[2] - 1) * 8 + 4, editorTheme.text)
   elseif ((ctime == 1 or force)) or which == 2 then
     -- Remove cursor
-    write("_", (cursorPos + drawOffsets[1]) * 7 + 2, (cursorLine + drawOffsets[2] - 1) * 8 + 4, 0)
+    write("_", (cursorPos + drawOffsets[1]) * 7 + 2, (cursorLine - drawOffsets[2] - 1) * 8 + 4, editorTheme.bg)
   end
 end
 
@@ -192,12 +214,38 @@ local function updateCursor(newPos, newLine)
   drawCursor(true, 1)
 end
 
+local braceX = 2
+local braceXGoal = 2
+local braceWidth = (#menuItems[menuSelected] + 1)*7
+local braceWidthGoal = (#menuItems[menuSelected] + 1)*7
+
+local function updateHint()
+  if inMenu then
+    -- hintText = ""
+    local width = 0
+    for i=1, #menuItems do
+      if i == menuSelected then
+        break
+      end
+      width = width + #menuItems[i] + 2
+    end
+    braceXGoal = 2 + width * 7
+    braceWidthGoal = (#menuItems[menuSelected] + 1) * 7
+
+    hintText = " " .. table.concat(menuItems, "  ")
+  else
+    hintText = "Press <ctrl> to open menu"
+  end
+end
+
+local lastI = os.clock()
+
 local function drawContent()
-  gpu.clear()
+  gpu.clear(editorTheme.bg)
 
   for i = 1, lines do
-    local cy = i + drawOffsets[2]*8
-    local dy = (cy - 1) * 8 + 2
+    local cy = i + drawOffsets[2]
+    local dy = (i - 1) * 8 + 2
     if not content[cy] then
       break
     end
@@ -212,8 +260,23 @@ local function drawContent()
       cx = cx + 7 * #chk[1]
     end
 
-    gpu.drawRectangle(0, lines * 7 - 1, 340, 12, 10)
-    write(hintText, 2, lines * 7 + 1, 4)
+    gpu.drawRectangle(0, 189, 340, 12, editorTheme.selBar)
+
+    local delta = os.clock() - lastI
+
+    braceX = braceX + (braceXGoal - braceX)*10*delta
+    if math.abs(braceXGoal - braceX) < 0.1 then braceX = braceXGoal end
+    braceWidth = braceWidth + (braceWidthGoal - braceWidth)*10*delta
+    if math.abs(braceWidthGoal - braceWidth) < 0.1 then braceWidth = braceWidthGoal end
+
+    write(hintText, 2, 190, editorTheme.text)
+
+    if inMenu then
+      write("[", braceX, 190, editorTheme.selChar)
+      write("]", braceX + braceWidth, 190, editorTheme.selChar)
+    end
+
+    lastI = os.clock()
   end
 
   drawCursor()
@@ -227,102 +290,126 @@ local function checkDrawBounds()
     drawOffsets[1] = -cursorPos
     needsRedraw = true
   end
+
+  if cursorLine > lines + drawOffsets[2] then
+    drawOffsets[2] = cursorLine - lines
+    needsRedraw = true
+  elseif cursorLine < drawOffsets[2] + 1 then
+    drawOffsets[2] = cursorLine - 1
+  end
 end
 
 drawContent()
-while true do
+while running do
   local e, p1, p2 = pullEvent()
 
   gpu.clear()
 
   if e == "key" then
-    if p1 == "Up" then
-      local nx, ny = cursorPos, cursorLine
-      if cursorLine > 1 then ny = cursorLine - 1 else nx = 0 end
-      if cursorPos > #content[ny] then nx = #content[ny] end
-      updateCursor(nx, ny)
-      checkDrawBounds()
-    elseif p1 == "Down" then
-      local nx, ny = cursorPos, cursorLine
-      if cursorLine < #content then ny = cursorLine + 1 else nx = #content[ny] end
-      if cursorPos > #content[ny] then nx = #content[ny] end
-      updateCursor(nx, ny)
-      checkDrawBounds()
-    elseif p1 == "Left" then
-      local nx, ny = cursorPos, cursorLine
-      if cursorPos > 0 then
-        nx = cursorPos - 1
-      elseif ny > 1 then
-        ny = ny - 1
-        nx = #content[ny]
+    if p1 == "Left Ctrl" then
+      inMenu = not inMenu
+      updateHint()
+    elseif inMenu then
+      if p1 == "Left" then
+        menuSelected = menuSelected == 1 and #menuItems or menuSelected - 1
+        updateHint()
+      elseif p1 == "Right" then
+        menuSelected = menuSelected == #menuItems and 1 or menuSelected + 1
+        updateHint()
+      elseif p1 == "Return" then
+        menuFunctions[menuSelected]()
+        inMenu = false
+        updateHint()
       end
-      updateCursor(nx, ny)
-      checkDrawBounds()
-    elseif p1 == "Right" then
-      local nx, ny = cursorPos, cursorLine
-      if cursorPos < #content[ny] then
-        nx = cursorPos + 1
-      elseif ny < #content then
-        ny = ny + 1
-        nx = 0
-      end
-      updateCursor(nx, ny)
-      checkDrawBounds()
-    elseif p1 == "Backspace" then
-      if cursorPos > 0 then
-        content[cursorLine] = content[cursorLine]:sub(1, cursorPos - 1) .. content[cursorLine]:sub(cursorPos + 1)
-        updateCursor(cursorPos - 1, cursorLine)
+    else
+      if p1 == "Up" then
+        local nx, ny = cursorPos, cursorLine
+        if cursorLine > 1 then ny = cursorLine - 1 else nx = 0 end
+        if cursorPos > #content[ny] then nx = #content[ny] end
+        updateCursor(nx, ny)
+        checkDrawBounds()
+      elseif p1 == "Down" then
+        local nx, ny = cursorPos, cursorLine
+        if cursorLine < #content then ny = cursorLine + 1 else nx = #content[ny] end
+        if cursorPos > #content[ny] then nx = #content[ny] end
+        updateCursor(nx, ny)
+        checkDrawBounds()
+      elseif p1 == "Left" then
+        local nx, ny = cursorPos, cursorLine
+        if cursorPos > 0 then
+          nx = cursorPos - 1
+        elseif ny > 1 then
+          ny = ny - 1
+          nx = #content[ny]
+        end
+        updateCursor(nx, ny)
+        checkDrawBounds()
+      elseif p1 == "Right" then
+        local nx, ny = cursorPos, cursorLine
+        if cursorPos < #content[ny] then
+          nx = cursorPos + 1
+        elseif ny < #content then
+          ny = ny + 1
+          nx = 0
+        end
+        updateCursor(nx, ny)
+        checkDrawBounds()
+      elseif p1 == "Backspace" then
+        if cursorPos > 0 then
+          content[cursorLine] = content[cursorLine]:sub(1, cursorPos - 1) .. content[cursorLine]:sub(cursorPos + 1)
+          updateCursor(cursorPos - 1, cursorLine)
+          colorizeLine(cursorLine)
+          needsRedraw = true
+        elseif cursorLine > 1 then
+          local ox = #content[cursorLine - 1]
+          content[cursorLine - 1] = content[cursorLine - 1] .. tabRemove(content, cursorLine)
+          tabRemove(colorizedLines, cursorLine)
+          updateCursor(ox, cursorLine - 1)
+          colorizeLine(cursorLine)
+          needsRedraw = true
+        end
+        checkDrawBounds()
+      elseif p1 == "Delete" then
+        if cursorPos < #content[cursorLine] then
+          content[cursorLine] = content[cursorLine]:sub(1, cursorPos) .. content[cursorLine]:sub(cursorPos + 2)
+          colorizeLine(cursorLine)
+          needsRedraw = true
+        elseif cursorLine < #content then
+          content[cursorLine] = content[cursorLine] .. tabRemove(content, cursorLine + 1)
+          tabRemove(colorizedLines, cursorLine + 1)
+          colorizeLine(cursorLine)
+          needsRedraw = true
+        end
+        blinkTimeCorrection = os.clock()
+      elseif p1 == "Return" then
+        local cont = content[cursorLine]:sub(cursorPos + 1)
+        local localIndent = content[cursorLine]:find("%S")
+        localIndent = localIndent and localIndent - 1 or #content[cursorLine]
+        content[cursorLine] = content[cursorLine]:sub(1, cursorPos)
+        tabInsert(content, cursorLine + 1, (" "):rep(localIndent)..cont)
+        tabInsert(colorizedLines, cursorLine + 1, {{cont, 1}})
+        updateCursor(localIndent, cursorLine + 1)
+        colorizeLine(cursorLine - 1)
+        colorizeLine(cursorLine)
+        checkDrawBounds()
+        needsRedraw = true
+      elseif p1 == "Home" then
+        local fpos, _ = content[cursorLine]:find("%S")
+        if not fpos or cursorPos < fpos then
+          updateCursor(0, cursorLine)
+        else
+          updateCursor(fpos - 1, cursorLine)
+        end
+        checkDrawBounds()
+      elseif p1 == "End" then
+        updateCursor(#content[cursorLine], cursorLine)
+        checkDrawBounds()
+      elseif p1 == "Tab" then
+        content[cursorLine] = content[cursorLine]:sub(1, cursorPos) .. "  " .. content[cursorLine]:sub(cursorPos + 1)
+        updateCursor(cursorPos + 2, cursorLine)
         colorizeLine(cursorLine)
         needsRedraw = true
-      elseif cursorLine > 1 then
-        local ox = #content[cursorLine - 1]
-        content[cursorLine - 1] = content[cursorLine - 1] .. tabRemove(content, cursorLine)
-        tabRemove(colorizedLines, cursorLine)
-        updateCursor(ox, cursorLine - 1)
-        colorizeLine(cursorLine)
-        needsRedraw = true
       end
-      checkDrawBounds()
-    elseif p1 == "Delete" then
-      if cursorPos < #content[cursorLine] then
-        content[cursorLine] = content[cursorLine]:sub(1, cursorPos) .. content[cursorLine]:sub(cursorPos + 2)
-        colorizeLine(cursorLine)
-        needsRedraw = true
-      elseif cursorLine < #content then
-        content[cursorLine] = content[cursorLine] .. tabRemove(content, cursorLine + 1)
-        tabRemove(colorizedLines, cursorLine + 1)
-        colorizeLine(cursorLine)
-        needsRedraw = true
-      end
-      blinkTimeCorrection = os.clock()
-    elseif p1 == "Return" then
-      local cont = content[cursorLine]:sub(cursorPos + 1)
-      local localIndent = content[cursorLine]:find("%S")
-      localIndent = localIndent and localIndent - 1 or #content[cursorLine]
-      content[cursorLine] = content[cursorLine]:sub(1, cursorPos)
-      tabInsert(content, cursorLine + 1, (" "):rep(localIndent)..cont)
-      tabInsert(colorizedLines, cursorLine + 1, {{cont, 1}})
-      updateCursor(localIndent, cursorLine + 1)
-      colorizeLine(cursorLine - 1)
-      colorizeLine(cursorLine)
-      checkDrawBounds()
-      needsRedraw = true
-    elseif p1 == "Home" then
-      local fpos, _ = content[cursorLine]:find("%S")
-      if not fpos or cursorPos < fpos then
-        updateCursor(0, cursorLine)
-      else
-        updateCursor(fpos - 1, cursorLine)
-      end
-      checkDrawBounds()
-    elseif p1 == "End" then
-      updateCursor(#content[cursorLine], cursorLine)
-      checkDrawBounds()
-    elseif p1 == "Tab" then
-      content[cursorLine] = content[cursorLine]:sub(1, cursorPos) .. "  " .. content[cursorLine]:sub(cursorPos + 1)
-      updateCursor(cursorPos + 2, cursorLine)
-      colorizeLine(cursorLine)
-      needsRedraw = true
     end
   elseif e == "char" then
     content[cursorLine] = content[cursorLine]:sub(1, cursorPos) .. p1 .. content[cursorLine]:sub(cursorPos + 1)

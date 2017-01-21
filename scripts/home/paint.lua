@@ -24,9 +24,7 @@ while true do
     end
   end
 
-  gpu.drawRectangle(math.floor(x / zoom) * zoom, math.floor(y / zoom) * zoom, zoom, zoom, color)
 
-  gpu.swap()
   e, p1, p2, p3 = coroutine.yield()
   if e == "mouseMoved" then
     x = p1
@@ -65,4 +63,8 @@ while true do
       break
     end
   end
+
+  gpu.drawRectangle(math.floor(x / zoom) * zoom, math.floor(y / zoom) * zoom, zoom, zoom, color)
+
+  gpu.swap()
 end

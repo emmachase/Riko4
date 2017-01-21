@@ -1,8 +1,11 @@
-local font = dofile("scripts/font.lua")
+dofile("scripts/adaptIO.lua")
 
-local dataH = io.open("scripts/coreFont", "r")
+local font = dofile("../font.lua")
+
+local dataH = io.open("../coreFont", "r")
 local data = dataH:read("*a")
 dataH:close()
+
 
 local coreFont = font.new(data)
 gpu.font = coreFont
@@ -62,6 +65,10 @@ local lastP = 0
 local lastf = 0
 local fps = 60
 
+local function testError()
+  gpu.blitPixels(2, 20, 5, 2, {1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
+end
+
 local function round(n, p)
   return math.floor(n / p) * p
 end
@@ -86,9 +93,18 @@ while true do
 
   write("rikoOS 1.0", 2, 2, 4)
 
-  for i=0, 9 do
+  for i=0, 15 do
     gpu.drawRectangle(i*8 + 2, 100, 8, 8, i)
-    write(tostring(i), i*8 + 1, 100, (i == 1 or i == 4 or i == 5) and 0 or 1)
+    write(tostring(i):sub(#tostring(i)), i*8 + 1, 100, (20 % i == 0) and 0 or 1)
+  end
+
+  local s, err = pcall(testError)
+  if err then
+    write(tostring(err):sub(14), 2, 120)
+  end
+
+  if lerr then
+    write(tostring(lerr):sub(14), 2, 130)
   end
 
   -- love.timer.sleep(1)
@@ -104,12 +120,12 @@ while true do
       str = str:sub(1, #str - 1)
       lastP = os.clock() * 2
     elseif p1 == "Return" then
-      local cc = coroutine.create(loadfile("scripts/home/"..str:match("%S+")..".lua"))
+      local cc = coroutine.create(loadfile(str:match("%S+")..".lua"))
       local splitStr = split(str)
       table.remove(splitStr, 1)
       local e = splitStr or {}
       while coroutine.status(cc) ~= "dead" do
-        coroutine.resume(cc, unpack(e))
+        local s, lerr = coroutine.resume(cc, unpack(e))
         e = {coroutine.yield()}
       end
     end
