@@ -13,19 +13,19 @@ while true do
   write(tostring(myImage), 2, 10)
 
   if not free then
-    myImage:drawPixel(i, 1, 4)
-    myImage:drawRectangle(20, 2, i, i, 6)
+    myImage:drawPixel(i, 1, 5)
+    myImage:drawRectangle(20, 2, i, i, 7)
     i = i + 1
     myImage:flush()
 
     myImage:render(50, 50 + i)
  end
 
-  gpu.drawRectangle(50, 64, 24, 12, 4)
-  gpu.drawRectangle(24, 50, 24, 12, 4)
+  gpu.drawRectangle(50, 64, 24, 12, 5)
+  gpu.drawRectangle(24, 50, 24, 12, 5)
 
   gpu.swap()
-  local e, p1, p2 = coroutine.yield()
+  local e, p1 = coroutine.yield()
 
   if e == "key" then
     if p1 == "Escape" then

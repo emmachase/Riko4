@@ -1,54 +1,69 @@
 local editorTheme = {
-  bg = 0,
-  text = 15,
-  selBar = 1,
-  selChar = 13
+  bg = 1,
+  text = 16,
+  selBar = 2,
+  selChar = 10
 }
 local syntaxTheme = {
-  keyword = 10,     -- purple
-  func = 7,        -- cyanish
-  special = 7,
-  string = 5,      -- lime green
+  keyword = 13,    -- purple
+  specialKeyword = 12,
+  func = 12,       -- cyanish
+  special = 12,
+  string = 11,     -- lime green
   primitive = 9,   -- orange,
-  catch = 15,       -- everything else is white
-  comment = 1
+  comment = 6,     -- gray
+  catch = 16       -- everything else is white
 }
 
-local sleep = sleep
+local args = {...}
+if #args < 1 then
+  if pushOutput then
+    pushOutput("Syntax: edit <filename>", 9)
+    return
+  else
+    error("Syntax: edit <filename>")
+  end
+end
+
 local tabInsert = table.insert
 local tabRemove = table.remove
 
-local content = {
-  "local function pullEvent(filter)",
-  "  local e",
-  "  while true do",
-  "    e = {coroutine.yield()}",
-  "    if not filter or e[1] == filter then",
-  "      break",
-  "    end -- a random comment",
-  "  end",
-  "  write(\"Done!\\n\", 2, 2, 7)",
-  "  return unpack(e)",
-  "end"
-}
+local function exists(filename)
+  local handle = io.open(filename, "r")
+  if handle then
+    handle:close()
+    return true
+  end
+  return false
+end
+
+local filename = args[1]
+
+local content = {}
+
+if exists(filename) then
+  for line in io.lines(filename) do
+    content[#content + 1] = line
+  end
+end
+
+content[#content + 1] = ""
 
 local colorizedLines = {}
 
-local needsRedraw = true
-local cursorLine = 4
-local cursorPos = #content[4]
+local cursorLine = 1
+local cursorPos = #content[1]
 local blinkTimeCorrection = os.clock()
 
 local running = true
 
 local inMenu = false
-local menuItems = { "Save", "Run", "Exit" }
+local menuItems = { "Save", "Exit" }
 local menuFunctions = {
   function() -- SAVE
-
-  end,
-  function() -- RUN
-
+    local handle = io.open(filename, "w")
+    handle:write(table.concat(content, "\n"))
+    handle:close()
   end,
   function() -- EXIT
     running = false
@@ -75,6 +90,17 @@ local keywords = {
   ["while"] = true,
   ["repeat"] = true,
   ["until"] = true,
+}
+
+local specialVars = {
+  ["io"] = true,
+  ["table"] = true,
+  ["coroutine"] = true,
+  ["string"] = true,
+  ["_G"] = true,
+  ["math"] = true,
+  ["error"] = true,
+  ["os"] = true
 }
 
 local wordPrims = {
@@ -163,10 +189,12 @@ local function colorizeLine(line)
 
           if instr then
             tabInsert(colorizedLines[line], {word, syntaxTheme.string})
-          elseif nextX and nextX:sub(1, 1) == "(" then
-            tabInsert(colorizedLines[line], {word, syntaxTheme.func})
+          elseif specialVars[word] then
+            tabInsert(colorizedLines[line], {word, syntaxTheme.specialKeyword})
           elseif keywords[word] then
             tabInsert(colorizedLines[line], {word, syntaxTheme.keyword})
+          elseif nextX and nextX:sub(1, 1) == "(" then
+            tabInsert(colorizedLines[line], {word, syntaxTheme.func})
           elseif tonumber(word) or wordPrims[word] then
             tabInsert(colorizedLines[line], {word, syntaxTheme.primitive})
           else
@@ -198,11 +226,7 @@ local function drawCursor(force, which)
   local ctime = math.floor(((os.clock() - blinkTimeCorrection) * 2)) % 2
 
   if ((ctime == 0 or force)) or which == 1 then
-    -- Place cursor
     write("_", (cursorPos + drawOffsets[1]) * 7 + 2, (cursorLine - drawOffsets[2] - 1) * 8 + 4, editorTheme.text)
-  elseif ((ctime == 1 or force)) or which == 2 then
-    -- Remove cursor
-    write("_", (cursorPos + drawOffsets[1]) * 7 + 2, (cursorLine - drawOffsets[2] - 1) * 8 + 4, editorTheme.bg)
   end
 end
 
@@ -221,7 +245,6 @@ local braceWidthGoal = (#menuItems[menuSelected] + 1)*7
 
 local function updateHint()
   if inMenu then
-    -- hintText = ""
     local width = 0
     for i=1, #menuItems do
       if i == menuSelected then
@@ -243,16 +266,17 @@ local lastI = os.clock()
 local function drawContent()
   gpu.clear(editorTheme.bg)
 
-  for i = 1, lines do
+  for i = 1, lines + 1 do
     local cy = i + drawOffsets[2]
     local dy = (i - 1) * 8 + 2
     if not content[cy] then
       break
     end
-    --colorizeLine(content[cy], 1 + drawOffsets[1], dy)
+
     if not colorizedLines[cy] then
       colorizeLine(cy)
     end
+
     local cx = 1 + drawOffsets[1]*7
     for j = 1, #colorizedLines[cy] do
       local chk = colorizedLines[cy][j]
@@ -266,6 +290,7 @@ local function drawContent()
 
     braceX = braceX + (braceXGoal - braceX)*10*delta
     if math.abs(braceXGoal - braceX) < 0.1 then braceX = braceXGoal end
+
     braceWidth = braceWidth + (braceWidthGoal - braceWidth)*10*delta
     if math.abs(braceWidthGoal - braceWidth) < 0.1 then braceWidth = braceWidthGoal end
 
@@ -276,6 +301,9 @@ local function drawContent()
       write("]", braceX + braceWidth, 190, editorTheme.selChar)
     end
 
+    local locStr = "Ln "..cursorLine..", Col "..(cursorPos + 1)
+    write(locStr, 335 - (#locStr * 7), 190, editorTheme.text)
+
     lastI = os.clock()
   end
 
@@ -285,26 +313,20 @@ end
 local function checkDrawBounds()
   if cursorPos > math.floor(340/7) - drawOffsets[1] - 1 then
     drawOffsets[1] = math.floor(340/7) - cursorPos - 1
-    needsRedraw = true
   elseif cursorPos < -drawOffsets[1] then
     drawOffsets[1] = -cursorPos
-    needsRedraw = true
   end
 
   if cursorLine > lines + drawOffsets[2] then
     drawOffsets[2] = cursorLine - lines
-    needsRedraw = true
   elseif cursorLine < drawOffsets[2] + 1 then
     drawOffsets[2] = cursorLine - 1
   end
 end
 
-drawContent()
-while running do
-  local e, p1, p2 = pullEvent()
+local mouseDown = false
 
-  gpu.clear()
-
+local function processEvent(e, p1, p2)
   if e == "key" then
     if p1 == "Left Ctrl" then
       inMenu = not inMenu
@@ -359,26 +381,22 @@ while running do
           content[cursorLine] = content[cursorLine]:sub(1, cursorPos - 1) .. content[cursorLine]:sub(cursorPos + 1)
           updateCursor(cursorPos - 1, cursorLine)
           colorizeLine(cursorLine)
-          needsRedraw = true
         elseif cursorLine > 1 then
           local ox = #content[cursorLine - 1]
           content[cursorLine - 1] = content[cursorLine - 1] .. tabRemove(content, cursorLine)
           tabRemove(colorizedLines, cursorLine)
           updateCursor(ox, cursorLine - 1)
           colorizeLine(cursorLine)
-          needsRedraw = true
         end
         checkDrawBounds()
       elseif p1 == "Delete" then
         if cursorPos < #content[cursorLine] then
           content[cursorLine] = content[cursorLine]:sub(1, cursorPos) .. content[cursorLine]:sub(cursorPos + 2)
           colorizeLine(cursorLine)
-          needsRedraw = true
         elseif cursorLine < #content then
           content[cursorLine] = content[cursorLine] .. tabRemove(content, cursorLine + 1)
           tabRemove(colorizedLines, cursorLine + 1)
           colorizeLine(cursorLine)
-          needsRedraw = true
         end
         blinkTimeCorrection = os.clock()
       elseif p1 == "Return" then
@@ -392,7 +410,6 @@ while running do
         colorizeLine(cursorLine - 1)
         colorizeLine(cursorLine)
         checkDrawBounds()
-        needsRedraw = true
       elseif p1 == "Home" then
         local fpos, _ = content[cursorLine]:find("%S")
         if not fpos or cursorPos < fpos then
@@ -408,16 +425,56 @@ while running do
         content[cursorLine] = content[cursorLine]:sub(1, cursorPos) .. "  " .. content[cursorLine]:sub(cursorPos + 1)
         updateCursor(cursorPos + 2, cursorLine)
         colorizeLine(cursorLine)
-        needsRedraw = true
       end
     end
+  elseif e == "mouseWheel" then
+    local y = p1
+    for _=1, math.abs(y) do
+      if y > 0 then
+        if drawOffsets[2] > 0 then
+          drawOffsets[2] = drawOffsets[2] - 1
+        end
+      else
+        if drawOffsets[2] < #content - 1 then
+          drawOffsets[2] = drawOffsets[2] + 1
+        end
+      end
+    end
+  elseif e == "mousePressed" or (e == "mouseMoved" and mouseDown) then
+    mouseDown = true
+    local x, y = p1, p2
+    local posX = math.floor((x - 2) / 7) - drawOffsets[1]
+    local posY = math.floor((y - 2) / 8) + drawOffsets[2] + 1
+    posY = posY < 1 and 1 or (posY > #content and #content or posY)
+    posX = posX < 0 and 0 or (posX > #content[posY] and #content[posY] or posX)
+    updateCursor(posX, posY)
+    checkDrawBounds()
+  elseif e == "mouseReleased" then
+    mouseDown = false
   elseif e == "char" then
     content[cursorLine] = content[cursorLine]:sub(1, cursorPos) .. p1 .. content[cursorLine]:sub(cursorPos + 1)
     updateCursor(cursorPos + 1, cursorLine)
     colorizeLine(cursorLine)
     checkDrawBounds()
-    needsRedraw = true
   end
+end
+
+local eventQueue = {}
+
+drawContent()
+while running do
+  while true do
+    local e, p1, p2 = pullEvent()
+    if not e then break end
+    table.insert(eventQueue, {e, p1, p2})
+  end
+
+  while #eventQueue > 0 do
+    processEvent(unpack(eventQueue[1]))
+    table.remove(eventQueue, 1)
+  end
+
+  gpu.clear()
 
   drawContent()
 

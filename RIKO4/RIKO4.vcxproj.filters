@@ -27,6 +27,9 @@
     <ClCompile Include="ImageLib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="lfs.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rikoGPU.h">

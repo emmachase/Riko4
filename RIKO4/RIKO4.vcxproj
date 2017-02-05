@@ -90,7 +90,7 @@
       <AdditionalIncludeDirectories>C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\RIKO4;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\includes;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\libs\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\libs\GL;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\libs\LuaJIT;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\libs\SDL2;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\libs\LFS;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\libs\GL;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\libs\LuaJIT;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\libs\SDL2;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>lua51.lib;SDL2main.lib;SDL2.lib;opengl32.lib;glu32.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -125,6 +125,7 @@
     <ClCompile Include="AudioLib.cpp" />
     <ClCompile Include="GPULib.cpp" />
     <ClCompile Include="ImageLib.cpp" />
+    <ClCompile Include="lfs.c" />
     <ClCompile Include="riko.cpp" />
   </ItemGroup>
   <ItemGroup>

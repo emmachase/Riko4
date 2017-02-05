@@ -7,42 +7,26 @@
 
 local bitmap = dofile("../lib/bitmap.lua")
 
-local tucan = bitmap.createBitmapFromFile("lenna.bmp")
+local ditherImage = bitmap.createBitmapFromFile("land.bmp")
 
 local palette = {
-  -- { 24, 24, 24 },     -- Black
-  -- 	{ 85, 85, 85 },     -- Dark Gray
-  -- 	{ 170, 170, 170 },  -- Light Gray
-  -- 	{ 239, 239, 239 },  -- White
-  -- 	{ 127, 72, 5 },     -- Brown
-  -- 	{ 230, 10, 10 },    -- Red
-  -- 	{ 245, 106, 10 },   -- Orange
-  -- 	{ 255, 255, 0 },    -- Yellow
-  -- 	{ 0, 255, 33 },     -- Lime Green
-  -- 	{ 87, 165, 77 },    -- Dark Green
-  -- 	{ 0, 147, 141 },    -- Cyan
-  -- 	{ 10, 142, 255 },   -- Light Blue
-  -- 	{ 0, 38, 255 },     -- Blue
-  -- 	{ 178, 0, 255 },    -- Magenta
-  -- 	{ 255, 0, 110 },    -- Pink
-  -- 	{ 255, 102, 107}
-  {24, 24, 24},
-	{100, 100, 100},
-	{0, 18, 144},
-	{0, 39, 251},
-	{0, 143, 21},
-	{0, 249, 44},
-	{0, 144, 146},
-	{0, 252, 254},
-	{155, 23, 8},
-	{255, 48, 22},
-	{154, 32, 145},
-	{255, 63, 252},
-	{148, 145, 25},
-	{255, 253, 51},
-	{184, 184, 184},
-	{235, 235, 235},
-};
+	{24,   24,   24 },
+	{29,   43,   82 },
+	{126,  37,   83 },
+	{0,    134,  81 },
+	{171,  81,   54 },
+	{86,   86,   86 },
+	{157,  157,  157},
+	{255,  0,    76 },
+	{255,  163,  0  },
+	{255,  240,  35 },
+	{0,    231,  85 },
+	{41,   173,  255},
+	{130,  118,  156},
+	{255,  119,  169},
+	{254,  204,  169},
+	{236,  236,  236}
+}
 
 local sqrt = math.sqrt
 local function closestRGB(r, g, b)
@@ -55,7 +39,7 @@ local function closestRGB(r, g, b)
     local erB = b - palette[i][3]
     local dist = sqrt(erR*erR + erG*erG + erB*erB)
     if dist < error then
-      pick = i - 1
+      pick = i
       error = dist
       e1, e2, e3 = erR, erG, erB
     end
@@ -63,30 +47,14 @@ local function closestRGB(r, g, b)
   return pick, e1, e2, e3
 end
 
-local tucanCol = {}
-
-for i=1, tucan.width do
-  for j=1, tucan.height do
-    tucanCol[(j-1)*tucan.width + i] = closestRGB(unpack(tucan.components[(j-1)*tucan.width + i]))
-  end
-end
-
-local forwardArray = {}
-for i=1, 3 do
-  forwardArray[i] = {}
-  for j=1, tucan.width do
-    forwardArray[i][j] = 0
-  end
-end
-
 local dithered = {}
 
 local function getPos(x, y)
-  return (y-1)*tucan.width + x
+  return (y-1)*ditherImage.width + x
 end
 
 local function addToFA(tb, x, y, er, eg, eb)
-  if x > 1 and x <= tucan.width and y < tucan.height then
+  if x > 1 and x <= ditherImage.width and y < ditherImage.height then
     local index = getPos(x, y)
     if not tb[index] then tb[index] = {0, 0, 0} end
     tb[index][1] = tb[index][1] + er
@@ -97,19 +65,19 @@ local function addToFA(tb, x, y, er, eg, eb)
   return tb
 end
 
-for i=1, tucan.height do
-  for j=1, tucan.width do
-    local r, g, b = unpack(tucan.components[getPos(j, i)])
-    -- tucan.components[(i-1)*tucan.width + j]
+for i=1, ditherImage.height do
+  for j=1, ditherImage.width do
+    local rp, gp, bp = unpack(ditherImage.components[getPos(j, i)])
+    -- ditherImage.components[(i-1)*ditherImage.width + j]
 
-    local col, a, b, c = closestRGB(r, g, b)
+    local col, a, b, c = closestRGB(rp, gp, bp)
     dithered[#dithered + 1] = col
 
     local pa = a / 32
     local pb = b / 32
     local pc = c / 32
 
-    local t = tucan.components
+    local t = ditherImage.components
     addToFA(t, j + 1, i, pa*8, pb*8, pc*8)
     addToFA(t, j + 2, i, pa*4, pb*4, pc*4)
     --
@@ -124,9 +92,9 @@ end
 while true do
   gpu.clear()
 
-  write(tostring(tucan.components[5]), 0, 180)
-  -- gpu.blitPixels(0, 0, tucan.width, tucan.height, tucanCol)
-  gpu.blitPixels(0, 0, tucan.width, tucan.height, dithered)
+  write(tostring(ditherImage.components[5]), 0, 180)
+
+  gpu.blitPixels(0, 0, ditherImage.width, ditherImage.height, dithered)
 
   gpu.swap()
   local e, p1 = coroutine.yield()

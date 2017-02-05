@@ -11,14 +11,15 @@ local coreFont = font.new(data)
 gpu.font = coreFont
 
 function write(t, x, y, col)
-  col = col or 1
+  t = tostring(t)
+  col = col or 16
   local xoff = 0
   for i=1, #t do
     local text = t:sub(i, i)
     local c = string.byte(text)
     if gpu.font.data[c] then
-      for j=1, 7 do--#coolfont.data[c] do
-        for k=1, 7 do--#coolfont.data[c][j] do
+      for j=1, 7 do
+        for k=1, 7 do
           if gpu.font.data[c][j][k] then
             local dx = x + xoff + k
             local dy = y + j
@@ -42,95 +43,4 @@ function sleep(s)
   end
 end
 
-local write = write
-
-local function pullEvent(filter)
-  local e
-  while true do
-    e = {coroutine.yield()}
-    if not filter or e[1] == filter then
-      break
-    end
-  end
-  write(e[2])
-  return unpack(e)
-end
-
-local prefix = "> "
-local str = ""
-
-local e, p1
-local lastP = 0
-
-local lastf = 0
-local fps = 60
-
-local function testError()
-  gpu.blitPixels(2, 20, 5, 2, {1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
-end
-
-local function round(n, p)
-  return math.floor(n / p) * p
-end
-
-local function split(str)
-  local tab = {}
-  for word in str:gmatch("%S+") do
-    tab[#tab + 1] = word
-  end
-  return tab
-end
-
-while true do
-  gpu.clear()
-
-  local ctime = os.clock()
-  local delta = ctime - lastf
-  lastf = ctime
-  fps = fps + (1 / delta - fps)*0.01
-
-  write("FPS: " .. tostring(round(fps, 0.01)), 2, 190)
-
-  write("rikoOS 1.0", 2, 2, 4)
-
-  for i=0, 15 do
-    gpu.drawRectangle(i*8 + 2, 100, 8, 8, i)
-    write(tostring(i):sub(#tostring(i)), i*8 + 1, 100, (20 % i == 0) and 0 or 1)
-  end
-
-  local s, err = pcall(testError)
-  if err then
-    write(tostring(err):sub(14), 2, 120)
-  end
-
-  if lerr then
-    write(tostring(lerr):sub(14), 2, 130)
-  end
-
-  -- love.timer.sleep(1)
-  write(prefix, 2, 10, 4) write(str, 10, 10) write((math.floor((os.clock() * 2 - lastP) % 2) == 0 and "_" or ""), 10+(#str*7), 11)
-
-  write(tostring(e), 2, 50)
-  if e == "char" then
-    str = str .. p1
-    lastP = os.clock() * 2
-  elseif e == "key" then
-    write(tostring(p1), 2, 60)
-    if p1 == "Backspace" then
-      str = str:sub(1, #str - 1)
-      lastP = os.clock() * 2
-    elseif p1 == "Return" then
-      local cc = coroutine.create(loadfile(str:match("%S+")..".lua"))
-      local splitStr = split(str)
-      table.remove(splitStr, 1)
-      local e = splitStr or {}
-      while coroutine.status(cc) ~= "dead" do
-        local s, lerr = coroutine.resume(cc, unpack(e))
-        e = {coroutine.yield()}
-      end
-    end
-  end
-  e, p1 = coroutine.yield()
-
-  gpu.swap()
-end
+loadfile("../shell.lua")() -- dofile creates a seperate thread, so coroutines get messed up

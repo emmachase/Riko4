@@ -2,8 +2,8 @@
 
 #include <rikoGPU.h>
 
-#include <LuaJIT\lua.hpp>
-#include <LuaJIT\lauxlib.h>
+#include <LuaJIT/lua.hpp>
+#include <LuaJIT/lauxlib.h>
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 
@@ -13,52 +13,39 @@ static float pWid = 1 / 170.0f;
 static float pHei = 1 / 100.0f;
 
 char16_t palette[16][3] = {
-	{24, 24, 24},
-	{100, 100, 100},
-	{0, 18, 144},
-	{0, 39, 251},
-	{0, 143, 21},
-	{0, 249, 44},
-	{0, 144, 146},
-	{0, 252, 254},
-	{155, 23, 8},
-	{255, 48, 22},
-	{154, 32, 145},
-	{255, 63, 252},
-	{148, 145, 25},
-	{255, 253, 51},
-	{184, 184, 184},
-	{235, 235, 235},
-
-	/*{ 24, 24, 24 },     // Black
-	{ 85, 85, 85 },     // Dark Gray
-	{ 170, 170, 170 },  // Light Gray
-	{ 239, 239, 239 },  // White
-	{ 127, 72, 5 },     // Brown
-	{ 230, 10, 10 },    // Red
-	{ 245, 106, 10 },   // Orange
-	{ 255, 255, 0 },    // Yellow
-	{ 0, 255, 33 },     // Lime Green
-	{ 87, 165, 77 },    // Dark Green
-	{ 0, 147, 141 },    // Cyan
-	{ 10, 142, 255 },   // Light Blue
-	{ 0, 38, 255 },     // Blue
-	{ 178, 0, 255 },    // Magenta
-	{ 255, 0, 110 },    // Pink
-	{ 255, 102, 107}    // Light Redish idk lol salmon maybe?*/
+	{24,   24,   24},
+	{29,   43,   82},
+	{126,  37,   83},
+	{0,    134,  81},
+	{171,  81,   54},
+	{86,   86,   86},
+	{157,  157,  157},
+	{255,  0,    76},
+	{255,  163,  0},
+	{255,  240,  35},
+	{0,    231,  85},
+	{41,   173,  255},
+	{130,  118,  156},
+	{255,  119,  169},
+	{254,  204,  169},
+	{236,  236,  236}
 };
+
+static int getColor(lua_State *L, int arg) {
+	int color = (int)luaL_checknumber(L, arg) - 1;
+	return color < 0 ? 0 : (color > 15 ? 15 : color);
+}
 
 static int gpu_draw_pixel(lua_State *L) {
 	lua_Number x = ((int)luaL_checknumber(L, 1)) / 170.0f - 1.0f;
 	lua_Number y = 1.0f - ((int)luaL_checknumber(L, 2)) / 100.0f;
 
-	lua_Number color = ((int)luaL_checknumber(L, 3));
+	int color = getColor(L, 3);
 
 	glColor3f(palette[(int) color][0] / 255.0f, palette[(int) color][1] / 255.0f, palette[(int) color][2] / 255.0f);
 
 	glRectd(x, y, x + pWid, y - pHei);
-	//printf("%f %f %f %f \n", x, y, x + pWid, y + pHei);
-	//lua_pushboolean(L, luaL_checknumber(L, 2));
+
 	return 0;
 }
 
@@ -66,21 +53,20 @@ static int gpu_draw_rectangle(lua_State *L) {
 	lua_Number x = ((int)luaL_checknumber(L, 1)) / 170.0f - 1.0f;
 	lua_Number y = 1.0f - ((int)luaL_checknumber(L, 2)) / 100.0f;
 
-	lua_Number color = ((int)luaL_checknumber(L, 5));
+	int color = getColor(L, 5);
 
 	glColor3f(palette[(int)color][0] / 255.0f, palette[(int)color][1] / 255.0f, palette[(int)color][2] / 255.0f);
 
 	glRectd(x, y, x + pWid * ((int)luaL_checknumber(L, 3)), y - pHei * ((int)luaL_checknumber(L, 4)));
-	//printf("%f %f %f %f \n", x, y, x + pWid, y + pHei);
-	//lua_pushboolean(L, luaL_checknumber(L, 2));
+
 	return 0;
 }
 
 static int gpu_blit_pixels(lua_State *L) {
 	lua_Number x = ((int)luaL_checknumber(L, 1)) / 170.0f - 1.0f;
 	lua_Number y = 1.0f - ((int)luaL_checknumber(L, 2)) / 100.0f;
-	lua_Number w = ((int)luaL_checknumber(L, 3));
-	lua_Number h = ((int)luaL_checknumber(L, 4));
+	lua_Number w = (int)luaL_checknumber(L, 3);
+	lua_Number h = (int)luaL_checknumber(L, 4);
 
 	int amt = lua_objlen(L, -1);
 	int len = (int)w*(int)h;
@@ -88,9 +74,6 @@ static int gpu_blit_pixels(lua_State *L) {
 		luaL_error(L, "blitPixels expected %d pixels, got %d", len, amt);
 		return 0;
 	}
-		//printf("%d\n", lua_objlen(L, -1));
-
-
 
 	for (int i = 1; i <= len; i++) {
 		lua_pushnumber(L, i);
@@ -98,7 +81,12 @@ static int gpu_blit_pixels(lua_State *L) {
 		if (!lua_isnumber(L, -1)) {
 			luaL_error(L, "Index %d is non-numeric", i);
 		}
-		int color = lua_tonumber(L, -1);
+		int color = lua_tonumber(L, -1) - 1;
+		if (color == -1) {
+			continue;
+		}
+
+		color = color < 0 ? 0 : (color > 15 ? 15 : color);
 
 		float xp = ((i - 1) % (int) w) * pWid;
 		float yp = ((int)((i - 1) / (int) w)) * pHei;
@@ -115,8 +103,10 @@ static int gpu_blit_pixels(lua_State *L) {
 
 static int gpu_clear(lua_State *L) {
 	if (lua_gettop(L) > 0) {
-		lua_Number color = luaL_checknumber(L, 1);
+		int color = getColor(L, 1);
 		glClearColor(palette[(int)color][0] / 255.0f, palette[(int)color][1] / 255.0f, palette[(int)color][2] / 255.0f, 0.0f);
+	} else {
+		glClearColor(palette[0][0] / 255.0f, palette[0][1] / 255.0f, palette[0][2] / 255.0f, 0.0f);
 	}
 
 	glClear(GL_COLOR_BUFFER_BIT);

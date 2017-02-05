@@ -11,6 +11,8 @@
 #include <LuaJIT/lua.hpp>
 #include <LuaBridge/LuaBridge.h>
 
+#include <LFS/lfs.h>
+
 #include <rikoGPU.h>
 #include <rikoAudio.h>
 #include <rikoImage.h>
@@ -24,6 +26,7 @@ void printLuaError(int result) {
 		switch (result) {
 			case LUA_ERRRUN:
 				SDL_Log("Lua Runtime error");
+				//SDL_Log(luaL_checkstring(mainThread, 1));
 				break;
 			case LUA_ERRSYNTAX:
 				SDL_Log("Lua syntax error");
@@ -35,7 +38,7 @@ void printLuaError(int result) {
 				SDL_Log("Lua was unable to find boot file");
 				break;
 			default:
-				SDL_Log("Unknown lua error");
+				SDL_Log("Unknown lua error: %d", result);
 		}
 	}
 }
@@ -45,6 +48,8 @@ void createLuaInstance(const char* filename) {
 
 	// Make standard libraries available in the Lua object
 	luaL_openlibs(state);
+
+	luaopen_lfs(state);
 
 	luaopen_gpu(state);
 	luaopen_aud(state);
@@ -155,8 +160,11 @@ int main(int argc, char* argv[]) {
 
 	int cx;
 	int cy;
+	int mult;
 
-	do {
+	int exitCode = 0;
+
+	while (running) {
 		if (SDL_PollEvent(&event)) {
 			switch (event.type) {
 				case SDL_QUIT:
@@ -171,16 +179,26 @@ int main(int argc, char* argv[]) {
 					lua_pushstring(mainThread, SDL_GetKeyName(event.key.keysym.sym));
 					pushedArgs = 2;
 					break;
+				case SDL_MOUSEWHEEL:
+					lua_pushstring(mainThread, "mouseWheel");
+					mult = (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) ? -1 : 1;
+					
+					lua_pushnumber(mainThread, event.wheel.y * mult);
+					lua_pushnumber(mainThread, event.wheel.x * mult);
+					pushedArgs = 3;
+					break;
 				case SDL_MOUSEMOTION:
 					cx = event.motion.x / 3;
 					cy = event.motion.y / 3;
 					if (cx != lastMoveX || cy != lastMoveY) {
 						lua_pushstring(mainThread, "mouseMoved");
 						lua_pushnumber(mainThread, cx);
-						lastMoveX = cx;
 						lua_pushnumber(mainThread, cy);
+						lua_pushnumber(mainThread, cx - lastMoveX);
+						lua_pushnumber(mainThread, cy - lastMoveY);
+						lastMoveX = cx;
 						lastMoveY = cy;
-						pushedArgs = 3;
+						pushedArgs = 5;
 					}
 					break;
 				case SDL_MOUSEBUTTONDOWN:
@@ -207,30 +225,23 @@ int main(int argc, char* argv[]) {
 		if (canRun) {
 			int result = lua_resume(mainThread, pushedArgs);
 
-			if (result == LUA_YIELD) {
-
-			}
-			else if (result == 0) {
+			if (result == 0) {
 				printf("Script finished!\n");
 				canRun = false;
-				//break;
-			}
-			else {
+			} else if (result != LUA_YIELD) {
 				printLuaError(result);
 				canRun = false;
-				return 1;
-				//break;
+				exitCode = 1;
 			}
 		}	
 
 		pushedArgs = 0;
 		SDL_Delay(1);
 	}
-	while(running);
 
 	SDL_GL_DeleteContext(glcontext);
 	SDL_DestroyWindow(window);
 
 	SDL_Quit();
-	return 0;
+	return exitCode;
 }
