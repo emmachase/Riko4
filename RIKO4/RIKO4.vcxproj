@@ -129,9 +129,17 @@
     <ClCompile Include="riko.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="resource.h" />
     <ClInclude Include="rikoAudio.h" />
     <ClInclude Include="rikoGPU.h" />
     <ClInclude Include="rikoImage.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="RIKO4.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon.ico" />
+    <Image Include="icon.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

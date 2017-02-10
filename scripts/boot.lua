@@ -10,7 +10,7 @@ dataH:close()
 local coreFont = font.new(data)
 gpu.font = coreFont
 
-function write(t, x, y, col)
+function write(t, x, y, col, target)
   t = tostring(t)
   col = col or 16
   local xoff = 0
@@ -23,7 +23,11 @@ function write(t, x, y, col)
           if gpu.font.data[c][j][k] then
             local dx = x + xoff + k
             local dy = y + j
-            gpu.drawPixel(dx, dy, col)
+            if target then
+              target:drawPixel(dx, dy, col)
+            else
+              gpu.drawPixel(dx, dy, col)
+            end
           end
         end
       end

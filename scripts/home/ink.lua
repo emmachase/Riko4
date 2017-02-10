@@ -25,7 +25,9 @@ local locale = {
     clrclr = "Clear color",
     ok = "OK",
     cancel = "Cancel",
-    colors = "Colors"
+    colors = "Colors",
+    tools = "Tools",
+    pencil = "Pencil"
   }
 }
 
@@ -135,6 +137,9 @@ do -- Little windows
     self.canv:drawRectangle(x, y, w, h, c)
   end
 
+  function window:free()
+    self.canv:free()
+  end
 end
 
 local function clamp(v, mi, mx)
@@ -169,7 +174,22 @@ local zoomFactor = 1
 
 local mouseDown = {false, false, false}
 
+local toolPalette = window.new(locale[lang].tools, 60, 80)
 local colorPalette = window.new(locale[lang].colors, 6*4 + 20, 6*4)
+
+local windows = {toolPalette, colorPalette}
+
+local function wep(name, ...)
+  for i = 1, #windows do
+    local win = windows[i]
+    if win[name] then
+      if win[name](win, ...) then
+        return
+      end
+    end
+  end
+end
+
 local primColor = 4
 local secColor = 9
 
@@ -261,6 +281,16 @@ local function drawContent()
     colorPalette:flush()
 
     colorPalette:drawSelf()
+
+    toolPalette:drawRectangle(0, 0, 60, 80, 7)
+
+    toolPalette:drawRectangle(0, 1, 60, 10, 6)
+
+    write(locale[lang].pencil, 2, 2, 16, toolPalette.canv)
+
+    toolPalette:flush()
+
+    toolPalette:drawSelf()
   elseif state == 2 then
     backMatte:render(0, 0)
 
@@ -335,17 +365,17 @@ local function processEvent(ev, p1, p2, p3, p4)
         drawOffY = drawOffY - 5
       end
     elseif ev == "mousePressed" then
-      if mouseDown[2] or not colorPalette:mousePressed(p1, p2, p3) then
+      if mouseDown[2] or not wep("mousePressed", p1, p2, p3) then
         mouseDown[tonumber(p3)] = true
         drawQ(p1, p2, p3)
       end
     elseif ev == "mouseReleased" then
-      if mouseDown[2] or not colorPalette:mouseReleased(p1, p2, p3) then
+      if mouseDown[2] or not wep("mouseReleased", p1, p2, p3) then
         mouseDown[tonumber(p3)] = false
         drawQ(p1, p2, p3)
       end
     elseif ev == "mouseMoved" then
-      if mouseDown[2] or not colorPalette:mouseMoved(p1, p2, p3, p4) then
+      if mouseDown[2] or not wep("mouseMoved", p1, p2, p3, p4) then
         if mouseDown[2] then
           -- Move draw offsets
           drawOffX = drawOffX + p3
@@ -357,7 +387,10 @@ local function processEvent(ev, p1, p2, p3, p4)
       mousePosX = p1
       mousePosY = p2
     elseif ev == "mouseWheel" then
+      local px, py = convertScrn2I(mousePosX, mousePosY)
       zoomFactor = clamp(zoomFactor + p1, 1)
+      drawOffX = mousePosX - px * zoomFactor
+      drawOffY = mousePosY - py * zoomFactor
     end
   elseif state == 2 then
     -- File creation
@@ -394,4 +427,4 @@ end
 
 backMatte:free()
 transMatte:free()
-colorPalette.canv:free()
+wep("free")
