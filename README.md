@@ -1,4 +1,4 @@
-# RIKO-4
+# Riko4
 
 A fantasy console for random crap idk man
 
