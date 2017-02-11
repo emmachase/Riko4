@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
 	SDL_Init(SDL_INIT_VIDEO);
 
 	window = SDL_CreateWindow(
-		"RIKO 4",
+		"Riko4",
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
 		3 * 340,

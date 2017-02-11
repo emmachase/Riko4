@@ -48,7 +48,7 @@ static Uint32 getRectC(imageType *data, int color) {
 }
 
 static imageType *checkImage(lua_State *L) {
-	void *ud = luaL_checkudata(L, 1, "RIKO4.Image");
+	void *ud = luaL_checkudata(L, 1, "Riko4.Image");
 	luaL_argcheck(L, ud != NULL, 1, "`Image` expected");
 	return (imageType *)ud;
 }
@@ -67,7 +67,7 @@ static int newImage(lua_State *L) {
 	size_t nbytes = sizeof(imageType);
 	imageType *a = (imageType *)lua_newuserdata(L, nbytes);
 
-	luaL_getmetatable(L, "RIKO4.Image");
+	luaL_getmetatable(L, "Riko4.Image");
 	lua_setmetatable(L, -2);
 
 	a->width = w;
@@ -275,7 +275,7 @@ static int imageClear(lua_State *L) {
 static int imageCopy(lua_State *L) {
 	imageType *src = checkImage(L);
 
-	void *ud = luaL_checkudata(L, 2, "RIKO4.Image");
+	void *ud = luaL_checkudata(L, 2, "Riko4.Image");
 	luaL_argcheck(L, ud != NULL, 1, "`Image` expected");
 	imageType *dst = (imageType *)ud;
 
@@ -343,7 +343,7 @@ static const luaL_Reg imageLib_m[] = {
 };
 
 LUALIB_API int luaopen_image(lua_State *L) {
-	luaL_newmetatable(L, "RIKO4.Image");
+	luaL_newmetatable(L, "Riko4.Image");
 
 	lua_pushstring(L, "__index");
 	lua_pushvalue(L, -2);  /* pushes the metatable */

@@ -46,7 +46,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="RIKO4.rc">
+    <ResourceCompile Include="Riko4.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>

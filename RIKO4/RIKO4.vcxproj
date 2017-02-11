@@ -20,8 +20,9 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{68DDDD53-20CC-4BC8-A81B-68244C8EDD5D}</ProjectGuid>
-    <RootNamespace>RIKO4</RootNamespace>
+    <RootNamespace>Riko4</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <ProjectName>Riko4</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -74,10 +75,10 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\libs\include\SDL2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Bryan\Documents\Visual Studio 2015\Projects\Riko4\libs\include\SDL2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\libs\SDL2;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Users\Bryan\Documents\Visual Studio 2015\Projects\Riko4\libs\SDL2;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>SDL2main.lib;SDL2.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -87,10 +88,10 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\RIKO4;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\includes;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\libs\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Bryan\Documents\Visual Studio 2015\Projects\Riko4\Riko4;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\Riko4\includes;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\Riko4\libs\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\libs\LFS;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\libs\GL;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\libs\LuaJIT;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\RIKO4\libs\SDL2;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Users\Bryan\Documents\Visual Studio 2015\Projects\Riko4\libs\LFS;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\Riko4\libs\GL;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\Riko4\libs\LuaJIT;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\Riko4\libs\SDL2;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>lua51.lib;SDL2main.lib;SDL2.lib;opengl32.lib;glu32.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -135,7 +136,7 @@
     <ClInclude Include="rikoImage.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="RIKO4.rc" />
+    <ResourceCompile Include="Riko4.rc" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="icon.ico" />
