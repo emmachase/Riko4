@@ -184,7 +184,7 @@ local function wep(name, ...)
     local win = windows[i]
     if win[name] then
       if win[name](win, ...) then
-        return
+        return true
       end
     end
   end

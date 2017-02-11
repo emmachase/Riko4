@@ -49,7 +49,7 @@ void createLuaInstance(const char* filename) {
 	// Make standard libraries available in the Lua object
 	luaL_openlibs(state);
 
-	luaopen_lfs(state);
+	//luaopen_lfs(state);
 
 	luaopen_gpu(state);
 	luaopen_aud(state);

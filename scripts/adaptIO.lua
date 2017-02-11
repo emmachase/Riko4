@@ -6,6 +6,21 @@ local funcs = {
   {_G, "loadfile"}
 }
 
+local function checkBounds(path)
+  local level = 0
+  for word in path:gmatch("[^%/^%\\]+") do
+    if word == ".." then
+      level = level - 1
+      if level <= 0 then
+        return false
+      end
+    else
+      level = level + 1
+    end
+  end
+  return true
+end
+
 for i=1, #funcs do
   local ref = funcs[i][1][funcs[i][2]]
 
@@ -15,6 +30,10 @@ for i=1, #funcs do
     end
     fn = "scripts/home/" .. fn
 
-    return ref(fn, ...)
+    if checkBounds(tostring(fn)) then
+      return ref(fn, ...)
+    else
+      error("Attempt to break out of sandbox", 2)
+    end
   end
 end

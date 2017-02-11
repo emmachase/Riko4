@@ -79,25 +79,36 @@ while true do
       else
         lineHistory[historyPoint][1][3] = "" -- Remove the "_" if it is there
         local startPoint = historyPoint
-        local cfunc = loadfile(str:match("%S+")..".lua")
-        if cfunc then
-          local cc = coroutine.create(cfunc)
-          local splitStr = split(str)
-          table.remove(splitStr, 1)
-          local ev = splitStr or {}
-          local upfunc = table.unpack and table.unpack or unpack
-          while coroutine.status(cc) ~= "dead" do
-            local s, er = coroutine.resume(cc, upfunc(ev))
-            if not s then
-              print(er)
-            end
-            ev = {coroutine.yield()}
+        local cfunc
+        local s, er = pcall(function() cfunc = loadfile(str:match("%S+")..".lua") end)
+        if not s then
+          if er then
+            er = er:sub(er:find("%:") + 1)
+            er = er:sub(er:find("%:") + 2)
+            pushOutput("Error: " .. tostring(er), 7)
+          else
+            pushOutput("Error: Unknown error", 7)
           end
         else
-          pushOutput("Unknown program `"..str:match("%S+").."`", 7)
-        end
-        if historyPoint == startPoint then
-          historyPoint = historyPoint + 1
+          if cfunc then
+            local cc = coroutine.create(cfunc)
+            local splitStr = split(str)
+            table.remove(splitStr, 1)
+            local ev = splitStr or {}
+            local upfunc = table.unpack and table.unpack or unpack
+            while coroutine.status(cc) ~= "dead" do
+              local s, er = coroutine.resume(cc, upfunc(ev))
+              if not s then
+                print(er)
+              end
+              ev = {coroutine.yield()}
+            end
+          else
+            pushOutput("Unknown program `"..str:match("%S+").."`", 7)
+          end
+          if historyPoint == startPoint then
+            historyPoint = historyPoint + 1
+          end
         end
         str = ""
       end
