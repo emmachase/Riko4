@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	SDL_Surface *surface;     // Declare an SDL_Surface to be filled in with pixel data from an image file
-	surface = SDL_LoadBMP("icon.png");
+	surface = SDL_LoadBMP("icon.ico");
 
 	// The icon is attached to the window pointer
 	SDL_SetWindowIcon(window, surface);

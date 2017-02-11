@@ -44,20 +44,33 @@ static int gpu_draw_pixel(lua_State *L) {
 
 	glColor3f(palette[(int) color][0] / 255.0f, palette[(int) color][1] / 255.0f, palette[(int) color][2] / 255.0f);
 
-	glRectd(x, y, x + pWid, y - pHei);
+	glBegin(GL_POLYGON);
+	glVertex2d(x, y);
+	glVertex2d(x + pWid, y);
+	glVertex2d(x + pWid, y - pHei);
+	glVertex2d(x, y - pHei);
+	glEnd();
 
 	return 0;
 }
 
 static int gpu_draw_rectangle(lua_State *L) {
-	lua_Number x = ((int)luaL_checknumber(L, 1)) / 170.0f - 1.0f;
-	lua_Number y = 1.0f - ((int)luaL_checknumber(L, 2)) / 100.0f;
+	lua_Number x1 = ((int)luaL_checknumber(L, 1)) / 170.0f - 1.0f;
+	lua_Number y1 = 1.0f - ((int)luaL_checknumber(L, 2)) / 100.0f;
 
 	int color = getColor(L, 5);
 
 	glColor3f(palette[(int)color][0] / 255.0f, palette[(int)color][1] / 255.0f, palette[(int)color][2] / 255.0f);
 
-	glRectd(x, y, x + pWid * ((int)luaL_checknumber(L, 3)), y - pHei * ((int)luaL_checknumber(L, 4)));
+	double x2 = x1 + pWid * ((int)luaL_checknumber(L, 3));
+	double y2 = y1 - pHei * ((int)luaL_checknumber(L, 4));
+
+	glBegin(GL_POLYGON);
+	glVertex2d(x1, y1);
+	glVertex2d(x2, y1);
+	glVertex2d(x2, y2);
+	glVertex2d(x1, y2);
+	glEnd();
 
 	return 0;
 }
@@ -93,7 +106,12 @@ static int gpu_blit_pixels(lua_State *L) {
 		
 		glColor3f(palette[color][0] / 255.0f, palette[color][1] / 255.0f, palette[color][2] / 255.0f);
 
-		glRectd(x + xp, y - yp, x + xp + pWid, y - yp - pHei);
+		glBegin(GL_POLYGON);
+		glVertex2d(x + xp, y - yp);
+		glVertex2d(x + xp + pWid, y - yp);
+		glVertex2d(x + xp + pWid, y - yp - pHei);
+		glVertex2d(x + xp, y - yp - pHei);
+		glEnd();
 
 		lua_pop(L, 1);
 	}
