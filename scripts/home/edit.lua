@@ -51,8 +51,9 @@ content[#content + 1] = ""
 
 local colorizedLines = {}
 
-local cursorLine = 1
-local cursorPos = #content[1]
+local tclc = tonumber(args[2])
+local cursorLine = tclc and tclc or 1
+local cursorPos = #content[cursorLine]
 local blinkTimeCorrection = os.clock()
 
 local running = true
@@ -323,6 +324,7 @@ local function checkDrawBounds()
     drawOffsets[2] = cursorLine - 1
   end
 end
+checkDrawBounds()
 
 local mouseDown = false
 

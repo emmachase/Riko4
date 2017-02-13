@@ -1,11 +1,13 @@
 --[[
   States
 
-  1 - Paint screen          NYI
+  1 - Paint screen          NYF
   2 - File creation         NYF
   3 - File open             NYI
   4 - File save             NYI
+
 ]]
+
 local state = 1
 local running = true
 local DEBUG = true
@@ -193,9 +195,6 @@ end
 local primColor = 4
 local secColor = 9
 
-local mousePosX = 0
-local mousePosY = 0
-
 local workingImage = {}
 
 if DEBUG then
@@ -208,8 +207,73 @@ if DEBUG then
   end
 end
 
+local function convertScrn2I(x, y)
+  return math.floor((x - drawOffX) / zoomFactor), math.floor((y - drawOffY - 10) / zoomFactor)
+end
+
+local function drawQ(x, y, b)
+  if b == 2 then
+    return
+  end
+
+  local tx, ty = convertScrn2I(x, y)
+  if tx >= 0 and ty >= 0 and tx < imgWidth and ty < imgHeight and (b == 1 or b == 3)then
+    workingImage[tx + 1][ty + 1] = (b == 1) and primColor or (b == 3) and secColor
+  end
+end
+
+local mousePosX = 0
+local mousePosY = 0
+
+local selectedTool = 1
+local toolVars = {
+  pencil = {
+    mouseDown = { false, false, false },
+    mposx = -1,
+    mposy = -1
+  }
+}
+local toolList = {
+  {
+    name = "Pencil",
+    mouseDown = function(x, y, b)
+      toolVars.pencil.mouseDown[b] = true
+      drawQ(x, y, b)
+    end,
+    mouseUp = function(x, y, b)
+      toolVars.pencil.mouseDown[b] = false
+      drawQ(x, y, b)
+    end,
+    mouseMoved = function(x, y, dx, dy)
+      toolVars.pencil.mposx = x
+      toolVars.pencil.mposy = y
+
+      drawQ(x, y, toolVars.pencil.mouseDown[1] and 1 or (toolVars.pencil.mouseDown[3] and 3 or 0))
+    end,
+    draw = function()
+      local transX, transY = convertScrn2I(toolVars.pencil.mposx, toolVars.pencil.mposy)
+      gpu.drawRectangle((transX * zoomFactor) + drawOffX, (transY * zoomFactor) + drawOffY + 10, zoomFactor, zoomFactor, 
+        toolVars.pencil.mouseDown[3] and secColor or primColor)
+    end
+  },
+  {
+    name = "Eraser",
+    mouseDown = function(x, y, b)
+
+    end,
+    mouseUp = function(x, y, b)
+
+    end,
+    mouseMoved = function(x, y, dx, dy)
+
+    end,
+    draw = function()
+
+    end
+  }
+}
+
 colorPalette.mousePressedCallback = function(x, y, b)
-  print(x)
   if x < 24 then
     local offs = math.floor(y / 6)
     local ind = (offs * 4) + math.floor(x / 6) + 1
@@ -221,8 +285,8 @@ colorPalette.mousePressedCallback = function(x, y, b)
   end
 end
 
-local function convertScrn2I(x, y)
-  return math.floor((x - drawOffX) / zoomFactor), math.floor((y - drawOffY - 10) / zoomFactor)
+toolPalette.mousePressedCallback = function(x, y, b)
+  selectedTool = math.floor((y - 1) / 10) + 1
 end
 
 local function drawContent()
@@ -254,8 +318,7 @@ local function drawContent()
       end
     end
 
-    local transX, transY = convertScrn2I(mousePosX, mousePosY)
-    gpu.drawRectangle((transX * zoomFactor) + drawOffX, (transY * zoomFactor) + drawOffY + 10, zoomFactor, zoomFactor, primColor)
+    toolList[selectedTool].draw()
 
     -- Done
 
@@ -284,9 +347,11 @@ local function drawContent()
 
     toolPalette:drawRectangle(0, 0, 60, 80, 7)
 
-    toolPalette:drawRectangle(0, 1, 60, 10, 6)
+    toolPalette:drawRectangle(0, 1 + (10 * (selectedTool - 1)), 60, 10, 6)
 
-    write(locale[lang].pencil, 2, 2, 16, toolPalette.canv)
+    for i=1, #toolList do
+      write(toolList[i].name, 2, 2 + (10 * (i - 1)), 16, toolPalette.canv)
+    end
 
     toolPalette:flush()
 
@@ -337,17 +402,6 @@ local function drawContent()
   end
 end
 
-local function drawQ(x, y, b)
-  if b == 2 then
-    return
-  end
-
-  local tx, ty = convertScrn2I(x, y)
-  if tx >= 0 and ty >= 0 and tx < imgWidth and ty < imgHeight and (b == 1 or b == 3)then
-    workingImage[tx + 1][ty + 1] = (b == 1) and primColor or (b == 3) and secColor
-  end
-end
-
 local function processEvent(ev, p1, p2, p3, p4)
   if state == 1 then
     -- Painting
@@ -367,12 +421,12 @@ local function processEvent(ev, p1, p2, p3, p4)
     elseif ev == "mousePressed" then
       if mouseDown[2] or not wep("mousePressed", p1, p2, p3) then
         mouseDown[tonumber(p3)] = true
-        drawQ(p1, p2, p3)
+        toolList[selectedTool].mouseDown(p1, p2, p3)
       end
     elseif ev == "mouseReleased" then
       if mouseDown[2] or not wep("mouseReleased", p1, p2, p3) then
         mouseDown[tonumber(p3)] = false
-        drawQ(p1, p2, p3)
+        toolList[selectedTool].mouseUp(p1, p2, p3)
       end
     elseif ev == "mouseMoved" then
       if mouseDown[2] or not wep("mouseMoved", p1, p2, p3, p4) then
@@ -381,7 +435,9 @@ local function processEvent(ev, p1, p2, p3, p4)
           drawOffX = drawOffX + p3
           drawOffY = drawOffY + p4
         end
-        drawQ(p1, p2, mouseDown[1] and 1 or (mouseDown[3] and 3 or 0))
+
+        toolList[selectedTool].mouseMoved(p1, p2, p3, p4)
+        --drawQ(p1, p2, mouseDown[1] and 1 or (mouseDown[3] and 3 or 0))
       end
 
       mousePosX = p1
