@@ -81,7 +81,7 @@ do -- Little windows
   function window:mousePressed(x, y, b)
     if x >= self.x and x < self.x + self.w + 2 then
       if y >= self.y then
-        if y < self.y + 10 then
+        if y < self.y + 11 then
           -- Bar
           self.mdn = b == 1
           return true
@@ -100,7 +100,7 @@ do -- Little windows
   function window:mouseReleased(x, y, b)
     if x >= self.x and x < self.x + self.w + 2 then
       if y >= self.y then
-        if y < self.y + 10 then
+        if y < self.y + 11 then
           -- Bar
           self.mdn = false
           return true
@@ -224,10 +224,15 @@ end
 
 local mousePosX = 0
 local mousePosY = 0
-
+local zxxx = 1
 local selectedTool = 1
 local toolVars = {
   pencil = {
+    mouseDown = { false, false, false },
+    mposx = -1,
+    mposy = -1
+  },
+  eraser = {
     mouseDown = { false, false, false },
     mposx = -1,
     mposy = -1
@@ -259,16 +264,34 @@ local toolList = {
   {
     name = "Eraser",
     mouseDown = function(x, y, b)
-
+      toolVars.eraser.mouseDown[b] = true
+      local tx, ty = convertScrn2I(x, y)
+      if tx >= 0 and ty >= 0 and tx < imgWidth and ty < imgHeight and b == 1 then
+        workingImage[tx + 1][ty + 1] = 0
+      end
     end,
     mouseUp = function(x, y, b)
-
+      toolVars.eraser.mouseDown[b] = false
+      local tx, ty = convertScrn2I(x, y)
+      if tx >= 0 and ty >= 0 and tx < imgWidth and ty < imgHeight and b == 1 then
+        workingImage[tx + 1][ty + 1] = 0
+      end
     end,
     mouseMoved = function(x, y, dx, dy)
+      toolVars.eraser.mposx = x
+      toolVars.eraser.mposy = y
 
+      if toolVars.eraser.mouseDown[1] then
+        local tx, ty = convertScrn2I(x, y)
+        if tx >= 0 and ty >= 0 and tx < imgWidth and ty < imgHeight then
+          workingImage[tx + 1][ty + 1] = 0
+        end
+      end
     end,
     draw = function()
-
+      local transX, transY = convertScrn2I(toolVars.eraser.mposx, toolVars.eraser.mposy)
+      gpu.drawRectangle((transX * zoomFactor) + drawOffX, (transY * zoomFactor) + drawOffY + 10, zoomFactor, zoomFactor, zxxx)
+      zxxx = (zxxx) % 16 + 1
     end
   }
 }
@@ -286,6 +309,7 @@ colorPalette.mousePressedCallback = function(x, y, b)
 end
 
 toolPalette.mousePressedCallback = function(x, y, b)
+  if y == 0 then return end
   selectedTool = math.floor((y - 1) / 10) + 1
 end
 
@@ -446,7 +470,7 @@ local function processEvent(ev, p1, p2, p3, p4)
       local px, py = convertScrn2I(mousePosX, mousePosY)
       zoomFactor = clamp(zoomFactor + p1, 1)
       drawOffX = mousePosX - px * zoomFactor
-      drawOffY = mousePosY - py * zoomFactor
+      drawOffY = (mousePosY - 10) - py * zoomFactor
     end
   elseif state == 2 then
     -- File creation
