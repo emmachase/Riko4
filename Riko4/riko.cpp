@@ -1,4 +1,19 @@
-#pragma once
+#if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) \
+ || defined(__TOS_WIN__) || defined(__WINDOWS__)
+/* Compiling for Windows */
+#ifndef __WINDOWS__
+#define __WINDOWS__
+#endif
+#  include <windows.h>
+#endif/* Predefined Windows macros */
+
+#ifndef CALLBACK
+#if defined(_ARM_)
+#define CALLBACK
+#else
+#define CALLBACK __stdcall
+#endif
+#endif
 
 #include <iostream>
 
@@ -9,7 +24,6 @@
 #include <GL/glew.h>
 
 #include <LuaJIT/lua.hpp>
-#include <LuaBridge/LuaBridge.h>
 
 #include <LFS/lfs.h>
 
@@ -68,7 +82,7 @@ void createLuaInstance(const char* filename) {
 	}
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char * argv[]) {
 	SDL_Init(SDL_INIT_VIDEO);
 
 	window = SDL_CreateWindow(
@@ -209,5 +223,6 @@ int main(int argc, char* argv[]) {
 	SDL_DestroyWindow(window);
 
 	SDL_Quit();
+
 	return exitCode;
 }

@@ -179,6 +179,7 @@ static int imageDrawPixel(lua_State *L) {
 	rect->w = 1;
 	rect->h = 1;
 	SDL_FillRect(data->surface, rect, rectcolor);
+	free(rect);
 	return 0;
 }
 
@@ -200,6 +201,7 @@ static int imageDrawRectangle(lua_State *L) {
 	rect->w = w;
 	rect->h = h;
 	SDL_FillRect(data->surface, rect, rectcolor);
+	free(rect);
 	return 0;
 }
 
@@ -244,6 +246,7 @@ static int imageBlitPixels(lua_State *L) {
 			rect->w = 1;
 			rect->h = 1;
 			SDL_FillRect(data->surface, rect, rectcolor);
+			free(rect);
 		//}
 
 		lua_pop(L, 1);
@@ -310,7 +313,8 @@ static int imageCopy(lua_State *L) {
 	rect->w = wi;
 	rect->h = he;
 	SDL_BlitSurface(src->surface, srcRect, dst->surface, rect);
-	
+	free(srcRect);
+	free(rect);
 	return 0;
 }
 

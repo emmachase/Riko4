@@ -1,11 +1,22 @@
 #define LUA_LIB
 
+#ifndef CALLBACK
+#if defined(_ARM_)
+#define CALLBACK
+#else
+#define CALLBACK __stdcall
+#endif
+#endif
+
 #include <rikoGPU.h>
 
 #include <LuaJIT/lua.hpp>
 #include <LuaJIT/lauxlib.h>
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
+
+#include <stdint.h>
+#include <stdlib.h>
 
 extern SDL_Window *window;
 
@@ -28,11 +39,12 @@ char16_t palette[16][3] = {
 	{130,  118,  156},
 	{255,  119,  169},
 	{254,  204,  169},
-	{236,  236,  236}
+	{236,  236,  255}
 };
 
 static int getColor(lua_State *L, int arg) {
 	int color = (int)luaL_checknumber(L, arg) - 1;
+	//printf("color %d", color);
 	return color < 0 ? 0 : (color > 15 ? 15 : color);
 }
 
