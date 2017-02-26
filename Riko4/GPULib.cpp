@@ -12,16 +12,17 @@
 
 #include <LuaJIT/lua.hpp>
 #include <LuaJIT/lauxlib.h>
-#include <GL/glew.h>
 #include <SDL2/SDL.h>
 
 #include <stdint.h>
 #include <stdlib.h>
 
 extern SDL_Window *window;
+extern SDL_Renderer *renderer;
+extern int pixelSize;
 
-static float pWid = 1 / 170.0f;
-static float pHei = 1 / 100.0f;
+static float pWid = 1;
+static float pHei = 1;
 
 char16_t palette[16][3] = {
 	{24,   24,   24},
@@ -44,54 +45,48 @@ char16_t palette[16][3] = {
 
 static int getColor(lua_State *L, int arg) {
 	int color = (int)luaL_checknumber(L, arg) - 1;
-	//printf("color %d", color);
 	return color < 0 ? 0 : (color > 15 ? 15 : color);
 }
 
 static int gpu_draw_pixel(lua_State *L) {
-	lua_Number x = ((int)luaL_checknumber(L, 1)) / 170.0f - 1.0f;
-	lua_Number y = 1.0f - ((int)luaL_checknumber(L, 2)) / 100.0f;
+	int x = ((int)luaL_checknumber(L, 1));
+	int y = ((int)luaL_checknumber(L, 2));
 
 	int color = getColor(L, 3);
 
-	glColor3f(palette[(int) color][0] / 255.0f, palette[(int) color][1] / 255.0f, palette[(int) color][2] / 255.0f);
+	SDL_Rect rect;
+	rect.x = x * pixelSize;
+	rect.y = y * pixelSize;
+	rect.w = pixelSize;
+	rect.h = pixelSize;
 
-	glBegin(GL_POLYGON);
-	glVertex2d(x, y);
-	glVertex2d(x + pWid, y);
-	glVertex2d(x + pWid, y - pHei);
-	glVertex2d(x, y - pHei);
-	glEnd();
+	SDL_SetRenderDrawColor(renderer, palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255);
+	SDL_RenderFillRect(renderer, &rect);
 
 	return 0;
 }
 
 static int gpu_draw_rectangle(lua_State *L) {
-	lua_Number x1 = ((int)luaL_checknumber(L, 1)) / 170.0f - 1.0f;
-	lua_Number y1 = 1.0f - ((int)luaL_checknumber(L, 2)) / 100.0f;
-
 	int color = getColor(L, 5);
 
-	glColor3f(palette[(int)color][0] / 255.0f, palette[(int)color][1] / 255.0f, palette[(int)color][2] / 255.0f);
+	SDL_Rect rect;
+	rect.x = (int)luaL_checknumber(L, 1) * pixelSize;
+	rect.y = (int)luaL_checknumber(L, 2) * pixelSize;
+	rect.w = (int)luaL_checknumber(L, 3) * pixelSize;
+	rect.h = (int)luaL_checknumber(L, 4) * pixelSize;
 
-	double x2 = x1 + pWid * ((int)luaL_checknumber(L, 3));
-	double y2 = y1 - pHei * ((int)luaL_checknumber(L, 4));
+	SDL_SetRenderDrawColor(renderer, palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255);
+	SDL_RenderFillRect(renderer, &rect);
 
-	glBegin(GL_POLYGON);
-	glVertex2d(x1, y1);
-	glVertex2d(x2, y1);
-	glVertex2d(x2, y2);
-	glVertex2d(x1, y2);
-	glEnd();
 
 	return 0;
 }
 
 static int gpu_blit_pixels(lua_State *L) {
-	lua_Number x = ((int)luaL_checknumber(L, 1)) / 170.0f - 1.0f;
-	lua_Number y = 1.0f - ((int)luaL_checknumber(L, 2)) / 100.0f;
-	lua_Number w = (int)luaL_checknumber(L, 3);
-	lua_Number h = (int)luaL_checknumber(L, 4);
+	int x = ((int)luaL_checknumber(L, 1));
+	int y = ((int)luaL_checknumber(L, 2));
+	int w = (int)luaL_checknumber(L, 3);
+	int h = (int)luaL_checknumber(L, 4);
 
 	int amt = lua_objlen(L, -1);
 	int len = (int)w*(int)h;
@@ -116,14 +111,14 @@ static int gpu_blit_pixels(lua_State *L) {
 		float xp = ((i - 1) % (int) w) * pWid;
 		float yp = ((int)((i - 1) / (int) w)) * pHei;
 		
-		glColor3f(palette[color][0] / 255.0f, palette[color][1] / 255.0f, palette[color][2] / 255.0f);
+		SDL_Rect rect;
+		rect.x = x * pixelSize;
+		rect.y = y * pixelSize;
+		rect.w = pixelSize;
+		rect.h = pixelSize;
 
-		glBegin(GL_POLYGON);
-		glVertex2d(x + xp, y - yp);
-		glVertex2d(x + xp + pWid, y - yp);
-		glVertex2d(x + xp + pWid, y - yp - pHei);
-		glVertex2d(x + xp, y - yp - pHei);
-		glEnd();
+		SDL_SetRenderDrawColor(renderer, palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255);
+		SDL_RenderFillRect(renderer, &rect);
 
 		lua_pop(L, 1);
 	}
@@ -134,18 +129,18 @@ static int gpu_blit_pixels(lua_State *L) {
 static int gpu_clear(lua_State *L) {
 	if (lua_gettop(L) > 0) {
 		int color = getColor(L, 1);
-		glClearColor(palette[(int)color][0] / 255.0f, palette[(int)color][1] / 255.0f, palette[(int)color][2] / 255.0f, 0.0f);
+		SDL_SetRenderDrawColor(renderer, palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255);
 	} else {
-		glClearColor(palette[0][0] / 255.0f, palette[0][1] / 255.0f, palette[0][2] / 255.0f, 0.0f);
+		SDL_SetRenderDrawColor(renderer, palette[0][0], palette[0][1], palette[0][2], 255);
 	}
 
-	glClear(GL_COLOR_BUFFER_BIT);
+	SDL_RenderClear(renderer);
 
 	return 0;
 }
 
 static int gpu_swap(lua_State *L) {
-	SDL_GL_SwapWindow(window);
+	SDL_RenderPresent(renderer);
 	return 0;
 }
 

@@ -2,12 +2,13 @@
 
 #include <LuaJIT/lua.hpp>
 #include <LuaJIT/lauxlib.h>
-#include <GL/glew.h>
 #include <SDL2/SDL.h>
 
 #include <rikoImage.h>
 
 extern SDL_Window *window;
+extern SDL_Renderer *renderer;
+extern int pixelSize;
 extern char16_t palette[16][3];
 
 typedef struct imageType {
@@ -16,11 +17,11 @@ typedef struct imageType {
 	bool free;
 	int clr;
 	SDL_Surface *surface;
-	texture glTex;
+	SDL_Texture *texture;
 } imageType;
 
-static float pWid = 1 / 170.0f;
-static float pHei = 1 / 100.0f;
+static float pWid = 1;
+static float pHei = 1;
 
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
 	int rmask = 0xff000000;
@@ -75,22 +76,10 @@ static int newImage(lua_State *L) {
 	a->free = false;
 	a->clr = 0;
 	a->surface = SDL_CreateRGBSurface(0, w, h, 32, rmask, gmask, bmask, amask);
-	texture ret;
-	glGenTextures(1, &ret);
-	a->glTex = ret;
 
 	// Init to black color
-	//Uint32 rectcolor = SDL_MapRGBA(a->surface->format, palette[0][0], palette[0][1], palette[0][2], 255);
-	//SDL_FillRect(a->surface, NULL, rectcolor);
-
 	SDL_FillRect(a->surface, NULL, SDL_MapRGBA(a->surface->format, 0, 0, 0, 0));
-
-	glBindTexture(GL_TEXTURE_2D, a->glTex);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, 3, a->width, a->height, 0, GL_RGBA,
-		GL_UNSIGNED_BYTE, a->surface->pixels);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	a->texture = SDL_CreateTextureFromSurface(renderer, a->surface);
 
 	return 1;
 }
@@ -99,12 +88,8 @@ static int flushImage(lua_State *L) {
 	imageType *data = checkImage(L);
 	if (!freeCheck(L, data)) return 0;
 
-	glBindTexture(GL_TEXTURE_2D, data->glTex);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, 3, data->width, data->height, 0, GL_RGBA,
-		GL_UNSIGNED_BYTE, data->surface->pixels);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_DestroyTexture(data->texture);
+	data->texture = SDL_CreateTextureFromSurface(renderer, data->surface);
 
 	return 0;
 }
@@ -113,41 +98,16 @@ static int renderImage(lua_State *L) {
 	imageType *data = checkImage(L);
 	if (!freeCheck(L, data)) return 0;
 
-	GLfloat x = ((int)luaL_checknumber(L, 2)) / 170.0f - 1.0f;
-	GLfloat y = 1.0f - ((int)luaL_checknumber(L, 3)) / 100.0f;
+	int x = (int)luaL_checknumber(L, 2);
+	int y = (int)luaL_checknumber(L, 3);
 
-	texture ret = data->glTex;
-	
-	glBindTexture(GL_TEXTURE_2D, ret);
+	SDL_Rect rect;
+	rect.x = x * pixelSize;
+	rect.y = y * pixelSize;
+	rect.w = data->width * pixelSize;
+	rect.h = data->height * pixelSize;
 
-	glColor3f(1, 1, 1);
-	glEnable(GL_TEXTURE_2D);
-
-	//glDisable(GL_DEPTH_TEST);
-	//glColorMask(1, 1, 1, 1);
-	glEnable(GL_BLEND);
-	//glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ZERO);
-	//glEnable(GL_ALPHA_TEST);
-	//glBlendFunc(GL_ONE, GL_ONE); 
-	//glClearColor(0.4, 0.4, 0.4, 0.4);
-	//glAlphaFunc(GL_EQUAL, 1.0);
-
-	//glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-
-	glBegin(GL_QUADS);
-	glTexCoord2i(0, 0); glVertex3f(x, y, 0);
-	glTexCoord2i(0, 1); glVertex3f(x, y - pHei*data->height, 0);
-	glTexCoord2i(1, 1); glVertex3f(x + pWid*data->width, y - pHei*data->height, 0);
-	glTexCoord2i(1, 0); glVertex3f(x + pWid*data->width, y, 0);
-	glEnd();
-
-
-	glDisable(GL_TEXTURE_2D);
-	//glDisable(GL_BLEND);
-	//glDisable(GL_ALPHA_TEST);
-	//glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-
-	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_RenderCopy(renderer, data->texture, NULL, &rect);
 
 	return 0;
 }
@@ -158,7 +118,6 @@ static int freeImage(lua_State *L) {
 
 	SDL_FreeSurface(data->surface);
 	data->free = true;
-	glDeleteTextures(1, &(data->glTex));
 
 	return 0;
 }
@@ -238,16 +197,14 @@ static int imageBlitPixels(lua_State *L) {
 		int xp = ((i - 1) % (int)w);
 		int yp = ((int)((i - 1) / (int)w));
 
-		//if (color != data->clr) {
-			Uint32 rectcolor = getRectC(data, color);
-			SDL_Rect* rect = new SDL_Rect();
-			rect->x = x + xp;
-			rect->y = y + yp;
-			rect->w = 1;
-			rect->h = 1;
-			SDL_FillRect(data->surface, rect, rectcolor);
-			free(rect);
-		//}
+		Uint32 rectcolor = getRectC(data, color);
+		SDL_Rect* rect = new SDL_Rect();
+		rect->x = x + xp;
+		rect->y = y + yp;
+		rect->w = 1;
+		rect->h = 1;
+		SDL_FillRect(data->surface, rect, rectcolor);
+		free(rect);
 
 		lua_pop(L, 1);
 	}
@@ -258,17 +215,6 @@ static int imageBlitPixels(lua_State *L) {
 static int imageClear(lua_State *L) {
 	imageType *data = checkImage(L);
 	if (!freeCheck(L, data)) return 0;
-
-	/*if (lua_gettop(L) > 0) {
-		int color = getColor(L, 1);
-		Uint32 rectcolor = SDL_MapRGBA(data->surface->format, palette[color][0], palette[color][1], palette[color][2], 255);
-		data->clr = color;
-		SDL_FillRect(data->surface, NULL, rectcolor);
-	}
-
-	Uint32 rectcolor = SDL_MapRGBA(data->surface->format, palette[0][0], palette[0][1], palette[0][2], 255);
-	data->clr = 0;
-	SDL_FillRect(data->surface, NULL, rectcolor);*/
 
 	SDL_FillRect(data->surface, NULL, SDL_MapRGBA(data->surface->format, 0, 0, 0, 0));
 
@@ -286,18 +232,16 @@ static int imageCopy(lua_State *L) {
 	int y = (int)luaL_checknumber(L, 4);
 	int wi;
 	int he;
-	//bool transparent = true;
 
 	SDL_Rect *srcRect = new SDL_Rect();
 
 	if (lua_gettop(L) > 4) {
-		//transparent = (bool)lua_toboolean(L, 5);
 		wi = luaL_checknumber(L, 5);
 		he = luaL_checknumber(L, 6);
 		srcRect->x = luaL_checknumber(L, 7);
 		srcRect->y = luaL_checknumber(L, 8);
-		srcRect->w = wi; //luaL_checknumber(L, 9);
-		srcRect->h = he; //luaL_checknumber(L, 10);
+		srcRect->w = wi;
+		srcRect->h = he;
 	} else {
 		srcRect->x = 0;
 		srcRect->y = 0;

@@ -5,6 +5,4 @@
 
 #include <LuaJIT/lua.hpp>
 
-typedef GLuint texture;
-
 LUALIB_API int luaopen_image(lua_State *L);

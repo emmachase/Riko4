@@ -21,7 +21,6 @@
 #include <stdlib.h>
 
 #include <SDL2/SDL.h>
-#include <GL/glew.h>
 
 #include <LuaJIT/lua.hpp>
 
@@ -32,15 +31,17 @@
 #include <rikoImage.h>
 
 SDL_Window *window;
+SDL_Renderer *renderer;
 
 lua_State *mainThread;
+
+int pixelSize = 3;
 
 void printLuaError(int result) {
 	if (result != 0) {
 		switch (result) {
 			case LUA_ERRRUN:
 				SDL_Log("Lua Runtime error");
-				//SDL_Log(luaL_checkstring(mainThread, 1));
 				break;
 			case LUA_ERRSYNTAX:
 				SDL_Log("Lua syntax error");
@@ -62,8 +63,6 @@ void createLuaInstance(const char* filename) {
 
 	// Make standard libraries available in the Lua object
 	luaL_openlibs(state);
-
-	//luaopen_lfs(state);
 
 	luaopen_gpu(state);
 	luaopen_aud(state);
@@ -89,8 +88,8 @@ int main(int argc, char * argv[]) {
 		"Riko4",
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
-		3 * 340,
-		3 * 200,
+		pixelSize * 340,
+		pixelSize * 200,
 		SDL_WINDOW_OPENGL
 	);
 
@@ -99,40 +98,24 @@ int main(int argc, char * argv[]) {
 		return 1;
 	}
 
-	SDL_Surface *surface;     // Declare an SDL_Surface to be filled in with pixel data from an image file
+	renderer = SDL_CreateRenderer(window, -1, 
+		SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+
+	SDL_SetRenderDrawColor(renderer, 24, 24, 24, 255);
+	SDL_RenderClear(renderer);
+	SDL_RenderPresent(renderer);
+
+	SDL_Surface *surface;
 	surface = SDL_LoadBMP("icon.ico");
 
-	// The icon is attached to the window pointer
 	SDL_SetWindowIcon(window, surface);
-
-
-	SDL_GLContext glcontext = SDL_GL_CreateContext(window);
-
-	if (glewInit() != GLEW_OK) {
-		printf("Could not init GLEW");
-		return 1;
-	}
-
-	// Dark blue background
-	glClearColor(24.0/255.0f, 24.0 / 255.0f, 24.0 / 255.0f, 24.0 / 255.0f);
-
 
 	SDL_Event event;
 
-	// Clear the screen
-	glClear( GL_COLOR_BUFFER_BIT );
-
-	// Swap buffers
 	createLuaInstance("scripts/boot.lua");
 
-	if (SDL_GL_SetSwapInterval(-1) == -1) {
-		SDL_GL_SetSwapInterval(1);
-	}
-
-	SDL_GL_SwapWindow(window);
-
 	bool canRun = true;
-	SDL_bool running = SDL_TRUE;
+	bool running = true;
 	int pushedArgs = 0;
 
 	int lastMoveX = 0;
@@ -168,8 +151,8 @@ int main(int argc, char * argv[]) {
 					pushedArgs = 3;
 					break;
 				case SDL_MOUSEMOTION:
-					cx = event.motion.x / 3;
-					cy = event.motion.y / 3;
+					cx = event.motion.x / pixelSize;
+					cy = event.motion.y / pixelSize;
 					if (cx != lastMoveX || cy != lastMoveY) {
 						lua_pushstring(mainThread, "mouseMoved");
 						lua_pushnumber(mainThread, cx);
@@ -183,15 +166,15 @@ int main(int argc, char * argv[]) {
 					break;
 				case SDL_MOUSEBUTTONDOWN:
 					lua_pushstring(mainThread, "mousePressed");
-					lua_pushnumber(mainThread, (int) event.button.x / 3);
-					lua_pushnumber(mainThread, (int) event.button.y / 3);
+					lua_pushnumber(mainThread, (int) event.button.x / pixelSize);
+					lua_pushnumber(mainThread, (int) event.button.y / pixelSize);
 					lua_pushnumber(mainThread, event.button.button);
 					pushedArgs = 4;
 					break;
 				case SDL_MOUSEBUTTONUP:
 					lua_pushstring(mainThread, "mouseReleased");
-					lua_pushnumber(mainThread, (int)event.button.x / 3);
-					lua_pushnumber(mainThread, (int)event.button.y / 3);
+					lua_pushnumber(mainThread, (int)event.button.x / pixelSize);
+					lua_pushnumber(mainThread, (int)event.button.y / pixelSize);
 					lua_pushnumber(mainThread, event.button.button);
 					pushedArgs = 4;
 					break;
@@ -219,7 +202,7 @@ int main(int argc, char * argv[]) {
 		SDL_Delay(1);
 	}
 
-	SDL_GL_DeleteContext(glcontext);
+	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 
 	SDL_Quit();
