@@ -117,6 +117,7 @@ static int freeImage(lua_State *L) {
 	if (!freeCheck(L, data)) return 0;
 
 	SDL_FreeSurface(data->surface);
+	SDL_DestroyTexture(data->texture);
 	data->free = true;
 
 	return 0;

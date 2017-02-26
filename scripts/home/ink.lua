@@ -38,9 +38,10 @@ local locale = {
     undo = "Undo",
     redo = "Redo",
     cut = "Cut",
-    copy = "copy",
-    paste = "paste",
-    settings = "Settings"
+    copy = "Copy",
+    paste = "Paste",
+    settings = "Settings",
+    fill = "Fill"
   }
 }
 
@@ -233,6 +234,23 @@ local function drawQ(x, y, b)
   end
 end
 
+local function floodFill(x, y, c)
+  local control = workingImage[x][y]
+  local fillQueue = {{x, y}}
+  local ct = 0 -- Sanity check
+  while #fillQueue > 0 and ct < 10000 do
+    ct = ct + 1
+    local pop = table.remove(fillQueue, #fillQueue)
+    local px, py = pop[1], pop[2]
+    workingImage[px][py] = c
+
+    if px < imgWidth  and workingImage[px + 1][py] == control then fillQueue[#fillQueue + 1] = {px + 1, py} end
+    if px > 1         and workingImage[px - 1][py] == control then fillQueue[#fillQueue + 1] = {px - 1, py} end
+    if py < imgHeight and workingImage[px][py + 1] == control then fillQueue[#fillQueue + 1] = {px, py + 1} end
+    if py > 1         and workingImage[px][py - 1] == control then fillQueue[#fillQueue + 1] = {px, py - 1} end
+  end
+end
+
 local mousePosX = 0
 local mousePosY = 0
 local selectedTool = 1
@@ -246,6 +264,13 @@ local toolVars = {
     mouseDown = { false, false, false },
     mposx = -1,
     mposy = -1,
+    state = 1
+  },
+  fill = {
+    mposx = -1,
+    mposy = -1,
+    locx = -1,
+    locy = -1,
     state = 1
   }
 }
@@ -304,6 +329,35 @@ local toolList = {
       gpu.drawRectangle((transX * zoomFactor) + drawOffX, (transY * zoomFactor) + drawOffY + 10, zoomFactor, zoomFactor, toolVars.eraser.state)
       toolVars.eraser.state = (toolVars.eraser.state) % 16 + 1
     end
+  },
+  {
+    name = locale[lang].fill,
+    mouseDown = function(x, y, _)
+      local tx, ty = convertScrn2I(x, y)
+      toolVars.fill.locx = tx
+      toolVars.fill.locy = ty
+    end,
+    mouseUp = function(x, y, b)
+      if b % 2 == 1 then
+        local tx, ty = convertScrn2I(x, y)
+        if toolVars.fill.locx == tx and toolVars.fill.locy == ty then
+          if tx >= 0 and ty >= 0 and tx < imgWidth and ty < imgHeight then
+            floodFill(tx + 1, ty + 1, b == 3 and secColor or primColor)
+          end
+        end
+      end
+    end,
+    mouseMoved = function(x, y, _, _)
+      toolVars.fill.mposx = x
+      toolVars.fill.mposy = y
+    end,
+    draw = function()
+      local transX, transY = convertScrn2I(toolVars.fill.mposx, toolVars.fill.mposy)
+      local fstate = math.floor(toolVars.fill.state / 4)
+      gpu.drawRectangle((transX * zoomFactor) + drawOffX - fstate, (transY * zoomFactor) + drawOffY + 10 - fstate,
+        zoomFactor + fstate * 2, zoomFactor + fstate * 2, primColor)
+      toolVars.fill.state = (toolVars.fill.state) % 16 + 1
+    end
   }
 }
 
@@ -335,7 +389,8 @@ local toolbar = {
     actions = {
       {locale[lang].new, function() print("New") end},
       {locale[lang].save, function() print("Save") end},
-      {locale[lang].load, function() print("Load") end}
+      {locale[lang].load, function() print("Load") end},
+      {locale[lang].exit, function() running = false end}
     }
   },
   {
@@ -395,8 +450,6 @@ local function drawContent()
     canvArea:render(0, 10)
 
     -- Render painting here
-
-    --gpu.blitPixels()
 
     for i = 1, imgWidth do
       for j = 1, imgHeight do
@@ -514,9 +567,7 @@ local function processEvent(ev, p1, p2, p3, p4)
     -- Painting
 
     if ev == "key" then
-      if p1 == "Escape" then
-        running = false
-      elseif p1 == "Left" then
+      if p1 == "Left" then
         drawOffX = drawOffX + 5
       elseif p1 == "Right" then
         drawOffX = drawOffX - 5
