@@ -9,7 +9,7 @@
 extern SDL_Window *window;
 extern SDL_Renderer *renderer;
 extern int pixelSize;
-extern char16_t palette[16][3];
+extern int palette[16][3];
 
 typedef struct imageType {
 	int width;

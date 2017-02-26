@@ -24,7 +24,7 @@ extern int pixelSize;
 static float pWid = 1;
 static float pHei = 1;
 
-char16_t palette[16][3] = {
+int palette[16][3] = {
 	{24,   24,   24},
 	{29,   43,   82},
 	{126,  37,   83},
