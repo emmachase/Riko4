@@ -2,10 +2,9 @@ dofile("scripts/adaptIO.lua")
 
 local font = dofile("../font.lua")
 
-local dataH = io.open("../coreFont", "r")
+local dataH = io.open("../coreFont", "rb")
 local data = dataH:read("*a")
 dataH:close()
-
 
 local coreFont = font.new(data)
 gpu.font = coreFont
