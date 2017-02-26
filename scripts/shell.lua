@@ -12,11 +12,14 @@ local function split(str)
   return tab
 end
 
+local pureHistory = {}
+local pureHistoryPoint = 1
+
 local lineHistory = {{{"rikoOS 1.0"}, {13}}}
 local historyPoint = 2
 local lineOffset = 0
 function pushOutput(msg, c)
-  lineHistory[#lineHistory + 1] = {{msg}, {c or 15}}
+  lineHistory[#lineHistory + 1] = {{msg}, {c or 16}}
   historyPoint = #lineHistory + 1
   if historyPoint >= 200 / 8 - 1 then
     lineOffset = lineOffset + 1
@@ -25,6 +28,7 @@ end
 
 local prefix = "> "
 local str = ""
+local path = ""
 
 local e, p1, p2
 local lastP = 0
@@ -34,7 +38,9 @@ local fps = 60
 
 shell = {}
 local shell = shell
-function shell.redraw()
+function shell.redraw(swap)
+  swap = (swap == nil) and swap or true -- just to be explicit
+
   gpu.clear()
 
   local ctime = os.clock()
@@ -53,14 +59,16 @@ function shell.redraw()
   gpu.drawRectangle(0, 190, 340, 10, 6)
   write("FPS: " .. tostring(round(fps, 0.01)), 2, 191)
 
-  gpu.swap()
+  if swap then
+    gpu.swap()
+  end
 end
 
 while true do
   lineHistory[historyPoint] = {
-    {prefix, str,
+    {path, prefix, str,
     (math.floor((os.clock() * 2 - lastP) % 2) == 0 and "_" or "")},
-    {10, 16, 16}
+    {16, 10, 16, 16}
   }
 
   shell.redraw()
@@ -72,12 +80,31 @@ while true do
     if p1 == "Backspace" then
       str = str:sub(1, #str - 1)
       lastP = os.clock() * 2
-    elseif p1 == "Return" then
-      if str == "" then
-        lineHistory[historyPoint][1][3] = "" -- Remove the "_" if it is there
-        historyPoint = historyPoint + 1
+    elseif p1 == "Up" then
+      pureHistoryPoint = pureHistoryPoint - 1
+      if pureHistoryPoint < 1 then
+        pureHistoryPoint = 1
       else
-        lineHistory[historyPoint][1][3] = "" -- Remove the "_" if it is there
+        str = pureHistory[pureHistoryPoint]
+      end
+    elseif p1 == "Down" then
+      pureHistoryPoint = pureHistoryPoint + 1
+      if pureHistoryPoint > #pureHistory then
+        pureHistoryPoint = #pureHistory + 1
+        str = ""
+      else
+        str = pureHistory[pureHistoryPoint]
+      end
+    elseif p1 == "Return" then
+      if not str:match("%S+") then
+        lineHistory[historyPoint][1][4] = "" -- Remove the "_" if it is there
+        historyPoint = historyPoint + 1
+        str = ""
+      else
+        lineHistory[historyPoint][1][4] = "" -- Remove the "_" if it is there
+        pureHistoryPoint = #pureHistory + 2
+        pureHistory[pureHistoryPoint - 1] = str
+
         local startPoint = historyPoint
         local cfunc
         local s, er = pcall(function() cfunc = loadfile(str:match("%S+")..".lua") end)

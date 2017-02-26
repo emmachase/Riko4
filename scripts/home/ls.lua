@@ -1,10 +1,20 @@
 local args = {...}
 
---print("YO MA "..tostring(args[1]))
-local dir = args[1] and "./scripts/"..args[1] or "./scripts"
+-- Lua implementation of PHP scandir function
+local function scandir(directory)
+    local i, t, popen = 0, {}, io.popen
+    local pfile = popen('ls -a "'..directory..'"')
+    for filename in pfile:lines() do
+        i = i + 1
+        t[i] = filename
+    end
+    pfile:close()
+    return t
+end
 
-for k, v in lfs.dir(dir) do
-  --print(tostring(k))
-  pushOutput(k)
+local dir = args[1] and "./scripts/home/"..args[1] or "./scripts/home"
+
+for k, v in next, scandir(dir) do
+  pushOutput(v)
   shell.redraw()
 end

@@ -15,8 +15,9 @@ local DEBUG = true
 local lang = "en"
 local locale = {
   en = {
-    title = "Wow look its Ink a really cool program",
+    title = "Ink",
     new = "New",
+    save = "Save",
     load = "Load",
     exit = "Exit",
     newFile = "New File",
@@ -29,7 +30,17 @@ local locale = {
     cancel = "Cancel",
     colors = "Colors",
     tools = "Tools",
-    pencil = "Pencil"
+    pencil = "Pencil",
+    eraser = "Eraser",
+    file = "File",
+    edit = "Edit",
+    view = "View",
+    undo = "Undo",
+    redo = "Redo",
+    cut = "Cut",
+    copy = "copy",
+    paste = "paste",
+    settings = "Settings"
   }
 }
 
@@ -81,7 +92,7 @@ do -- Little windows
   function window:mousePressed(x, y, b)
     if x >= self.x and x < self.x + self.w + 2 then
       if y >= self.y then
-        if y < self.y + 11 then
+        if y < self.y + 9 then
           -- Bar
           self.mdn = b == 1
           return true
@@ -100,7 +111,7 @@ do -- Little windows
   function window:mouseReleased(x, y, b)
     if x >= self.x and x < self.x + self.w + 2 then
       if y >= self.y then
-        if y < self.y + 11 then
+        if y < self.y + 9 then
           -- Bar
           self.mdn = false
           return true
@@ -116,7 +127,7 @@ do -- Little windows
     return false
   end
 
-  function window:mouseMoved(x, y, dx, dy)
+  function window:mouseMoved(_, _, dx, dy)
     if self.mdn then
       self.x = self.x + dx
       self.y = self.y + dy
@@ -176,8 +187,8 @@ local zoomFactor = 1
 
 local mouseDown = {false, false, false}
 
-local toolPalette = window.new(locale[lang].tools, 60, 80)
-local colorPalette = window.new(locale[lang].colors, 6*4 + 20, 6*4)
+local toolPalette = window.new(locale[lang].tools, 60, 80, 340 - 65, 60)
+local colorPalette = window.new(locale[lang].colors, 6*4 + 20, 6*4, 4, 60)
 
 local windows = {toolPalette, colorPalette}
 
@@ -224,7 +235,6 @@ end
 
 local mousePosX = 0
 local mousePosY = 0
-local zxxx = 1
 local selectedTool = 1
 local toolVars = {
   pencil = {
@@ -235,12 +245,13 @@ local toolVars = {
   eraser = {
     mouseDown = { false, false, false },
     mposx = -1,
-    mposy = -1
+    mposy = -1,
+    state = 1
   }
 }
 local toolList = {
   {
-    name = "Pencil",
+    name = locale[lang].pencil,
     mouseDown = function(x, y, b)
       toolVars.pencil.mouseDown[b] = true
       drawQ(x, y, b)
@@ -249,7 +260,7 @@ local toolList = {
       toolVars.pencil.mouseDown[b] = false
       drawQ(x, y, b)
     end,
-    mouseMoved = function(x, y, dx, dy)
+    mouseMoved = function(x, y, _, _)
       toolVars.pencil.mposx = x
       toolVars.pencil.mposy = y
 
@@ -257,12 +268,12 @@ local toolList = {
     end,
     draw = function()
       local transX, transY = convertScrn2I(toolVars.pencil.mposx, toolVars.pencil.mposy)
-      gpu.drawRectangle((transX * zoomFactor) + drawOffX, (transY * zoomFactor) + drawOffY + 10, zoomFactor, zoomFactor, 
+      gpu.drawRectangle((transX * zoomFactor) + drawOffX, (transY * zoomFactor) + drawOffY + 10, zoomFactor, zoomFactor,
         toolVars.pencil.mouseDown[3] and secColor or primColor)
     end
   },
   {
-    name = "Eraser",
+    name = locale[lang].eraser,
     mouseDown = function(x, y, b)
       toolVars.eraser.mouseDown[b] = true
       local tx, ty = convertScrn2I(x, y)
@@ -277,7 +288,7 @@ local toolList = {
         workingImage[tx + 1][ty + 1] = 0
       end
     end,
-    mouseMoved = function(x, y, dx, dy)
+    mouseMoved = function(x, y, _, _)
       toolVars.eraser.mposx = x
       toolVars.eraser.mposy = y
 
@@ -290,8 +301,8 @@ local toolList = {
     end,
     draw = function()
       local transX, transY = convertScrn2I(toolVars.eraser.mposx, toolVars.eraser.mposy)
-      gpu.drawRectangle((transX * zoomFactor) + drawOffX, (transY * zoomFactor) + drawOffY + 10, zoomFactor, zoomFactor, zxxx)
-      zxxx = (zxxx) % 16 + 1
+      gpu.drawRectangle((transX * zoomFactor) + drawOffX, (transY * zoomFactor) + drawOffY + 10, zoomFactor, zoomFactor, toolVars.eraser.state)
+      toolVars.eraser.state = (toolVars.eraser.state) % 16 + 1
     end
   }
 }
@@ -308,9 +319,62 @@ colorPalette.mousePressedCallback = function(x, y, b)
   end
 end
 
-toolPalette.mousePressedCallback = function(x, y, b)
+toolPalette.mousePressedCallback = function(_, y, _)
   if y == 0 then return end
-  selectedTool = math.floor((y - 1) / 10) + 1
+  local newInd = math.floor((y - 1) / 10) + 1
+  if newInd <= #toolList then
+    selectedTool = newInd
+  end
+end
+
+local selToolbar = 1
+local toolbarActive = false
+local toolbar = {
+  {
+    name = locale[lang].file,
+    actions = {
+      {locale[lang].new, function() print("New") end},
+      {locale[lang].save, function() print("Save") end},
+      {locale[lang].load, function() print("Load") end}
+    }
+  },
+  {
+    name = locale[lang].edit,
+    actions = {
+      {locale[lang].undo},
+      {locale[lang].redo},
+      {locale[lang].cut},
+      {locale[lang].copy},
+      {locale[lang].paste}
+    }
+  },
+  {
+    name = locale[lang].view,
+    actions = {
+      {locale[lang].tools},
+      {locale[lang].colors},
+      {locale[lang].settings}
+    }
+  }
+}
+
+do
+  local cx = 10
+  for i=1, #toolbar do
+    local intmax = 0
+    local ptl = toolbar[i]
+    local pt = ptl.actions
+
+    for j=1, #pt do
+      if #pt[j][1] > intmax then
+        intmax = #pt[j][1]
+      end
+    end
+    toolbar[i].maxACL = intmax
+
+    toolbar[i].offset = cx
+    cx = cx + #ptl.name * 7 + 16
+  end
 end
 
 local function drawContent()
@@ -346,14 +410,7 @@ local function drawContent()
 
     -- Done
 
-    gpu.drawRectangle(0, 0, 340, 10, 7)
-    gpu.drawRectangle(0, 190, 340, 10, 7)
-
-    rightWrite(tostring(zoomFactor * 100) .. "%", 338, 191)
-
-
     colorPalette:drawRectangle(0, 0, 6*4 + 20, 6*4, 7)
-    --colorPalette:drawRectangle(24, 0, 1, 6*4, 7)
 
     for i=1, 16 do
       colorPalette:drawRectangle((i - 1) % 4 * 6, math.floor((i - 1) / 4) * 6, 6, 6, i)
@@ -380,6 +437,32 @@ local function drawContent()
     toolPalette:flush()
 
     toolPalette:drawSelf()
+
+    gpu.drawRectangle(0, 0, 340, 10, 7)
+
+    local acp
+    for i=1, #toolbar do
+      local pt = toolbar[i]
+      if toolbarActive and i == selToolbar then
+        gpu.drawRectangle(pt.offset - 4, 0, #pt.name * 7 + 10, 10, 6)
+        acp = pt.offset - 4
+      end
+      write(pt.name, pt.offset, 1, 16)
+    end
+
+    if toolbarActive then
+      gpu.drawRectangle(acp, 10, toolbar[selToolbar].maxACL * 7 + 16, #toolbar[selToolbar].actions * 10, 16)
+      for i=1, #toolbar[selToolbar].actions do
+        write(toolbar[selToolbar].actions[i][1], acp + 4, i * 10, 1)
+      end
+    end
+
+    gpu.drawRectangle(0, 190, 340, 10, 7)
+
+    rightWrite(tostring(zoomFactor * 100) .. "%", 338, 191)
+
+    local transX, transY = convertScrn2I(mousePosX, mousePosY)
+    rightWrite(transX .. ", " .. transY, 280, 191)
   elseif state == 2 then
     backMatte:render(0, 0)
 
@@ -443,6 +526,35 @@ local function processEvent(ev, p1, p2, p3, p4)
         drawOffY = drawOffY - 5
       end
     elseif ev == "mousePressed" then
+      local x, y, _ = p1, p2, p3
+      local tBar = toolbarActive
+      toolbarActive = false
+
+      if tBar then
+        for i=1, #toolbar do
+          if x > toolbar[i].offset - 5 and x < toolbar[i].maxACL * 7 + toolbar[i].offset + 12 then
+            local action = math.floor(y / 10)
+            if toolbar[i].actions[action] then
+              local f = toolbar[i].actions[action][2]
+              if f then f() end
+            end
+            return
+          end
+        end
+      end
+
+      if y < 10 then
+        for i=1, #toolbar do
+          if x > toolbar[i].offset - 5 and x < #toolbar[i].name * 7 + toolbar[i].offset + 6 then
+            if not (tBar and i == selToolbar) then
+              toolbarActive = true
+              selToolbar = i
+            end
+          end
+        end
+        return
+      end
+
       if mouseDown[2] or not wep("mousePressed", p1, p2, p3) then
         mouseDown[tonumber(p3)] = true
         toolList[selectedTool].mouseDown(p1, p2, p3)
