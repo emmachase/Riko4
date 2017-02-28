@@ -116,10 +116,14 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\Users\Bryan\Documents\Visual Studio 2015\Projects\Riko4\Riko4;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\Riko4\libs\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>C:\Users\Bryan\Documents\Visual Studio 2015\Projects\Riko4\libs\LFS;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\Riko4\libs\LuaJIT;C:\Users\Bryan\Documents\Visual Studio 2015\Projects\Riko4\libs\SDL2;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>lua51.lib;SDL2main.lib;SDL2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -1,6 +1,6 @@
-CC=g++
+CC = g++
 
-LINK=g++
+LINK = g++
 
 COMPILER_FLAGS = -lstdc++ -static-libgcc -static-libstdc++
 LINKER_FLAGS = -lstdc++ -static-libgcc -static-libstdc++

@@ -112,8 +112,8 @@ static int gpu_blit_pixels(lua_State *L) {
 		float yp = ((int)((i - 1) / (int) w)) * pHei;
 		
 		SDL_Rect rect;
-		rect.x = x * pixelSize;
-		rect.y = y * pixelSize;
+		rect.x = (x + xp) * pixelSize;
+		rect.y = (y + yp) * pixelSize;
 		rect.w = pixelSize;
 		rect.h = pixelSize;
 
