@@ -7,7 +7,7 @@
 
 local bitmap = dofile("../lib/bitmap.lua")
 
-local ditherImage = bitmap.createBitmapFromFile("car.bmp")
+local ditherImage = bitmap.createBitmapFromFile("astc.bmp")
 
 local palette = {
 	{24,   24,   24 },
