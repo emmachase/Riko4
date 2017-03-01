@@ -150,10 +150,6 @@ do -- Little windows
   function window:drawRectangle(x, y, w, h, c)
     self.canv:drawRectangle(x, y, w, h, c)
   end
-
-  function window:free()
-    self.canv:free()
-  end
 end
 
 local function clamp(v, mi, mx)
@@ -667,7 +663,3 @@ while running do
 
   gpu.swap()
 end
-
-backMatte:free()
-transMatte:free()
-wep("free")

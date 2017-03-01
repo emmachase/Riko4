@@ -17,5 +17,3 @@ for i=1, math.huge do
     break
   end
 end
-
-noiseIm:free()

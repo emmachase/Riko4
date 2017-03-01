@@ -18,7 +18,7 @@ local function processEvent(e, ...)
   local data = {...}
   if e == "key" then
     local k = data[1]
-    
+
     if k == "Escape" then
       running = false
     end
@@ -43,15 +43,15 @@ while running do
     if not e[1] then break end
     eventQueue[#eventQueue + 1] = e
   end
-  
+
   while #eventQueue > 0 do
     processEvent(unpack(eventQueue[1]))
     table.remove(eventQueue, 1)
   end
-  
+
   gpu.clear()
-  
+
   drawContent()
-  
+
   gpu.swap()
 end

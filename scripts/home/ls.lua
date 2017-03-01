@@ -14,7 +14,7 @@ end
 
 local dir = args[1] and "./scripts/home/"..args[1] or "./scripts/home"
 
-for k, v in next, scandir(dir) do
+for _, v in next, scandir(dir) do
   pushOutput(v)
   shell.redraw()
 end

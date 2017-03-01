@@ -31,9 +31,6 @@ while true do
     if p1 == "Escape" then
       break
     elseif p1 == "Return" then
-      -- myImage:freeImage()
-      -- image.freeImage(myImage);
-      myImage:free();
       free = true
     end
   end

@@ -7,7 +7,7 @@
 
 local bitmap = dofile("../lib/bitmap.lua")
 
-local ditherImage = bitmap.createBitmapFromFile("astc.bmp")
+local ditherImage = bitmap.createBitmapFromFile("car.bmp")
 
 local palette = {
 	{24,   24,   24 },
@@ -95,6 +95,7 @@ while true do
   write(tostring(ditherImage.components[5]), 0, 180)
 
   gpu.blitPixels(0, 0, ditherImage.width, ditherImage.height, dithered)
+  -- gpu.blitPixels(1, 1, 2, 2, {5, 6, 7, 8})
 
   gpu.swap()
   local e, p1 = coroutine.yield()

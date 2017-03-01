@@ -8,12 +8,27 @@ local cx, cy = 170, 100
 
 local axis = math.min(width, height) - 50
 
-local radius = 10
-local maxvel = 80
+local radius = 5
+local maxvel = 300
+local velscale = 5
 
 local teams = {
+  -1,
+  7,
+  15,
+  2,
+  3,
+  16,
+  5,
+  6,
+  1,
   8,
-  12
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
 }
 
 local function vecMulScalar(v, s)
@@ -29,10 +44,7 @@ function peng.new(team)
     x = math.random(-axis / 2, axis / 2),
     y = math.random(-axis / 2, axis / 2),
     team = team,
-    vel = {
-      math.random(-80, 80),
-      math.random(-80, 80)
-    }
+    vel = {0, 0}
   }
   setmetatable(t, {__index = peng})
 
@@ -45,7 +57,7 @@ function peng:checkCol(other, delta)
   local normalY = other.y - self.y
   local mag = math.sqrt(normalX * normalX + normalY * normalY)
 
-  if mag <= 2*radius then
+  if mag < 2*radius then
     -- collision
     local vel1X = self.vel[1]
     local vel1Y = self.vel[2]
@@ -86,17 +98,19 @@ function peng:update(delta)
   self.x = self.x + self.vel[1] * delta
   self.y = self.y + self.vel[2] * delta
 
-  if math.abs(self.x) > axis / 2 or math.abs(self.y) > axis / 2 then
-    for i = 1, #objects do
-      if self == objects[i] then
-        table.remove(objects, i)
-        break
-      end
-    end
-    return true
+  local rv = false
+  if math.abs(self.x) > axis / 2 + 50 - radius then
+    self.vel[1] = -self.vel[1]
+    -- rv = true
+  end
+
+  if math.abs(self.y) > axis / 2 - radius then
+    self.vel[2] = -self.vel[2]
+    -- rv = true
   end
 
   self.vel = vecMulScalar(self.vel, 0.98)
+  return rv
 end
 
 function peng:collide(delta)
@@ -134,24 +148,38 @@ end
 local function init()
   objects = {
     peng.new(1),
-    peng.new(1),
-    peng.new(1),
-    peng.new(1),
     peng.new(2),
-    peng.new(2),
-    peng.new(2),
-    peng.new(2)
+    peng.new(3),
+    peng.new(4),
+    peng.new(5),
+    peng.new(6),
+    peng.new(7),
+    peng.new(8),
+    peng.new(9),
+    peng.new(10),
+    peng.new(11),
+    peng.new(12),
+    peng.new(13),
+    peng.new(14),
+    peng.new(15),
+    peng.new(16)
   }
 
-  for i=1, #objects do
-    while objects[i]:collide() do objects[i] = peng.new(objects[i].team) end
+  objects[1].x = -50
+  objects[1].y = 0
+
+  local ind = 1
+  for i=1, 5 do
+    for j=1, i do
+      ind = ind + 1
+      objects[ind].x = i * 10
+      objects[ind].y = (j / i) * (i * 10) - ((i * 10) / 2) - 5
+    end
   end
 end
 
 local beginSumVel = 0
 local lSumVel = 0
-local turnNum = 2
-local otherOne = true
 local function updateframe(delta)
   local i = 1
   while i <= #objects do
@@ -160,6 +188,7 @@ local function updateframe(delta)
     end
   end
 
+  local cnt = 0 -- sanity check
   repeat
     local collision = false
     for j = 1, #objects do
@@ -167,7 +196,8 @@ local function updateframe(delta)
         collision = true
       end
     end
-  until not collision
+    cnt = cnt + 1
+  until not collision or cnt > 100
 
   local sumVel = 0
   for j=1, #objects do
@@ -182,26 +212,6 @@ local function updateframe(delta)
 
   if sumVel < 0.1 then
     simulating = false
-    otherOne = not otherOne
-    if otherOne then
-      axis = axis - turnNum
-      turnNum = turnNum + 2
-
-      if axis < 90 then
-        axis = 90
-      end
-
-      local ktr = {}
-      for j = 1, #objects do
-        if math.abs(objects[j].x) > axis / 2 or math.abs(objects[j].y) > axis / 2 then
-          ktr[#ktr + 1] = j
-        end
-      end
-
-      for j = #ktr, 1, -1 do
-        table.remove(objects, ktr[j])
-      end
-    end
   end
 end
 
@@ -214,7 +224,14 @@ local function fillCircle(x, y, r, c)
   for i = y - r, y + r do
     local ydist = i - y
     local sx = round(math.sqrt(r*r - ydist*ydist))
-    gpu.drawRectangle(x - sx, i, sx * 2, 1, c)
+    if c == -1 then
+      gpu.drawRectangle(x - sx, i, sx * 2, 1, 9)
+      if sx > 0 then
+        gpu.drawRectangle(x - sx, i, r, 1, 10)
+      end
+    else
+      gpu.drawRectangle(x - sx, i, sx * 2, 1, c)
+    end
   end
 end
 
@@ -286,7 +303,8 @@ end
 local function drawframe()
   gpu.clear(2)
 
-  gpu.drawRectangle(cx - axis / 2, cy - axis / 2, axis, axis, 16)
+  gpu.drawRectangle(cx - axis / 2 - 51, cy - axis / 2 - 1, axis + 102, axis + 2, 5)
+  gpu.drawRectangle(cx - axis / 2 - 50, cy - axis / 2, axis + 100, axis, 4)
 
   for i=1, #objects do
     fillCircle(
@@ -299,7 +317,7 @@ local function drawframe()
   for i=1, #objects do
     if simulating or turn == objects[i].team then
      drawLine(math.floor(objects[i].x + cx), math.floor(objects[i].y + cy),
-       math.floor(objects[i].x + cx + objects[i].vel[1]), math.floor(objects[i].y + cy + objects[i].vel[2]), 7)
+       math.floor(objects[i].x + cx + (objects[i].vel[1] / velscale)), math.floor(objects[i].y + cy + (objects[i].vel[2] / velscale)), 7)
     end
   end
 
@@ -337,7 +355,7 @@ local function processEvent(e, ...)
       running = false
     elseif key == "Space" then
       if not simulating then
-        turn = (turn % #teams) + 1
+        turn = 1--(turn % #teams) + 1
         if turn == 1 then
           simulating = true
           calcBeginVel()
@@ -360,15 +378,15 @@ local function processEvent(e, ...)
   elseif e == "mouseMoved" then
     local x, y = args[1], args[2]
     if dragging > 0 then
-      local xv = (x - cx) - objects[dragging].x
-      local yv = (y - cy) - objects[dragging].y
+      local xv = ((x - cx) - objects[dragging].x) * velscale
+      local yv = ((y - cy) - objects[dragging].y) * velscale
       local smag = xv*xv + yv*yv
       if xv*xv + yv*yv > maxvel*maxvel then
         objects[dragging].vel[1] = xv / math.sqrt(smag) * maxvel
         objects[dragging].vel[2] = yv / math.sqrt(smag) * maxvel
       else
-        objects[dragging].vel[1] = (x - cx) - objects[dragging].x
-        objects[dragging].vel[2] = (y - cy) - objects[dragging].y
+        objects[dragging].vel[1] = xv
+        objects[dragging].vel[2] = yv
       end
     end
   elseif e == "mouseReleased" then

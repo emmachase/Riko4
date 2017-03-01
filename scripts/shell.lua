@@ -30,7 +30,7 @@ local prefix = "> "
 local str = ""
 local path = ""
 
-local e, p1, p2
+local e, p1
 local lastP = 0
 
 local lastf = 0
@@ -124,12 +124,14 @@ while true do
             local ev = splitStr or {}
             local upfunc = table.unpack and table.unpack or unpack
             while coroutine.status(cc) ~= "dead" do
-              local s, er = coroutine.resume(cc, upfunc(ev))
-              if not s then
-                print(er)
+              local su, eru = coroutine.resume(cc, upfunc(ev))
+              if not su then
+                print(eru)
               end
               ev = {coroutine.yield()}
             end
+            --cc = nil
+            collectgarbage("collect")
           else
             pushOutput("Unknown program `"..str:match("%S+").."`", 7)
           end
@@ -144,5 +146,5 @@ while true do
       end
     end
   end
-  e, p1, p2 = coroutine.yield()
+  e, p1 = coroutine.yield()
 end

@@ -3,11 +3,11 @@ local rif = dofile("../lib/rif.lua")
 local scrn = image.newImage(340, 200)
 
 local block = {
-  2, 12, 12, 12, 2,
-  12, 12, 2, 12, 12,
-  12, 2, 2, 2, 12,
-  12, 12, 2, 12, 12,
-  2, 12, 12, 12, 2
+  2,  12, 12, 12, 2,
+  12, 12, 2,  12, 12,
+  12, 2,  2,  2,  12,
+  12, 12, 2,  12, 12,
+  2,  12, 12, 12, 2
 }
 local blockIm = image.newImage(5, 5)
 blockIm:blitPixels(0, 0, 5, 5, block)
@@ -53,8 +53,9 @@ local function draw()
   local ind = round(math.sin(frc*math.pi/2) + 2) -- floor for floating point precision errors
   -- Sin[n*Pi/2] + 2
   --pacIm:render(x, y)
+  pacIm:copy(scrn, x, y)
   blocks[ind]:copy(scrn, 24, 10) --blocks[ind]:render(24, 10)
-  pacIm:copy(scrn, x, y) --pacIm:render(x, y)
+  --pacIm:copy(scrn, x, y) --pacIm:render(x, y)
   i = i + 1
 
   scrn:flush()
@@ -84,6 +85,3 @@ while true do
 
   gpu.swap()
 end
-
-blockIm:free()
-pacIm:free()

@@ -297,6 +297,9 @@ LUALIB_API int luaopen_image(lua_State *L) {
 	lua_pushstring(L, "__index");
 	lua_pushvalue(L, -2);  /* pushes the metatable */
 	lua_settable(L, -3);  /* metatable.__index = metatable */
+	lua_pushstring(L, "__gc");
+	lua_pushcfunction(L, freeImage);
+	lua_settable(L, -3);
 
 	luaL_openlib(L, NULL, imageLib_m, 0);
 
