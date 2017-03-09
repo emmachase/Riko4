@@ -1,14 +1,5 @@
---[[
-  States
+local RIF = dofile("../lib/rif.lua")
 
-  1 - Paint screen          NYF
-  2 - File creation         NYF
-  3 - File open             NYI
-  4 - File save             NYI
-
-]]
-
-local state = 1
 local running = true
 local DEBUG = true
 
@@ -18,6 +9,7 @@ local locale = {
     title = "Ink",
     new = "New",
     save = "Save",
+    saveas = "Save As",
     load = "Load",
     exit = "Exit",
     newFile = "New File",
@@ -91,7 +83,12 @@ do -- Little windows
   end
 
   function window:mousePressed(x, y, b)
-    if x >= self.x and x < self.x + self.w + 2 then
+    local out = true
+    if self.mousePA then
+      out = self.mousePA(x - self.x - 1, y - self. y - 9, b)
+    end
+
+    if out and x >= self.x and x < self.x + self.w + 2 then
       if y >= self.y then
         if y < self.y + 9 then
           -- Bar
@@ -106,11 +103,17 @@ do -- Little windows
         end
       end
     end
+
     return false
   end
 
   function window:mouseReleased(x, y, b)
-    if x >= self.x and x < self.x + self.w + 2 then
+    local out = true
+    if self.mouseRA then
+      out = self.mousePA(x - self.x - 1, y - self. y - 9, b)
+    end
+
+    if out and x >= self.x and x < self.x + self.w + 2 then
       if y >= self.y then
         if y < self.y + 9 then
           -- Bar
@@ -168,12 +171,6 @@ end
 
 ---== State variables
 
-local width = 32
-local height = 32
-
-local modalWid = 180
-local modalHei = 100
-
 local imgHeight = 30
 local imgWidth = 42
 
@@ -186,8 +183,17 @@ local mouseDown = {false, false, false}
 
 local toolPalette = window.new(locale[lang].tools, 60, 80, 340 - 65, 60)
 local colorPalette = window.new(locale[lang].colors, 6*4 + 20, 6*4, 4, 60)
+local pathDialog = window.new(locale[lang].save, 100, 20, 50, 26)
 
-local windows = {toolPalette, colorPalette}
+local pathVars = {
+  str = "",
+  cpos = 0,
+  visible = false,
+  time = os.clock(),
+  focus = false
+}
+
+local windows = {toolPalette, colorPalette, pathDialog}
 
 local function wep(name, ...)
   for i = 1, #windows do
@@ -213,6 +219,28 @@ if DEBUG then
       workingImage[i][j] = 0
     end
   end
+end
+
+local function exists(filename)
+  local handle = io.open(filename, "r")
+  if handle then
+    handle:close()
+    return true
+  end
+
+  return false
+end
+
+local function saveImage(name)
+  if exists(name) then
+    --TODO: Warn user about to overwrite
+    print("TODO: Warn user about to overwrite through a modal or soemthign")
+  end
+
+  local oData = RIF.encode(workingImage, imgWidth, imgHeight)
+  local handle = io.open(name, "w")
+  handle:write(oData)
+  handle:close()
 end
 
 local function convertScrn2I(x, y)
@@ -246,6 +274,8 @@ local function floodFill(x, y, c)
     if py > 1         and workingImage[px][py - 1] == control then fillQueue[#fillQueue + 1] = {px, py - 1} end
   end
 end
+
+local closeHover = false
 
 local mousePosX = 0
 local mousePosY = 0
@@ -281,7 +311,7 @@ local toolList = {
       toolVars.pencil.mouseDown[b] = false
       drawQ(x, y, b)
     end,
-    mouseMoved = function(x, y, _, _)
+    mouseMoved = function(x, y)
       toolVars.pencil.mposx = x
       toolVars.pencil.mposy = y
 
@@ -309,7 +339,7 @@ local toolList = {
         workingImage[tx + 1][ty + 1] = 0
       end
     end,
-    mouseMoved = function(x, y, _, _)
+    mouseMoved = function(x, y)
       toolVars.eraser.mposx = x
       toolVars.eraser.mposy = y
 
@@ -328,7 +358,7 @@ local toolList = {
   },
   {
     name = locale[lang].fill,
-    mouseDown = function(x, y, _)
+    mouseDown = function(x, y)
       local tx, ty = convertScrn2I(x, y)
       toolVars.fill.locx = tx
       toolVars.fill.locy = ty
@@ -343,7 +373,7 @@ local toolList = {
         end
       end
     end,
-    mouseMoved = function(x, y, _, _)
+    mouseMoved = function(x, y)
       toolVars.fill.mposx = x
       toolVars.fill.mposy = y
     end,
@@ -369,12 +399,22 @@ colorPalette.mousePressedCallback = function(x, y, b)
   end
 end
 
-toolPalette.mousePressedCallback = function(_, y, _)
+toolPalette.mousePressedCallback = function(_, y)
   if y == 0 then return end
   local newInd = math.floor((y - 1) / 10) + 1
   if newInd <= #toolList then
     selectedTool = newInd
   end
+end
+
+pathDialog.mousePA = function(x, y)
+  pathVars.focus = x > 0 and x < pathDialog.w
+               and y > 0 and y < pathDialog.h
+  return pathVars.visible
+end
+
+pathDialog.mouseRA = function()
+  return pathVars.visible
 end
 
 local selToolbar = 1
@@ -384,7 +424,8 @@ local toolbar = {
     name = locale[lang].file,
     actions = {
       {locale[lang].new, function() print("New") end},
-      {locale[lang].save, function() print("Save") end},
+      {locale[lang].save, function() pathVars.visible = true; pathVars.focus = true end},
+      {locale[lang].saveas, function() pathVars.visible = true; pathVars.focus = true end},
       {locale[lang].load, function() print("Load") end},
       {locale[lang].exit, function() running = false end}
     }
@@ -429,7 +470,6 @@ do
 end
 
 local function drawContent()
-  if state == 1 then
     canvArea:clear()
 
     canvArea:drawRectangle(0, 0, 340, 200, 1)
@@ -487,6 +527,20 @@ local function drawContent()
 
     toolPalette:drawSelf()
 
+    if pathVars.visible then
+      pathDialog:drawRectangle(0, 0, 100, 26, 7)
+
+      pathDialog:drawRectangle(1, 1, 98, 10, 6)
+      write(pathVars.str, 1, 2, 16, pathDialog.canv)
+      if pathVars.focus and math.floor(((os.clock() - pathVars.time) * 2) % 2) == 0 then
+        pathDialog:drawRectangle(pathVars.cpos * 7 + 3, 9, 4, 1, 16)
+      end
+
+      pathDialog:flush()
+
+      pathDialog:drawSelf()
+    end
+
     gpu.drawRectangle(0, 0, 340, 10, 7)
 
     local acp
@@ -498,6 +552,11 @@ local function drawContent()
       end
       write(pt.name, pt.offset, 1, 16)
     end
+
+    if closeHover then
+      gpu.drawRectangle(330, 0, 10, 10, 8)
+    end
+    write("X", 330, 1, 16)
 
     if toolbarActive then
       gpu.drawRectangle(acp, 10, toolbar[selToolbar].maxACL * 7 + 16, #toolbar[selToolbar].actions * 10, 16)
@@ -512,133 +571,139 @@ local function drawContent()
 
     local transX, transY = convertScrn2I(mousePosX, mousePosY)
     rightWrite(transX .. ", " .. transY, 280, 191)
-  elseif state == 2 then
-    backMatte:render(0, 0)
 
-    local tpb = (200 - modalHei) / 2 - 1
-    local stx = (340 - modalWid) / 2 - 1
-    gpu.drawRectangle(stx, tpb, modalWid, modalHei, 7)
-    gpu.drawRectangle(stx, tpb - 10, modalWid, 10, 6)
-
-    local xx = #locale[lang].newFile * 7
-    write(locale[lang].newFile, (340 - xx) / 2 - 1, tpb - 9, 16)
-
-    write(locale[lang].fiName, stx + 2, tpb + 4, 16)
-    xx = #locale[lang].fiName * 7
-    gpu.drawRectangle(stx + xx + 6, tpb + 4, modalWid - xx - 10, 8, 6)
-    --[[ DEBUG ]] write("test.rif", stx + xx + 6, tpb + 4, 16)
-
-    -- This part is mint
-    xx = #locale[lang].width * 7
-    write(locale[lang].width, stx + 2, tpb + 14, 16)
-    gpu.drawRectangle(stx + xx + 6, tpb + 14, (modalWid / 2) - xx - 10, 8, 6)
-    write(tostring(width), stx + xx + 6 + ((modalWid / 2) - xx - 10 - (#tostring(width) * 7)) / 2, tpb + 14, 16)
-
-    xx = #locale[lang].height * 7
-    write(locale[lang].height, stx + 2 + (modalWid) / 2, tpb + 14, 16)
-    gpu.drawRectangle(stx + xx + 6 + (modalWid) / 2, tpb + 14, (modalWid / 2) - xx - 10, 8, 6)
-    write(tostring(height), stx + xx + 6 + ((modalWid / 2) - xx - 10 - (#tostring(height) * 7)) / 2 + (modalWid) / 2, tpb + 14, 16)
-
-    write(locale[lang].trans, stx + 3, tpb + 34, 16)
-    xx = #locale[lang].trans * 7
-    gpu.drawRectangle(stx + 11 + xx, tpb + 34, 8, 8, 6)
-    write("X", stx + 10 + xx, tpb + 34, 16)
-
-    write(locale[lang].clrclr, stx + 3, tpb + 44, 16)
-    xx = #locale[lang].trans * 7
-    gpu.drawRectangle(stx + 11 + xx, tpb + 44, 8, 8, 12)
-
-    xx = #locale[lang].cancel * 7
-    gpu.drawRectangle(stx + modalWid - xx - 6, tpb + modalHei - 12, xx + 4, 8, 6)
-    write(locale[lang].cancel, stx + modalWid - xx - 4, tpb + modalHei - 12, 16)
-
-    local xx2 = #locale[lang].ok * 7
-    gpu.drawRectangle(stx + modalWid - xx2 - xx - 13, tpb + modalHei - 12, xx2 + 5, 8, 6)
-    write(locale[lang].ok, stx + modalWid - xx2 - xx - 12, tpb + modalHei - 12, 16)
-  end
+    gpu.drawRectangle(mousePosX + 1, mousePosY + 1, 3, 3, 1)
+    gpu.drawRectangle(mousePosX + 2, mousePosY + 2, 3, 3, 1)
+    gpu.drawRectangle(mousePosX + 3, mousePosY + 3, 3, 3, 1)
+    gpu.drawPixel(mousePosX + 2, mousePosY + 2, 16)
+    gpu.drawPixel(mousePosX + 3, mousePosY + 3, 16)
+    gpu.drawPixel(mousePosX + 4, mousePosY + 4, 16)
 end
 
 local function processEvent(ev, p1, p2, p3, p4)
-  if state == 1 then
-    -- Painting
-
-    if ev == "key" then
-      if p1 == "Left" then
+  if ev == "char" then
+    local c = p1
+    if pathVars.focus then
+      pathVars.str = pathVars.str:sub(1, pathVars.cpos) .. c .. pathVars.str:sub(pathVars.cpos + 1)
+      pathVars.cpos = pathVars.cpos + 1
+      pathVars.time = os.clock()
+    end
+  elseif ev == "key" then
+    if p1 == "Return" then
+      if pathVars.focus then
+        -- No loading right now so can assume saving
+        saveImage(pathVars.str)
+      end
+    elseif p1 == "Delete" then
+      if pathVars.focus then
+        if pathVars.cpos < #pathVars.str then
+          pathVars.str = pathVars.str:sub(1, pathVars.cpos) .. pathVars.str:sub(pathVars.cpos + 2)
+          pathVars.time = os.clock()
+        end
+      end
+    elseif p1 == "Backspace" then
+      if pathVars.focus then
+        if pathVars.cpos > 0 then
+          pathVars.str = pathVars.str:sub(1, pathVars.cpos - 1) .. pathVars.str:sub(pathVars.cpos + 1)
+          pathVars.cpos = pathVars.cpos - 1
+        end
+        pathVars.time = os.clock()
+      end
+    elseif p1 == "Left" then
+      if pathVars.focus then
+        pathVars.cpos = pathVars.cpos - 1
+        if pathVars.cpos < 0 then
+          pathVars.cpos = 0
+        end
+        pathVars.time = os.clock()
+      else
         drawOffX = drawOffX + 5
-      elseif p1 == "Right" then
+      end
+    elseif p1 == "Right" then
+      if pathVars.focus then
+        pathVars.cpos = pathVars.cpos + 1
+        if pathVars.cpos > #pathVars.str then
+          pathVars.cpos = #pathVars.str
+        end
+        pathVars.time = os.clock()
+      else
         drawOffX = drawOffX - 5
-      elseif p1 == "Up" then
-        drawOffY = drawOffY + 5
-      elseif p1 == "Down" then
-        drawOffY = drawOffY - 5
       end
-    elseif ev == "mousePressed" then
-      local x, y, _ = p1, p2, p3
-      local tBar = toolbarActive
-      toolbarActive = false
+    elseif p1 == "Up" then
+      drawOffY = drawOffY + 5
+    elseif p1 == "Down" then
+      drawOffY = drawOffY - 5
+    end
+  elseif ev == "mousePressed" then
+    local x, y, _ = p1, p2, p3
+    local tBar = toolbarActive
+    toolbarActive = false
 
-      if tBar then
-        for i=1, #toolbar do
-          if x > toolbar[i].offset - 5 and x < toolbar[i].maxACL * 7 + toolbar[i].offset + 12 then
-            local action = math.floor(y / 10)
-            if toolbar[i].actions[action] then
-              local f = toolbar[i].actions[action][2]
-              if f then f() end
-            end
-            return
+    if tBar then
+      for i=1, #toolbar do
+        if x > toolbar[i].offset - 5 and x < toolbar[i].maxACL * 7 + toolbar[i].offset + 12 then
+          local action = math.floor(y / 10)
+          if toolbar[i].actions[action] then
+            local f = toolbar[i].actions[action][2]
+            if f then f() end
           end
+          return
         end
       end
+    end
 
-      if y < 10 then
-        for i=1, #toolbar do
-          if x > toolbar[i].offset - 5 and x < #toolbar[i].name * 7 + toolbar[i].offset + 6 then
-            if not (tBar and i == selToolbar) then
-              toolbarActive = true
-              selToolbar = i
-            end
-          end
-        end
+    if y < 10 then
+      if x > 330 and x < 340 then
+        running = false
         return
       end
 
-      if mouseDown[2] or not wep("mousePressed", p1, p2, p3) then
-        mouseDown[tonumber(p3)] = true
-        toolList[selectedTool].mouseDown(p1, p2, p3)
-      end
-    elseif ev == "mouseReleased" then
-      if mouseDown[2] or not wep("mouseReleased", p1, p2, p3) then
-        mouseDown[tonumber(p3)] = false
-        toolList[selectedTool].mouseUp(p1, p2, p3)
-      end
-    elseif ev == "mouseMoved" then
-      if mouseDown[2] or not wep("mouseMoved", p1, p2, p3, p4) then
-        if mouseDown[2] then
-          -- Move draw offsets
-          drawOffX = drawOffX + p3
-          drawOffY = drawOffY + p4
+      for i=1, #toolbar do
+        if x > toolbar[i].offset - 5 and x < #toolbar[i].name * 7 + toolbar[i].offset + 6 then
+          if not (tBar and i == selToolbar) then
+            toolbarActive = true
+            selToolbar = i
+          end
         end
+      end
+      return
+    end
 
-        toolList[selectedTool].mouseMoved(p1, p2, p3, p4)
-        --drawQ(p1, p2, mouseDown[1] and 1 or (mouseDown[3] and 3 or 0))
+    if mouseDown[2] or not wep("mousePressed", p1, p2, p3) then
+      mouseDown[tonumber(p3)] = true
+      toolList[selectedTool].mouseDown(p1, p2, p3)
+    end
+  elseif ev == "mouseReleased" then
+    if mouseDown[2] or not wep("mouseReleased", p1, p2, p3) then
+      mouseDown[tonumber(p3)] = false
+      toolList[selectedTool].mouseUp(p1, p2, p3)
+    end
+  elseif ev == "mouseMoved" then
+    closeHover = false
+    if p2 < 10 then
+      if p1 > 330 and p1 < 340 then
+        closeHover = true
+      end
+    end
+
+    if mouseDown[2] or not wep("mouseMoved", p1, p2, p3, p4) then
+      if mouseDown[2] then
+        -- Move draw offsets
+        drawOffX = drawOffX + p3
+        drawOffY = drawOffY + p4
       end
 
-      mousePosX = p1
-      mousePosY = p2
-    elseif ev == "mouseWheel" then
-      local px, py = convertScrn2I(mousePosX, mousePosY)
-      zoomFactor = clamp(zoomFactor + p1, 1)
-      drawOffX = mousePosX - px * zoomFactor
-      drawOffY = (mousePosY - 10) - py * zoomFactor
+      toolList[selectedTool].mouseMoved(p1, p2, p3, p4)
+      --drawQ(p1, p2, mouseDown[1] and 1 or (mouseDown[3] and 3 or 0))
     end
-  elseif state == 2 then
-    -- File creation
 
-    if ev == "key" then
-      if p1 == "Escape" then
-        running = false
-      end
-    end
+    mousePosX = p1
+    mousePosY = p2
+  elseif ev == "mouseWheel" then
+    local px, py = convertScrn2I(mousePosX, mousePosY)
+    zoomFactor = clamp(zoomFactor + p1, 1)
+    drawOffX = mousePosX - px * zoomFactor
+    drawOffY = (mousePosY - 10) - py * zoomFactor
   end
 end
 

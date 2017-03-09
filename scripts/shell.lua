@@ -30,11 +30,13 @@ local prefix = "> "
 local str = ""
 local path = ""
 
-local e, p1
+local e, p1, p2
 local lastP = 0
 
 local lastf = 0
 local fps = 60
+
+local mouseX, mouseY = 0, 0
 
 shell = {}
 local shell = shell
@@ -59,9 +61,17 @@ function shell.redraw(swap)
   gpu.drawRectangle(0, 190, 340, 10, 6)
   write("FPS: " .. tostring(round(fps, 0.01)), 2, 191)
 
+  gpu.drawRectangle(mouseX, mouseY, 2, 1, 7)
+  gpu.drawRectangle(mouseX, mouseY, 1, 2, 7)
+
   if swap then
     gpu.swap()
   end
+end
+
+local lastRun = ""
+function shell.getRunningProgram()
+  return lastRun:match("(.+)%.lua")
 end
 
 while true do
@@ -76,6 +86,8 @@ while true do
   if e == "char" then
     str = str .. p1
     lastP = os.clock() * 2
+  elseif e == "mouseMoved" then
+    mouseX, mouseY = p1, p2
   elseif e == "key" then
     if p1 == "Backspace" then
       str = str:sub(1, #str - 1)
@@ -107,6 +119,7 @@ while true do
 
         local startPoint = historyPoint
         local cfunc
+        lastRun = str
         local s, er = pcall(function() cfunc = loadfile(str:match("%S+")..".lua") end)
         if not s then
           if er then
@@ -146,5 +159,5 @@ while true do
       end
     end
   end
-  e, p1 = coroutine.yield()
+  e, p1, p2 = coroutine.yield()
 end

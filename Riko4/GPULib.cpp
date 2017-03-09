@@ -19,7 +19,7 @@
 
 extern SDL_Window *window;
 extern SDL_Renderer *renderer;
-extern int pixelSize;
+extern double pixelSize;
 
 static float pWid = 1;
 static float pHei = 1;
@@ -70,10 +70,11 @@ static int gpu_draw_rectangle(lua_State *L) {
 	int color = getColor(L, 5);
 
 	SDL_Rect rect;
-	rect.x = (int)luaL_checknumber(L, 1) * pixelSize;
-	rect.y = (int)luaL_checknumber(L, 2) * pixelSize;
-	rect.w = (int)luaL_checknumber(L, 3) * pixelSize;
-	rect.h = (int)luaL_checknumber(L, 4) * pixelSize;
+	rect.x = ((double)luaL_checknumber(L, 1)) * pixelSize;
+	rect.y = ((double)luaL_checknumber(L, 2)) * pixelSize;
+	rect.w = ((double)luaL_checknumber(L, 3) * pixelSize);
+	//printf("Rect width: %d with %d pz\n should be %d", rect.w, pixelSize, ((double)luaL_checknumber(L, 3) * pixelSize));
+	rect.h = ((double)luaL_checknumber(L, 4)) * pixelSize;
 
 	SDL_SetRenderDrawColor(renderer, palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255);
 	SDL_RenderFillRect(renderer, &rect);

@@ -59,7 +59,7 @@ local blinkTimeCorrection = os.clock()
 local running = true
 
 local inMenu = false
-local menuItems = { "Save", "Exit" }
+local menuItems = { "Save", "Exit", "Look im really big" }
 local menuFunctions = {
   function() -- SAVE
     local handle = io.open(filename, "w")
@@ -69,6 +69,9 @@ local menuFunctions = {
   function() -- EXIT
     running = false
   end,
+  function()
+
+  end
 }
 local menuSelected = 1
 

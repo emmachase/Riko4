@@ -8,7 +8,7 @@
 
 extern SDL_Window *window;
 extern SDL_Renderer *renderer;
-extern int pixelSize;
+extern double pixelSize;
 extern int palette[16][3];
 
 typedef struct imageType {
@@ -37,15 +37,11 @@ static float pHei = 1;
 
 static int getColor(lua_State *L, int arg) {
 	int color = (int)luaL_checknumber(L, arg) - 1;
-	return color < 0 ? 0 : (color > 15 ? 15 : color);
+	return color == -2 ? -1 : (color < 0 ? 0 : (color > 15 ? 15 : color));
 }
 
 static Uint32 getRectC(imageType *data, int color) {
-	if (data->clr == color) {
-		return SDL_MapRGBA(data->surface->format, palette[0][0], palette[0][1], palette[0][2], 0);
-	} else {
-		return SDL_MapRGBA(data->surface->format, palette[color][0], palette[color][1], palette[color][2], 255);
-	}
+	return SDL_MapRGBA(data->surface->format, palette[color][0], palette[color][1], palette[color][2], 255);
 }
 
 static imageType *checkImage(lua_State *L) {
@@ -104,10 +100,36 @@ static int renderImage(lua_State *L) {
 	SDL_Rect rect;
 	rect.x = x * pixelSize;
 	rect.y = y * pixelSize;
-	rect.w = data->width * pixelSize;
-	rect.h = data->height * pixelSize;
 
-	SDL_RenderCopy(renderer, data->texture, NULL, &rect);
+	int top = lua_gettop(L);
+	if (top > 5) {
+		SDL_Rect srcRect;
+		srcRect.x = (int)luaL_checknumber(L, 4);
+		srcRect.y = (int)luaL_checknumber(L, 5);
+		srcRect.w = (int)luaL_checknumber(L, 6);
+		srcRect.h = (int)luaL_checknumber(L, 7);
+
+		rect.w = srcRect.w * pixelSize;
+		rect.h = srcRect.h * pixelSize;
+
+		SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
+	} else if (top > 3) {
+		SDL_Rect srcRect;
+		srcRect.x = 0;
+		srcRect.y = 0;
+		srcRect.w = (int)luaL_checknumber(L, 4);
+		srcRect.h = (int)luaL_checknumber(L, 5);
+
+		rect.w = srcRect.w * pixelSize;
+		rect.h = srcRect.h * pixelSize;
+
+		SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
+	} else {
+		rect.w = data->width * pixelSize;
+		rect.h = data->height * pixelSize;
+
+		SDL_RenderCopy(renderer, data->texture, NULL, &rect);
+	}
 
 	return 0;
 }
@@ -132,14 +154,16 @@ static int imageDrawPixel(lua_State *L) {
 
 	int color = getColor(L, 4);
 
-	Uint32 rectcolor = getRectC(data, color);
-	SDL_Rect* rect = new SDL_Rect();
-	rect->x = x;
-	rect->y = y;
-	rect->w = 1;
-	rect->h = 1;
-	SDL_FillRect(data->surface, rect, rectcolor);
-	free(rect);
+	if (color >= 0) {
+		Uint32 rectcolor = getRectC(data, color);
+		SDL_Rect* rect = new SDL_Rect();
+		rect->x = x;
+		rect->y = y;
+		rect->w = 1;
+		rect->h = 1;
+		SDL_FillRect(data->surface, rect, rectcolor);
+		free(rect);
+	}
 	return 0;
 }
 
@@ -154,14 +178,16 @@ static int imageDrawRectangle(lua_State *L) {
 
 	int color = getColor(L, 6);
 
-	Uint32 rectcolor = getRectC(data, color);
-	SDL_Rect* rect = new SDL_Rect();
-	rect->x = x;
-	rect->y = y;
-	rect->w = w;
-	rect->h = h;
-	SDL_FillRect(data->surface, rect, rectcolor);
-	free(rect);
+	if (color >= 0) {
+		Uint32 rectcolor = getRectC(data, color);
+		SDL_Rect* rect = new SDL_Rect();
+		rect->x = x;
+		rect->y = y;
+		rect->w = w;
+		rect->h = h;
+		SDL_FillRect(data->surface, rect, rectcolor);
+		free(rect);
+	}
 	return 0;
 }
 
@@ -193,19 +219,21 @@ static int imageBlitPixels(lua_State *L) {
 			continue;
 		}
 
-		color = color < 0 ? 0 : (color > 15 ? 15 : color);
+		color = color == -2 ? -1 : (color < 0 ? 0 : (color > 15 ? 15 : color));
 
-		int xp = ((i - 1) % (int)w);
-		int yp = ((int)((i - 1) / (int)w));
+		if (color >= 0) {
+			int xp = ((i - 1) % (int)w);
+			int yp = ((int)((i - 1) / (int)w));
 
-		Uint32 rectcolor = getRectC(data, color);
-		SDL_Rect* rect = new SDL_Rect();
-		rect->x = x + xp;
-		rect->y = y + yp;
-		rect->w = 1;
-		rect->h = 1;
-		SDL_FillRect(data->surface, rect, rectcolor);
-		free(rect);
+			Uint32 rectcolor = getRectC(data, color);
+			SDL_Rect* rect = new SDL_Rect();
+			rect->x = x + xp;
+			rect->y = y + yp;
+			rect->w = 1;
+			rect->h = 1;
+			SDL_FillRect(data->surface, rect, rectcolor);
+			free(rect);
+		}
 
 		lua_pop(L, 1);
 	}

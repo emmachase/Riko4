@@ -6,17 +6,24 @@
 
 local rif = {}
 
-local stub = "RIF"
+local version = 2
+
+local stub = "RIV"
 -- Encodes a RIF string from a 1D or 2D array of colors
 function rif.encode(pixels, w, h)
   local output = stub
+  .. string.char(version) -- RIF Version
   .. string.char(  bit.rshift(bit.band(w, 65280), 8)  )  -- width/256
   .. string.char(  bit.band(w, 255)                   )  -- width/1
   .. string.char(  bit.rshift(bit.band(h, 65280), 8)  )  -- height/256
   .. string.char(  bit.band(h, 255)                   )  -- height/1
+  .. string.char(1) -- Transparency flag
+  .. (string.char(0)):rep(10) -- Leave extra room for future headers
 
+
+  local transmap = {}
   if tonumber(pixels[1]) then
-    for i=1, w * h, 2 do
+    for i = 1, w * h, 2 do
       local fp = pixels[i]
       local sp = pixels[i + 1]
 
@@ -30,12 +37,17 @@ function rif.encode(pixels, w, h)
         sp = 1
       end
 
+      transmap[#transmap + 1] = fp < 0
+      transmap[#transmap + 1] = sp < 0
+      fp = fp < 0 and 0 or fp - 1
+      sp = sp < 0 and 0 or sp - 1
+
       local cstr = bit.bor(bit.lshift(fp, 4), sp)
       output = output .. string.char(cstr)
     end
   else
     local pad = false
-    for i=1, w * h, 2 do
+    for i = 1, w * h, 2 do
       local ind = (i - 1) % w + 1
       local indh = math.floor((i - 1) / w) + 1
       local ind2 = i % w + 1
@@ -59,28 +71,48 @@ function rif.encode(pixels, w, h)
       end
       sp = sp - 1
 
+      transmap[#transmap + 1] = fp < 0
+      transmap[#transmap + 1] = sp < 0
+      fp = fp < 0 and 0 or fp
+      sp = sp < 0 and 0 or sp
+
       local cstr = bit.bor(bit.lshift(fp, 4), sp)
-      print(fp, sp)
       output = output .. string.char(cstr)
     end
   end
 
-  return output
+  local bytes = {}
+  for i = 1, math.ceil(#transmap / 8) do
+    local byte = 0
+    for j = 1, 8 do
+      if transmap[(i - 1) * 8 + j] then
+        byte = byte + 2 ^ (j - 1)
+      end
+    end
+
+    bytes[#bytes + 1] = string.char(byte)
+  end
+
+  return output .. table.concat(bytes, "")
 end
 
 -- Decodes a RIF to a 1D blit table
 function rif.decode1D(rifData)
-  if rifData:sub(1, 3) ~= "RIF" then
-    error("Data does not contain RIF signature, possibly corrupted data", 2)
+  if rifData:sub(1, 3) ~= stub then
+    error("Data does not contain correct RIF signature, possibly corrupted data", 2)
+  end
+
+  if string.byte(rifData:sub(4, 4)) ~= version then
+    print("WARN: RIF data has different version, image may not look right")
   end
 
   local outTable = {}
 
-  local w = string.byte(rifData:sub(4, 4))*256 + string.byte(rifData:sub(5, 5))
-  local h = string.byte(rifData:sub(6, 6))*256 + string.byte(rifData:sub(7, 7))
+  local w = string.byte(rifData:sub(5, 5))*256 + string.byte(rifData:sub(6, 6))
+  local h = string.byte(rifData:sub(7, 7))*256 + string.byte(rifData:sub(8, 8))
 
-  for i=1, math.ceil(w * h / 2) do
-    local byte = string.byte(rifData:sub(7 + i, 7 + i))
+  for i = 1, math.ceil(w * h / 2) do
+    local byte = string.byte(rifData:sub(19 + i, 19 + i))
     local fp = bit.rshift(bit.band(byte, 240), 4)
     local sp = bit.band(byte, 15)
 
@@ -90,6 +122,19 @@ function rif.decode1D(rifData)
 
   if (w * h) % 2 == 1 then
     outTable[#outTable] = nil -- Remove padding
+  end
+
+  if string.byte(rifData:sub(9, 9)) == 1 then
+    -- Transparency map
+    local max = 19 + (w * h / 2)
+    for i = 1, math.ceil(w * h / 8) do
+      local byte = string.byte(rifData:sub(max + i, max + i))
+      for j = 1, 8 do
+        if bit.band(byte, 2 ^ (j - 1)) ~= 0 then
+          outTable[(i - 1) * 8 + j] = -1
+        end
+      end
+    end
   end
 
   return outTable, w, h

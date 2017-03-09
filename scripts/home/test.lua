@@ -1,6 +1,6 @@
 local rif = dofile("../lib/rif.lua")
 
-local scrn = image.newImage(340, 200)
+-- local scrn = image.newImage(340, 200)
 
 local block = {
   2,  12, 12, 12, 2,
@@ -24,11 +24,13 @@ local pacIm = image.newImage(5, 5)
 pacIm:blitPixels(0, 0, 5, 5, pac)
 pacIm:flush()
 
-local blocIm = rif.createImage("bloc.rif")
-local blocIm2 = rif.createImage("bloc2.rif")
-local blocIm3 = rif.createImage("bloc3.rif")
+-- local blocIm = rif.createImage("bloc.rif")
+-- local blocIm2 = rif.createImage("bloc2.rif")
+-- local blocIm3 = rif.createImage("bloc3.rif")
 
-local blocks = {blocIm, blocIm2, blocIm3}
+local uwot = rif.createImage("hi.rif")
+
+-- local blocks = {blocIm, blocIm2, blocIm3}
 
 local x = 7
 local y = 7
@@ -45,21 +47,23 @@ local function round(n)
 end
 
 local function draw()
-  scrn:clear()
+  -- scrn:clear()
 
-  blockIm:copy(scrn, 2, 2) --blockIm:render(2, 2)
-  blockIm:copy(scrn, 7, 2) --blockIm:render(7, 2)
-  local frc = math.floor((i - 1) / 10)
-  local ind = round(math.sin(frc*math.pi/2) + 2) -- floor for floating point precision errors
+  blockIm:render(2, 2) --blockIm:render(2, 2)
+  blockIm:render(7, 2) --blockIm:render(7, 2)
+  -- local frc = math.floor((i - 1) / 10)
+  -- local ind = round(math.sin(frc*math.pi/2) + 2) -- floor for floating point precision errors
   -- Sin[n*Pi/2] + 2
   --pacIm:render(x, y)
-  pacIm:copy(scrn, x, y)
-  blocks[ind]:copy(scrn, 24, 10) --blocks[ind]:render(24, 10)
+  pacIm:render(x, y)
+  -- blocks[ind]:render(24, 10) --blocks[ind]:render(24, 10)
   --pacIm:copy(scrn, x, y) --pacIm:render(x, y)
   i = i + 1
 
-  scrn:flush()
-  scrn:render(0, 0)
+  uwot:render(5, 60)
+
+  -- scrn:flush()
+  -- scrn:render(0, 0)
 end
 
 while true do

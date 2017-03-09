@@ -35,7 +35,8 @@ SDL_Renderer *renderer;
 
 lua_State *mainThread;
 
-int pixelSize = 3;
+double pixelSize = 5;
+double afPixscale = 5;// 7.2 / 2;
 
 void printLuaError(int result) {
 	if (result != 0) {
@@ -81,17 +82,74 @@ void createLuaInstance(const char* filename) {
 	}
 }
 
+void SDL_SetRendererViewportRatio_17_10(SDL_Window *window,
+	SDL_Renderer *renderer, SDL_Rect *viewport) {
+
+	printf("Begin size: %f", pixelSize);
+
+	Uint8 r, g, b, a;
+	SDL_GetRenderDrawColor(renderer, &r, &g, &b, &a);
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_RenderClear(renderer);
+	SDL_RenderPresent(renderer);
+	SDL_SetRenderDrawColor(renderer, r, g, b, a);
+	int w, h;
+	SDL_GetWindowSize(window, &w, &h);
+	/*w = w / 2;
+	h = h / 2;*/
+	printf("%d, %d", w, h);
+	if (w * 10 > h * 17) {
+		viewport->w = h * 17 / 10;
+		viewport->h = h;
+		printf("End W: %d %d", h * 17 / 10, h);
+		//pixelSize = h / 200;
+		//SDL_RenderSetLogicalSize(renderer, h * 17/10, h);
+	} else {
+		viewport->w = w;
+		viewport->h = w * 10 / 17;
+		//pixelSize = w / 340;
+		//SDL_RenderSetLogicalSize(renderer, w, w * 10/17);
+	}
+	printf("\n\nViewoffset: %d \n\n", (w - viewport->w) / 2);
+	viewport->x = (w - viewport->w) / 2;
+	viewport->y = (h - viewport->h) / 2;
+
+	//SDL_RenderSetViewport(renderer, viewport);
+
+	//SDL_RenderSetScale(renderer, 7.2, 7.2);
+}
+
 int main(int argc, char * argv[]) {
 	SDL_Init(SDL_INIT_VIDEO);
+
+	SDL_DisplayMode current;
+	int lw = MAXINT;
+	int lh = MAXINT;
+
+	for (int i = 0; i < SDL_GetNumVideoDisplays(); ++i) {
+
+		int should_be_zero = SDL_GetCurrentDisplayMode(i, &current);
+
+		if (should_be_zero != 0) {
+			SDL_Log("Could not get display mode for video display #%d: %s", i, SDL_GetError());
+		} else {
+			if (current.w < lw && current.h < lh) {
+				lw = current.w;
+				lh = current.h;
+			}
+		}
+	}
 
 	window = SDL_CreateWindow(
 		"Riko4",
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
-		pixelSize * 340,
-		pixelSize * 200,
-		SDL_WINDOW_OPENGL
+		340*pixelSize,//lw / 2,
+		200*pixelSize,//lh / 2,
+		SDL_WINDOW_OPENGL //| SDL_WINDOW_FULLSCREEN
 	);
+
+	SDL_ShowCursor(SDL_DISABLE);
 
 	if (window == NULL) {
 		printf("Could not create window: %s\n", SDL_GetError());
@@ -104,6 +162,9 @@ int main(int argc, char * argv[]) {
 	SDL_SetRenderDrawColor(renderer, 24, 24, 24, 255);
 	SDL_RenderClear(renderer);
 	SDL_RenderPresent(renderer);
+
+	SDL_Rect *viewport = new SDL_Rect();
+	SDL_SetRendererViewportRatio_17_10(window, renderer, viewport);
 
 	SDL_Surface *surface;
 	surface = SDL_LoadBMP("icon.ico");
@@ -142,6 +203,11 @@ int main(int argc, char * argv[]) {
 					lua_pushstring(mainThread, SDL_GetKeyName(event.key.keysym.sym));
 					pushedArgs = 2;
 					break;
+				case SDL_KEYUP:
+					lua_pushstring(mainThread, "keyUp");
+					lua_pushstring(mainThread, SDL_GetKeyName(event.key.keysym.sym));
+					pushedArgs = 2;
+					break;
 				case SDL_MOUSEWHEEL:
 					lua_pushstring(mainThread, "mouseWheel");
 					mult = (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) ? -1 : 1;
@@ -151,8 +217,8 @@ int main(int argc, char * argv[]) {
 					pushedArgs = 3;
 					break;
 				case SDL_MOUSEMOTION:
-					cx = event.motion.x / pixelSize;
-					cy = event.motion.y / pixelSize;
+					cx = event.motion.x / afPixscale;
+					cy = event.motion.y / afPixscale;
 					if (cx != lastMoveX || cy != lastMoveY) {
 						lua_pushstring(mainThread, "mouseMoved");
 						lua_pushnumber(mainThread, cx);
@@ -166,15 +232,15 @@ int main(int argc, char * argv[]) {
 					break;
 				case SDL_MOUSEBUTTONDOWN:
 					lua_pushstring(mainThread, "mousePressed");
-					lua_pushnumber(mainThread, (int) event.button.x / pixelSize);
-					lua_pushnumber(mainThread, (int) event.button.y / pixelSize);
+					lua_pushnumber(mainThread, (int) event.button.x / afPixscale);
+					lua_pushnumber(mainThread, (int) event.button.y / afPixscale);
 					lua_pushnumber(mainThread, event.button.button);
 					pushedArgs = 4;
 					break;
 				case SDL_MOUSEBUTTONUP:
 					lua_pushstring(mainThread, "mouseReleased");
-					lua_pushnumber(mainThread, (int)event.button.x / pixelSize);
-					lua_pushnumber(mainThread, (int)event.button.y / pixelSize);
+					lua_pushnumber(mainThread, (int)event.button.x / afPixscale);
+					lua_pushnumber(mainThread, (int)event.button.y / afPixscale);
 					lua_pushnumber(mainThread, event.button.button);
 					pushedArgs = 4;
 					break;
@@ -204,6 +270,7 @@ int main(int argc, char * argv[]) {
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
+	free(viewport);
 
 	SDL_Quit();
 
