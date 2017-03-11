@@ -126,7 +126,7 @@ function rif.decode1D(rifData)
 
   if string.byte(rifData:sub(9, 9)) == 1 then
     -- Transparency map
-    local max = 19 + (w * h / 2)
+    local max = 19 + math.ceil(w * h / 2)
     for i = 1, math.ceil(w * h / 8) do
       local byte = string.byte(rifData:sub(max + i, max + i))
       for j = 1, 8 do
