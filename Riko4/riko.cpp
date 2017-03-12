@@ -15,11 +15,7 @@
 #endif
 #endif
 
-#ifndef MAXINT
-#define MAXUINT     ((UINT)~((UINT)0))
-#define MAXINT      ((INT)(MAXUINT >> 1))
-#define MININT      ((INT)~MAXINT)
-#endif
+#include <climits>
 
 #include <iostream>
 
@@ -129,8 +125,8 @@ int main(int argc, char * argv[]) {
 	SDL_Init(SDL_INIT_VIDEO);
 
 	SDL_DisplayMode current;
-	int lw = MAXINT;
-	int lh = MAXINT;
+	int lw = INT_MAX;
+	int lh = INT_MAX;
 
 	for (int i = 0; i < SDL_GetNumVideoDisplays(); ++i) {
 
@@ -274,7 +270,7 @@ int main(int argc, char * argv[]) {
 		SDL_Delay(1);
 	}
 
-	//closeAudio();
+	closeAudio();
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
