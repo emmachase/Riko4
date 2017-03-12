@@ -274,7 +274,7 @@ int main(int argc, char * argv[]) {
 		SDL_Delay(1);
 	}
 
-	closeAudio();
+	//closeAudio();
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
