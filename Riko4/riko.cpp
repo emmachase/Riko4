@@ -15,6 +15,12 @@
 #endif
 #endif
 
+#ifndef MAXINT
+#define MAXUINT     ((UINT)~((UINT)0))
+#define MAXINT      ((INT)(MAXUINT >> 1))
+#define MININT      ((INT)~MAXINT)
+#endif
+
 #include <iostream>
 
 #include <stdio.h>
@@ -267,6 +273,8 @@ int main(int argc, char * argv[]) {
 		pushedArgs = 0;
 		SDL_Delay(1);
 	}
+
+	closeAudio();
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
