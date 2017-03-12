@@ -30,7 +30,7 @@ local prefix = "> "
 local str = ""
 local path = ""
 
-local e, p1, p2
+-- local e, p1, p2
 local lastP = 0
 
 local lastf = 0
@@ -74,7 +74,7 @@ function shell.getRunningProgram()
   return lastRun:match("(.+)%.lua")
 end
 
-while true do
+local function update()
   lineHistory[historyPoint] = {
     {path, prefix, str,
     (math.floor((os.clock() * 2 - lastP) % 2) == 0 and "_" or "")},
@@ -82,7 +82,11 @@ while true do
   }
 
   shell.redraw()
+end
 
+local function processEvent(e, ...)
+  local args = {...}
+  local p1, p2 = args[1], args[2]
   if e == "char" then
     str = str .. p1
     lastP = os.clock() * 2
@@ -159,5 +163,20 @@ while true do
       end
     end
   end
-  e, p1, p2 = coroutine.yield()
+end
+
+local eventQueue = {}
+while true do
+  while true do
+    local e, p1, p2, p3, p4 = coroutine.yield()
+    if not e then break end
+    table.insert(eventQueue, {e, p1, p2, p3, p4})
+  end
+
+  while #eventQueue > 0 do
+    processEvent(unpack(eventQueue[1]))
+    table.remove(eventQueue, 1)
+  end
+
+  update()
 end
