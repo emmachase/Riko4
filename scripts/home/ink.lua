@@ -110,7 +110,7 @@ do -- Little windows
   function window:mouseReleased(x, y, b)
     local out = true
     if self.mouseRA then
-      out = self.mousePA(x - self.x - 1, y - self. y - 9, b)
+      out = self.mouseRA(x - self.x - 1, y - self. y - 9, b)
     end
 
     if out and x >= self.x and x < self.x + self.w + 2 then
@@ -190,7 +190,8 @@ local pathVars = {
   cpos = 0,
   visible = false,
   time = os.clock(),
-  focus = false
+  focus = false,
+  mode = 1
 }
 
 local windows = {toolPalette, colorPalette, pathDialog}
@@ -231,6 +232,13 @@ local function exists(filename)
   return false
 end
 
+local csaved
+local keyMods = {ctrl = false, shift = false}
+local status = ""
+local statusPos = 0
+local statusRest = -9
+local statusTime = os.clock()
+
 local function saveImage(name)
   if exists(name) then
     --TODO: Warn user about to overwrite
@@ -241,6 +249,48 @@ local function saveImage(name)
   local handle = io.open(name, "w")
   handle:write(oData)
   handle:close()
+
+  csaved = name
+  status = "Saved"
+  statusPos = statusRest
+  statusTime = os.clock()
+end
+
+local function loadImage(name)
+  if exists(name) then
+    local handle = io.open(name, "rb")
+    local data = handle:read("*a")
+    handle:close()
+
+    local rifData, w, h = RIF.decode1D(data)
+
+    imgWidth = w
+    imgHeight = h
+
+    workingImage = {}
+
+    local c = 1
+    for i = 1, h do
+      for j = 1, w do
+        if not workingImage[j] then
+          workingImage[j] = {}
+        end
+        workingImage[j][i] = rifData[c]
+        if workingImage[j][i] == -1 then
+          workingImage[j][i] = 0
+        end
+        c = c + 1
+      end
+    end
+
+    csaved = name
+    status = "Loaded"
+    statusPos = statusRest
+    statusTime = os.clock()
+  else
+    --TODO: Warn user file DNE
+    print("TODO: Warn user file DNE")
+  end
 end
 
 local function convertScrn2I(x, y)
@@ -417,6 +467,15 @@ pathDialog.mouseRA = function()
   return pathVars.visible
 end
 
+local function openPath(mode, str)
+  pathVars.visible = true
+  pathVars.focus = true
+  pathVars.mode = mode
+  pathVars.str = csaved or ""
+  pathVars.cpos = #pathVars.str
+  pathDialog.title = locale[lang][str]
+end
+
 local selToolbar = 1
 local toolbarActive = false
 local toolbar = {
@@ -424,9 +483,9 @@ local toolbar = {
     name = locale[lang].file,
     actions = {
       {locale[lang].new, function() print("New") end},
-      {locale[lang].save, function() pathVars.visible = true; pathVars.focus = true end},
-      {locale[lang].saveas, function() pathVars.visible = true; pathVars.focus = true end},
-      {locale[lang].load, function() print("Load") end},
+      {locale[lang].save, function() if csaved then saveImage(csaved) else openPath(1, "save") end end},
+      {locale[lang].saveas, function() openPath(1, "save") end},
+      {locale[lang].load, function() openPath(2, "load") end},
       {locale[lang].exit, function() running = false end}
     }
   },
@@ -572,6 +631,13 @@ local function drawContent()
     local transX, transY = convertScrn2I(mousePosX, mousePosY)
     rightWrite(transX .. ", " .. transY, 280, 191)
 
+    if statusPos < 0 then
+      write(status, 2, statusPos + 200)
+      if os.clock() - statusTime > 0.3 then
+        statusPos = statusPos + 1
+      end
+    end
+
     gpu.drawRectangle(mousePosX + 1, mousePosY + 1, 3, 3, 1)
     gpu.drawRectangle(mousePosX + 2, mousePosY + 2, 3, 3, 1)
     gpu.drawRectangle(mousePosX + 3, mousePosY + 3, 3, 3, 1)
@@ -588,11 +654,43 @@ local function processEvent(ev, p1, p2, p3, p4)
       pathVars.cpos = pathVars.cpos + 1
       pathVars.time = os.clock()
     end
+  elseif ev == "keyUp" then
+    local k = p1
+    if k == "Left Ctrl" then
+      keyMods.ctrl = false
+    elseif k == "Left Shift" then
+      keyMods.shift = false
+    end
   elseif ev == "key" then
-    if p1 == "Return" then
+    if p1 == "S" then
+      if keyMods.ctrl then
+        if keyMods.shift then
+          openPath(1, "save")
+        else
+          if csaved then
+            saveImage(csaved)
+          else
+            openPath(1, "save")
+          end
+        end
+      end
+    elseif p1 == "O" then
+      if keyMods.ctrl then
+        openPath(2, "load")
+      end
+    elseif p1 == "Left Ctrl" then
+      keyMods.ctrl = true
+    elseif p1 == "Left Shift" then
+      keyMods.shift = true
+    elseif p1 == "Return" then
       if pathVars.focus then
-        -- No loading right now so can assume saving
-        saveImage(pathVars.str)
+        if pathVars.mode == 1 then
+          saveImage(pathVars.str)
+        else
+          loadImage(pathVars.str)
+        end
+        pathVars.visible = false
+        pathVars.focus = false
       end
     elseif p1 == "Delete" then
       if pathVars.focus then
