@@ -2,6 +2,7 @@ local rif = dofile("../lib/rif.lua")
 
 -- 2d terrain demo
 -- by @powersaurus
+-- adapted from pico8 to riko4 by @Incinirate
 local running = true
 
 local width=128
