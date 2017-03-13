@@ -1,12 +1,10 @@
 local RIF = dofile("../lib/rif.lua")
 
 local running = true
-local DEBUG = true
 
 local lang = "en"
 local locale = {
   en = {
-    title = "Ink",
     new = "New",
     save = "Save",
     saveas = "Save As",
@@ -33,7 +31,11 @@ local locale = {
     copy = "Copy",
     paste = "Paste",
     settings = "Settings",
-    fill = "Fill"
+    fill = "Fill",
+    saved = "Saved",
+    failSave = "Failure saving",
+    loaded = "Loaded",
+    failLoad = "Failure loading"
   }
 }
 
@@ -44,7 +46,7 @@ do
   local backBuffer = {}
   for i = 1, 200 do
     for j = 1, 344 do
-      backBuffer[(i - 1)*344 + j] = ((i + (j / 2)) % 2 == 1) and 7 or 6
+      backBuffer[(i - 1)*344 + j] = ((i + (j / 2)) % 2 == 1) and 6 or 1
     end
   end
   backMatte:blitPixels(0, 0, 344, 200, backBuffer)
@@ -82,7 +84,7 @@ do -- Little windows
     return t
   end
 
-  function window:mousePressed(x, y, b)
+  function window:mousePressedInternal(x, y, b)
     local out = true
     if self.mousePA then
       out = self.mousePA(x - self.x - 1, y - self. y - 9, b)
@@ -96,8 +98,8 @@ do -- Little windows
           return true
         elseif y < self.y + self.h + 10 and x > self.x and x < self.x + self.w + 1 then
           -- Content
-          if self.mousePressedCallback then
-            self.mousePressedCallback(x - self.x - 1, y - self.y - 9, b)
+          if self.mousePressed then
+            self.mousePressed(x - self.x - 1, y - self.y - 9, b)
           end
           return true
         end
@@ -183,7 +185,8 @@ local mouseDown = {false, false, false}
 
 local toolPalette = window.new(locale[lang].tools, 60, 80, 340 - 65, 60)
 local colorPalette = window.new(locale[lang].colors, 6*4 + 20, 6*4, 4, 60)
-local pathDialog = window.new(locale[lang].save, 100, 20, 50, 26)
+local pathDialog = window.new(locale[lang].save, 100, 20, 6, 200 - 46)
+local newDialog = window.new(locale[lang].new, 99, 24, 6, 200 - 50)
 
 local pathVars = {
   str = "",
@@ -194,7 +197,18 @@ local pathVars = {
   mode = 1
 }
 
-local windows = {toolPalette, colorPalette, pathDialog}
+local newVars = {
+  wnum = "",
+  hnum = "",
+  cposw = 0,
+  cposh = 0,
+  visible = false,
+  time = os.clock(),
+  focus = false,
+  mode = 1
+}
+
+local windows = {newDialog, pathDialog, toolPalette, colorPalette }
 
 local function wep(name, ...)
   for i = 1, #windows do
@@ -212,8 +226,7 @@ local secColor = 9
 
 local workingImage = {}
 
-if DEBUG then
-  -- Temp
+local function constructImage()
   for i = 1, imgWidth do
     workingImage[i] = {}
     for j = 1, imgHeight do
@@ -221,6 +234,7 @@ if DEBUG then
     end
   end
 end
+constructImage()
 
 local function exists(filename)
   local handle = io.open(filename, "r")
@@ -233,7 +247,7 @@ local function exists(filename)
 end
 
 local csaved
-local keyMods = {ctrl = false, shift = false}
+local keyMods = {ctrl = false, shift = false, alt = false}
 local status = ""
 local statusPos = 0
 local statusRest = -9
@@ -247,11 +261,17 @@ local function saveImage(name)
 
   local oData = RIF.encode(workingImage, imgWidth, imgHeight)
   local handle = io.open(name, "w")
+  if not handle then
+    status = locale[lang].failSave
+    statusPos = statusRest
+    statusTime = os.clock()
+    return false
+  end
   handle:write(oData)
   handle:close()
 
   csaved = name
-  status = "Saved"
+  status = locale[lang].saved
   statusPos = statusRest
   statusTime = os.clock()
 end
@@ -259,10 +279,20 @@ end
 local function loadImage(name)
   if exists(name) then
     local handle = io.open(name, "rb")
+    -- Dont need to check handle integrity, as that is done in `exists`
     local data = handle:read("*a")
     handle:close()
 
-    local rifData, w, h = RIF.decode1D(data)
+    local rifData, w, h
+    local s = pcall(function()
+      rifData, w, h = RIF.decode1D(data)
+    end)
+    if not s then
+      status = locale[lang].failLoad
+      statusPos = statusRest
+      statusTime = os.clock()
+      return false
+    end
 
     imgWidth = w
     imgHeight = h
@@ -284,12 +314,14 @@ local function loadImage(name)
     end
 
     csaved = name
-    status = "Loaded"
+    status = locale[lang].loaded
     statusPos = statusRest
     statusTime = os.clock()
   else
-    --TODO: Warn user file DNE
-    print("TODO: Warn user file DNE")
+    status = locale[lang].failLoad
+    statusPos = statusRest
+    statusTime = os.clock()
+    return false
   end
 end
 
@@ -437,7 +469,7 @@ local toolList = {
   }
 }
 
-colorPalette.mousePressedCallback = function(x, y, b)
+colorPalette.mousePressed = function(x, y, b)
   if x < 24 then
     local offs = math.floor(y / 6)
     local ind = (offs * 4) + math.floor(x / 6) + 1
@@ -449,7 +481,7 @@ colorPalette.mousePressedCallback = function(x, y, b)
   end
 end
 
-toolPalette.mousePressedCallback = function(_, y)
+toolPalette.mousePressed = function(_, y)
   if y == 0 then return end
   local newInd = math.floor((y - 1) / 10) + 1
   if newInd <= #toolList then
@@ -467,6 +499,24 @@ pathDialog.mouseRA = function()
   return pathVars.visible
 end
 
+newDialog.mousePA = function(x, y)
+  newVars.focus = x > 0 and x < newDialog.w
+              and y > 0 and y < newDialog.h
+  return newVars.visible
+end
+
+newDialog.mousePressed = function(x)
+  local n = x > math.floor(newDialog.w / 2) and 2 or 1
+  if newVars.mode ~= n then
+    newVars.mode = n
+    newVars.time = os.clock()
+  end
+end
+
+newDialog.mouseRA = function()
+  return newVars.visible
+end
+
 local function openPath(mode, str)
   pathVars.visible = true
   pathVars.focus = true
@@ -474,6 +524,20 @@ local function openPath(mode, str)
   pathVars.str = csaved or ""
   pathVars.cpos = #pathVars.str
   pathDialog.title = locale[lang][str]
+
+  newVars.visible = false
+  newVars.focus = false
+end
+
+local function openNew()
+  newVars.visible = true
+  newVars.focus = true
+  newVars.mode = 1
+  newVars.str = csaved or ""
+  newVars.cpos = #newVars.str
+
+  pathVars.visible = false
+  pathVars.focus = false
 end
 
 local selToolbar = 1
@@ -482,7 +546,7 @@ local toolbar = {
   {
     name = locale[lang].file,
     actions = {
-      {locale[lang].new, function() print("New") end},
+      {locale[lang].new, function() openNew() end},
       {locale[lang].save, function() if csaved then saveImage(csaved) else openPath(1, "save") end end},
       {locale[lang].saveas, function() openPath(1, "save") end},
       {locale[lang].load, function() openPath(2, "load") end},
@@ -558,7 +622,7 @@ local function drawContent()
 
     -- Done
 
-    colorPalette:drawRectangle(0, 0, 6*4 + 20, 6*4, 7)
+    colorPalette:drawRectangle(0, 0, 6*4 + 20, 6*4, 6)
 
     for i=1, 16 do
       colorPalette:drawRectangle((i - 1) % 4 * 6, math.floor((i - 1) / 4) * 6, 6, 6, i)
@@ -574,9 +638,9 @@ local function drawContent()
 
     colorPalette:drawSelf()
 
-    toolPalette:drawRectangle(0, 0, 60, 80, 7)
+    toolPalette:drawRectangle(0, 0, 60, 80, 6)
 
-    toolPalette:drawRectangle(0, 1 + (10 * (selectedTool - 1)), 60, 10, 6)
+    toolPalette:drawRectangle(0, 1 + (10 * (selectedTool - 1)), 60, 10, 1)
 
     for i=1, #toolList do
       write(toolList[i].name, 2, 2 + (10 * (i - 1)), 16, toolPalette.canv)
@@ -587,9 +651,9 @@ local function drawContent()
     toolPalette:drawSelf()
 
     if pathVars.visible then
-      pathDialog:drawRectangle(0, 0, 100, 26, 7)
+      pathDialog:drawRectangle(0, 0, 100, 26, 6)
 
-      pathDialog:drawRectangle(1, 1, 98, 10, 6)
+      pathDialog:drawRectangle(1, 1, 98, 10, 1)
       write(pathVars.str, 1, 2, 16, pathDialog.canv)
       if pathVars.focus and math.floor(((os.clock() - pathVars.time) * 2) % 2) == 0 then
         pathDialog:drawRectangle(pathVars.cpos * 7 + 3, 9, 4, 1, 16)
@@ -600,13 +664,35 @@ local function drawContent()
       pathDialog:drawSelf()
     end
 
-    gpu.drawRectangle(0, 0, 340, 10, 7)
+    if newVars.visible then
+      newDialog:drawRectangle(0, 0, 100, 26, 6)
+
+      write(locale[lang].width, 1, 2, 16, newDialog.canv)
+      newDialog:drawRectangle(1, 13, 48, 10, 1)
+      write(newVars.wnum, 1, 14, 16, newDialog.canv)
+
+      write(locale[lang].height, 50, 2, 16, newDialog.canv)
+      newDialog:drawRectangle(50, 13, 48, 10, 1)
+      write(newVars.hnum, 50, 14, 16, newDialog.canv)
+
+      if newVars.focus and math.floor(((os.clock() - newVars.time) * 2) % 2) == 0 then
+        local off = newVars.mode == 1 and 3 or 3 + 49
+        local dof = newVars.mode == 1 and newVars.cposw or newVars.cposh
+        newDialog:drawRectangle(dof * 7 + off, 21, 4, 1, 16)
+      end
+
+      newDialog:flush()
+
+      newDialog:drawSelf()
+    end
+
+    gpu.drawRectangle(0, 0, 340, 10, 6)
 
     local acp
     for i=1, #toolbar do
       local pt = toolbar[i]
       if toolbarActive and i == selToolbar then
-        gpu.drawRectangle(pt.offset - 4, 0, #pt.name * 7 + 10, 10, 6)
+        gpu.drawRectangle(pt.offset - 4, 0, #pt.name * 7 + 10, 10, 1)
         acp = pt.offset - 4
       end
       write(pt.name, pt.offset, 1, 16)
@@ -618,13 +704,13 @@ local function drawContent()
     write("X", 330, 1, 16)
 
     if toolbarActive then
-      gpu.drawRectangle(acp, 10, toolbar[selToolbar].maxACL * 7 + 16, #toolbar[selToolbar].actions * 10, 16)
+      gpu.drawRectangle(acp, 10, toolbar[selToolbar].maxACL * 7 + 16, #toolbar[selToolbar].actions * 10, 7)
       for i=1, #toolbar[selToolbar].actions do
         write(toolbar[selToolbar].actions[i][1], acp + 4, i * 10, 1)
       end
     end
 
-    gpu.drawRectangle(0, 190, 340, 10, 7)
+    gpu.drawRectangle(0, 190, 340, 10, 6)
 
     rightWrite(tostring(zoomFactor * 100) .. "%", 338, 191)
 
@@ -653,6 +739,15 @@ local function processEvent(ev, p1, p2, p3, p4)
       pathVars.str = pathVars.str:sub(1, pathVars.cpos) .. c .. pathVars.str:sub(pathVars.cpos + 1)
       pathVars.cpos = pathVars.cpos + 1
       pathVars.time = os.clock()
+    elseif newVars.focus and tonumber(c) then
+      if newVars.mode == 1 then
+        newVars.wnum = newVars.wnum:sub(1, newVars.cposw) .. c .. newVars.wnum:sub(newVars.cposw + 1)
+        newVars.cposw = newVars.cposw + 1
+      else
+        newVars.hnum = newVars.hnum:sub(1, newVars.cposh) .. c .. newVars.hnum:sub(newVars.cposh + 1)
+        newVars.cposh = newVars.cposh + 1
+      end
+      newVars.time = os.clock()
     end
   elseif ev == "keyUp" then
     local k = p1
@@ -660,9 +755,16 @@ local function processEvent(ev, p1, p2, p3, p4)
       keyMods.ctrl = false
     elseif k == "Left Shift" then
       keyMods.shift = false
+    elseif k == "Left Alt" then
+      keyMods.alt = false
     end
   elseif ev == "key" then
-    if p1 == "S" then
+    if p1 == "Tab" then
+      if newVars.visible and newVars.focus then
+        newVars.mode = (newVars.mode % 2) + 1
+        newVars.time = os.clock()
+      end
+    elseif p1 == "S" then
       if keyMods.ctrl then
         if keyMods.shift then
           openPath(1, "save")
@@ -674,14 +776,24 @@ local function processEvent(ev, p1, p2, p3, p4)
           end
         end
       end
+    elseif p1 == "N" then
+      if keyMods.ctrl then
+        openNew()
+      end
     elseif p1 == "O" then
       if keyMods.ctrl then
         openPath(2, "load")
+      end
+    elseif p1 == "W" then
+      if keyMods.ctrl and keyMods.alt then
+        running = false
       end
     elseif p1 == "Left Ctrl" then
       keyMods.ctrl = true
     elseif p1 == "Left Shift" then
       keyMods.shift = true
+    elseif p1 == "Left Alt" then
+      keyMods.alt = true
     elseif p1 == "Return" then
       if pathVars.focus then
         if pathVars.mode == 1 then
@@ -691,6 +803,14 @@ local function processEvent(ev, p1, p2, p3, p4)
         end
         pathVars.visible = false
         pathVars.focus = false
+      elseif newVars.visible and newVars.focus then
+        if tonumber(newVars.wnum) and tonumber(newVars.hnum) then
+          imgWidth  = tonumber(newVars.wnum)
+          imgHeight = tonumber(newVars.hnum)
+          constructImage()
+        end
+        newVars.visible = false
+        newVars.focus = false
       end
     elseif p1 == "Delete" then
       if pathVars.focus then
@@ -700,12 +820,20 @@ local function processEvent(ev, p1, p2, p3, p4)
         end
       end
     elseif p1 == "Backspace" then
-      if pathVars.focus then
+      if pathVars.visible and pathVars.focus then
         if pathVars.cpos > 0 then
           pathVars.str = pathVars.str:sub(1, pathVars.cpos - 1) .. pathVars.str:sub(pathVars.cpos + 1)
           pathVars.cpos = pathVars.cpos - 1
         end
         pathVars.time = os.clock()
+      elseif newVars.visible and newVars.focus then
+        local woh = newVars.mode == 1 and "w" or "h"
+        local pos = newVars["cpos" .. woh]
+        local str = newVars[woh ..  "num"]
+        if pos > 0 then
+          newVars[woh ..  "num"] = str:sub(1, pos - 1) .. str:sub(pos + 1)
+          newVars["cpos" .. woh] = pos - 1
+        end
       end
     elseif p1 == "Left" then
       if pathVars.focus then
@@ -738,15 +866,15 @@ local function processEvent(ev, p1, p2, p3, p4)
     toolbarActive = false
 
     if tBar then
-      for i=1, #toolbar do
-        if x > toolbar[i].offset - 5 and x < toolbar[i].maxACL * 7 + toolbar[i].offset + 12 then
-          local action = math.floor(y / 10)
-          if toolbar[i].actions[action] then
-            local f = toolbar[i].actions[action][2]
-            if f then f() end
-          end
-          return
+      local i = selToolbar
+
+      if x > toolbar[i].offset - 5 and x < toolbar[i].maxACL * 7 + toolbar[i].offset + 12 then
+        local action = math.floor(y / 10)
+        if toolbar[i].actions[action] then
+          local f = toolbar[i].actions[action][2]
+          if f then f() end
         end
+        return
       end
     end
 
@@ -767,7 +895,7 @@ local function processEvent(ev, p1, p2, p3, p4)
       return
     end
 
-    if mouseDown[2] or not wep("mousePressed", p1, p2, p3) then
+    if mouseDown[2] or not wep("mousePressedInternal", p1, p2, p3) then
       mouseDown[tonumber(p3)] = true
       toolList[selectedTool].mouseDown(p1, p2, p3)
     end
@@ -792,7 +920,6 @@ local function processEvent(ev, p1, p2, p3, p4)
       end
 
       toolList[selectedTool].mouseMoved(p1, p2, p3, p4)
-      --drawQ(p1, p2, mouseDown[1] and 1 or (mouseDown[3] and 3 or 0))
     end
 
     mousePosX = p1
