@@ -225,6 +225,7 @@ local primColor = 4
 local secColor = 9
 
 local workingImage = {}
+local dispImage
 
 local function constructImage()
   for i = 1, imgWidth do
@@ -233,6 +234,7 @@ local function constructImage()
       workingImage[i][j] = 0
     end
   end
+  dispImage = image.newImage(imgWidth, imgHeight)
 end
 constructImage()
 
@@ -276,6 +278,17 @@ local function saveImage(name)
   statusTime = os.clock()
 end
 
+local function toBlitTable(bData)
+  local out = {}
+  for i = 1, #bData[1] do
+    for j = 1, #bData do
+      out[#out + 1] = bData[j][i] == 0 and -1 or bData[j][i]
+    end
+  end
+
+  return out
+end
+
 local function loadImage(name)
   if exists(name) then
     local handle = io.open(name, "rb")
@@ -313,6 +326,10 @@ local function loadImage(name)
       end
     end
 
+    dispImage = image.newImage(w, h)
+    dispImage:blitPixels(0, 0, w, h, rifData)
+    dispImage:flush()
+
     csaved = name
     status = locale[lang].loaded
     statusPos = statusRest
@@ -337,6 +354,8 @@ local function drawQ(x, y, b)
   local tx, ty = convertScrn2I(x, y)
   if tx >= 0 and ty >= 0 and tx < imgWidth and ty < imgHeight and (b == 1 or b == 3)then
     workingImage[tx + 1][ty + 1] = (b == 1) and primColor or (b == 3) and secColor
+    dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage))
+    dispImage:flush()
   end
 end
 
@@ -355,6 +374,9 @@ local function floodFill(x, y, c)
     if py < imgHeight and workingImage[px][py + 1] == control then fillQueue[#fillQueue + 1] = {px, py + 1} end
     if py > 1         and workingImage[px][py - 1] == control then fillQueue[#fillQueue + 1] = {px, py - 1} end
   end
+
+  dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage))
+  dispImage:flush()
 end
 
 local closeHover = false
@@ -412,6 +434,9 @@ local toolList = {
       local tx, ty = convertScrn2I(x, y)
       if tx >= 0 and ty >= 0 and tx < imgWidth and ty < imgHeight and b == 1 then
         workingImage[tx + 1][ty + 1] = 0
+        dispImage:clear()
+        dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage))
+        dispImage:flush()
       end
     end,
     mouseUp = function(x, y, b)
@@ -419,6 +444,9 @@ local toolList = {
       local tx, ty = convertScrn2I(x, y)
       if tx >= 0 and ty >= 0 and tx < imgWidth and ty < imgHeight and b == 1 then
         workingImage[tx + 1][ty + 1] = 0
+        dispImage:clear()
+        dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage))
+        dispImage:flush()
       end
     end,
     mouseMoved = function(x, y)
@@ -429,6 +457,9 @@ local toolList = {
         local tx, ty = convertScrn2I(x, y)
         if tx >= 0 and ty >= 0 and tx < imgWidth and ty < imgHeight then
           workingImage[tx + 1][ty + 1] = 0
+          dispImage:clear()
+          dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage))
+          dispImage:flush()
         end
       end
     end,
@@ -610,13 +641,15 @@ local function drawContent()
 
     -- Render painting here
 
-    for i = 1, imgWidth do
-      for j = 1, imgHeight do
-        if workingImage[i][j] ~= 0 then
-          gpu.drawRectangle((i - 1) * zoomFactor + drawOffX, (j - 1) * zoomFactor + drawOffY + 10, zoomFactor, zoomFactor, workingImage[i][j])
-        end
-      end
-    end
+    -- for i = 1, imgWidth do
+    --   for j = 1, imgHeight do
+    --     if workingImage[i][j] ~= 0 then
+    --       gpu.drawRectangle((i - 1) * zoomFactor + drawOffX, (j - 1) * zoomFactor + drawOffY + 10, zoomFactor, zoomFactor, workingImage[i][j])
+    --     end
+    --   end
+    -- end
+
+    dispImage:render(drawOffX, drawOffY + 10, 0, 0, imgWidth, imgHeight, zoomFactor)
 
     toolList[selectedTool].draw()
 
