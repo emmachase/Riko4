@@ -102,7 +102,20 @@ static int renderImage(lua_State *L) {
 	rect.y = y * pixelSize;
 
 	int top = lua_gettop(L);
-	if (top > 5) {
+	if (top > 7) {
+		SDL_Rect srcRect;
+		srcRect.x = (int)luaL_checknumber(L, 4);
+		srcRect.y = (int)luaL_checknumber(L, 5);
+		srcRect.w = (int)luaL_checknumber(L, 6);
+		srcRect.h = (int)luaL_checknumber(L, 7);
+
+		int scale = (int)luaL_checknumber(L, 8);
+
+		rect.w = srcRect.w * pixelSize * scale;
+		rect.h = srcRect.h * pixelSize * scale;
+
+		SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
+	} else if (top > 6) {
 		SDL_Rect srcRect;
 		srcRect.x = (int)luaL_checknumber(L, 4);
 		srcRect.y = (int)luaL_checknumber(L, 5);
