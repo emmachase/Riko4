@@ -6,3 +6,4 @@
 #include <LuaJIT/lua.hpp>
 
 LUALIB_API int luaopen_aud(lua_State *L);
+void closeAudio();

@@ -10,6 +10,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_audio.h>
 
+#include <stdlib.h>
+
 #include <math.h>
 
 SDL_AudioSpec want, have;
@@ -17,12 +19,13 @@ SDL_AudioDeviceID dev;
 
 const double tao = 2*PI;
 const int sampleRate = 48000;
+const int samples = 1024;
 
 int sineCounter = 0;
 double freq = 500; // in Hz
 double phi = tao * freq * sineCounter / sampleRate;
 double time = 0.1;
-double freqEnd = 800;
+double freqEnd = 500;
 void sinWaveCallback(void *userdata, uint8_t *stream, int len) {
 	
 
@@ -76,26 +79,36 @@ void pulseWaveCallback(void *userdata, uint8_t *stream, int len) {
 	}
 }
 
-void play(void)
-{
-	SDL_memset(&want, 0, sizeof(want)); /* or SDL_zero(want) */
-	want.freq = 48000;
-	want.format = AUDIO_U8;//AUDIO_F32;
-	want.channels = 2;
-	want.samples = 4028;
-	want.callback = sinWaveCallback;
+bool sinq = false;
+int count = 0;
+double phase = 0;
+float phase_inc = 380.0 / (float) sampleRate;
+int cnt = 0;
+float lstRnd = 0;
+float rndCt = 50;
+void audioCallback(void *userdata, uint8_t *byteStream, int len) {
+	float* floatStream = (float*) byteStream;
+	double delta = tao * freq / sampleRate;
+	double f_delta = (freqEnd - freq) / ((sampleRate * time));
 
-	dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE);
-	if (dev == 0) {
-		SDL_Log("Failed to open audio: %s", SDL_GetError());
-	}
-	else {
-		if (have.format != want.format) { /* we let this one thing change. */
-			SDL_Log("We didn't get Float32 audio format.");
+	for (int z = 0; z < samples; z++) {
+		if (sinq) {
+			//floatStream[z] = phase >= 0.5 ? 0.1 : -0.1;
+			//floatStream[z] = (float)(sin(phase) * 0.001);
+			//phase += phase_inc;
+			if (cnt == 0) {
+				lstRnd = ((float)rand() / (float)RAND_MAX) * 0.03;
+			}
+			cnt = fmod((cnt + 1), rndCt);
+			rndCt -= 0.001;
+			floatStream[z] = lstRnd;
+			//phase = fmod(phase + phase_inc, 1.0f);
+			phase_inc += 0.000001;
+			//phi += delta;
+		} else {
+			count = ++count;
+			floatStream[z] = 0;
 		}
-		SDL_PauseAudioDevice(dev, 0); /* start audio playing. */
-		SDL_Delay(time * 1000); /* let the audio callback play some sound for 5 seconds. */
-		SDL_CloseAudioDevice(dev);
 	}
 }
 
@@ -109,7 +122,8 @@ static int aud_play(lua_State *L) {
 	time = luaL_checknumber(L, 2); // in seconds
 	phi = tao * freq * sineCounter / sampleRate;
 
-	play();
+	//play();
+	sinq = true;
 	return 0;
 }
 
@@ -125,6 +139,30 @@ LUALIB_API int luaopen_aud(lua_State *L) {
 
 	SDL_InitSubSystem(SDL_INIT_AUDIO);
 
+	SDL_memset(&want, 0, sizeof(want)); /* or SDL_zero(want) */
+	want.freq = sampleRate;
+	want.format = AUDIO_F32SYS;
+	want.channels = 1;
+	want.samples = samples;
+	want.callback = audioCallback;
+	want.userdata = NULL;
+
+	//dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE);
+	if (dev == 0) {
+		SDL_Log("Failed to open audio: %s", SDL_GetError());
+	} else {
+		if (have.format != want.format) { /* we let this one thing change. */
+			SDL_Log("We didn't get Float32 audio format.");
+		}
+		SDL_PauseAudioDevice(dev, 0); /* start audio playing. */
+	}
+
 	luaL_openlib(L, RIKO_AUD_NAME, audLib, 0);
 	return 1;
+}
+
+void closeAudio() {
+	if (dev != 0) {
+		SDL_CloseAudioDevice(dev);
+	}
 }

@@ -8,7 +8,7 @@
 
 extern SDL_Window *window;
 extern SDL_Renderer *renderer;
-extern double pixelSize;
+extern int pixelSize;
 extern int palette[16][3];
 
 typedef struct imageType {
@@ -36,7 +36,7 @@ static float pHei = 1;
 #endif
 
 static int getColor(lua_State *L, int arg) {
-	int color = (int)luaL_checknumber(L, arg) - 1;
+	int color = (int)luaL_checkint(L, arg) - 1;
 	return color == -2 ? -1 : (color < 0 ? 0 : (color > 15 ? 15 : color));
 }
 
@@ -94,44 +94,40 @@ static int renderImage(lua_State *L) {
 	imageType *data = checkImage(L);
 	if (!freeCheck(L, data)) return 0;
 
-	int x = (int)luaL_checknumber(L, 2);
-	int y = (int)luaL_checknumber(L, 3);
+	int x = luaL_checkint(L, 2);
+	int y = luaL_checkint(L, 3);
 
-	SDL_Rect rect;
-	rect.x = x * pixelSize;
-	rect.y = y * pixelSize;
+	SDL_Rect rect = { x * pixelSize, y * pixelSize };
 
 	int top = lua_gettop(L);
 	if (top > 7) {
-		SDL_Rect srcRect;
-		srcRect.x = (int)luaL_checknumber(L, 4);
-		srcRect.y = (int)luaL_checknumber(L, 5);
-		srcRect.w = (int)luaL_checknumber(L, 6);
-		srcRect.h = (int)luaL_checknumber(L, 7);
+		SDL_Rect srcRect = {
+			luaL_checkint(L, 4),
+			luaL_checkint(L, 5),
+			luaL_checkint(L, 6),
+			luaL_checkint(L, 7)
+		};
 
-		int scale = (int)luaL_checknumber(L, 8);
+		int scale = luaL_checkint(L, 8);
 
 		rect.w = srcRect.w * pixelSize * scale;
 		rect.h = srcRect.h * pixelSize * scale;
 
 		SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
 	} else if (top > 6) {
-		SDL_Rect srcRect;
-		srcRect.x = (int)luaL_checknumber(L, 4);
-		srcRect.y = (int)luaL_checknumber(L, 5);
-		srcRect.w = (int)luaL_checknumber(L, 6);
-		srcRect.h = (int)luaL_checknumber(L, 7);
+		SDL_Rect srcRect = {
+			luaL_checkint(L, 4),
+			luaL_checkint(L, 5),
+			luaL_checkint(L, 6),
+			luaL_checkint(L, 7)
+		};
 
 		rect.w = srcRect.w * pixelSize;
 		rect.h = srcRect.h * pixelSize;
 
 		SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
 	} else if (top > 3) {
-		SDL_Rect srcRect;
-		srcRect.x = 0;
-		srcRect.y = 0;
-		srcRect.w = (int)luaL_checknumber(L, 4);
-		srcRect.h = (int)luaL_checknumber(L, 5);
+		SDL_Rect srcRect = { 0, 0, luaL_checkint(L, 4), luaL_checkint(L, 5) };
 
 		rect.w = srcRect.w * pixelSize;
 		rect.h = srcRect.h * pixelSize;
@@ -162,20 +158,15 @@ static int imageDrawPixel(lua_State *L) {
 	imageType *data = checkImage(L);
 	if (!freeCheck(L, data)) return 0;
 
-	int x = (int)luaL_checknumber(L, 2);
-	int y = (int)luaL_checknumber(L, 3);
+	int x = luaL_checkint(L, 2);
+	int y = luaL_checkint(L, 3);
 
 	int color = getColor(L, 4);
 
 	if (color >= 0) {
 		Uint32 rectcolor = getRectC(data, color);
-		SDL_Rect* rect = new SDL_Rect();
-		rect->x = x;
-		rect->y = y;
-		rect->w = 1;
-		rect->h = 1;
-		SDL_FillRect(data->surface, rect, rectcolor);
-		free(rect);
+		SDL_Rect rect = { x, y, 1, 1 };
+		SDL_FillRect(data->surface, &rect, rectcolor);
 	}
 	return 0;
 }
@@ -184,22 +175,17 @@ static int imageDrawRectangle(lua_State *L) {
 	imageType *data = checkImage(L);
 	if (!freeCheck(L, data)) return 0;
 
-	int x = (int)luaL_checknumber(L, 2);
-	int y = (int)luaL_checknumber(L, 3);
-	int w = (int)luaL_checknumber(L, 4);
-	int h = (int)luaL_checknumber(L, 5);
+	int x = luaL_checkint(L, 2);
+	int y = luaL_checkint(L, 3);
+	int w = luaL_checkint(L, 4);
+	int h = luaL_checkint(L, 5);
 
 	int color = getColor(L, 6);
 
 	if (color >= 0) {
 		Uint32 rectcolor = getRectC(data, color);
-		SDL_Rect* rect = new SDL_Rect();
-		rect->x = x;
-		rect->y = y;
-		rect->w = w;
-		rect->h = h;
-		SDL_FillRect(data->surface, rect, rectcolor);
-		free(rect);
+		SDL_Rect rect = { x, y, w, h };
+		SDL_FillRect(data->surface, &rect, rectcolor);
 	}
 	return 0;
 }
@@ -209,12 +195,12 @@ static int imageBlitPixels(lua_State *L) {
 	imageType *data = checkImage(L);
 	if (!freeCheck(L, data)) return 0;
 
-	int x = (int)luaL_checknumber(L, 2);
-	int y = (int)luaL_checknumber(L, 3);
-	int w = (int)luaL_checknumber(L, 4);
-	int h = (int)luaL_checknumber(L, 5);
+	int x = luaL_checkint(L, 2);
+	int y = luaL_checkint(L, 3);
+	int w = luaL_checkint(L, 4);
+	int h = luaL_checkint(L, 5);
 
-	int amt = lua_objlen(L, -1);
+	unsigned long long amt = lua_objlen(L, -1);
 	int len = (int)w*(int)h;
 	if (amt < len) {
 		luaL_error(L, "blitPixels expected %d pixels, got %d", len, amt);
@@ -227,7 +213,7 @@ static int imageBlitPixels(lua_State *L) {
 		if (!lua_isnumber(L, -1)) {
 			luaL_error(L, "Index %d is non-numeric", i);
 		}
-		int color = lua_tonumber(L, -1) - 1;
+		int color = lua_tointeger(L, -1) - 1;
 		if (color == -1) {
 			continue;
 		}
@@ -239,13 +225,8 @@ static int imageBlitPixels(lua_State *L) {
 			int yp = ((int)((i - 1) / (int)w));
 
 			Uint32 rectcolor = getRectC(data, color);
-			SDL_Rect* rect = new SDL_Rect();
-			rect->x = x + xp;
-			rect->y = y + yp;
-			rect->w = 1;
-			rect->h = 1;
-			SDL_FillRect(data->surface, rect, rectcolor);
-			free(rect);
+			SDL_Rect rect = { x + xp, y + yp, 1, 1 };
+			SDL_FillRect(data->surface, &rect, rectcolor);
 		}
 
 		lua_pop(L, 1);
@@ -270,37 +251,25 @@ static int imageCopy(lua_State *L) {
 	luaL_argcheck(L, ud != NULL, 1, "`Image` expected");
 	imageType *dst = (imageType *)ud;
 
-	int x = (int)luaL_checknumber(L, 3);
-	int y = (int)luaL_checknumber(L, 4);
+	int x = luaL_checkint(L, 3);
+	int y = luaL_checkint(L, 4);
 	int wi;
 	int he;
 
-	SDL_Rect *srcRect = new SDL_Rect();
+	SDL_Rect srcRect;
 
 	if (lua_gettop(L) > 4) {
-		wi = luaL_checknumber(L, 5);
-		he = luaL_checknumber(L, 6);
-		srcRect->x = luaL_checknumber(L, 7);
-		srcRect->y = luaL_checknumber(L, 8);
-		srcRect->w = wi;
-		srcRect->h = he;
+		wi = luaL_checkint(L, 5);
+		he = luaL_checkint(L, 6);
+		srcRect = { luaL_checkint(L, 7), luaL_checkint(L, 8), wi, he };
 	} else {
-		srcRect->x = 0;
-		srcRect->y = 0;
-		srcRect->w = src->width;
-		srcRect->h = src->height;
+		srcRect = { 0, 0, src->width, src->height };
 		wi = src->width;
 		he = src->height;
 	}
 
-	SDL_Rect *rect = new SDL_Rect();
-	rect->x = x;
-	rect->y = y;
-	rect->w = wi;
-	rect->h = he;
-	SDL_BlitSurface(src->surface, srcRect, dst->surface, rect);
-	free(srcRect);
-	free(rect);
+	SDL_Rect rect = {x, y, wi, he};
+	SDL_BlitSurface(src->surface, &srcRect, dst->surface, &rect);
 	return 0;
 }
 

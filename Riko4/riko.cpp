@@ -37,8 +37,8 @@ SDL_Renderer *renderer;
 
 lua_State *mainThread;
 
-double pixelSize = 5;
-double afPixscale = 5;// 7.2 / 2;
+int pixelSize = 5;
+int afPixscale = 5;
 
 void printLuaError(int result) {
 	if (result != 0) {
@@ -75,50 +75,12 @@ void createLuaInstance(const char* filename) {
 
 	int result;
 
-	// Load the program; this supports both source code and bytecode files.
 	result = luaL_loadfile(mainThread, filename);
 
 	if (result != 0) {
 		printLuaError(result);
 		return;
 	}
-}
-
-void SDL_SetRendererViewportRatio_17_10(SDL_Window *window,
-	SDL_Renderer *renderer, SDL_Rect *viewport) {
-
-	printf("Begin size: %f", pixelSize);
-
-	Uint8 r, g, b, a;
-	SDL_GetRenderDrawColor(renderer, &r, &g, &b, &a);
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-	SDL_RenderClear(renderer);
-	SDL_RenderPresent(renderer);
-	SDL_SetRenderDrawColor(renderer, r, g, b, a);
-	int w, h;
-	SDL_GetWindowSize(window, &w, &h);
-	/*w = w / 2;
-	h = h / 2;*/
-	printf("%d, %d", w, h);
-	if (w * 10 > h * 17) {
-		viewport->w = h * 17 / 10;
-		viewport->h = h;
-		printf("End W: %d %d", h * 17 / 10, h);
-		//pixelSize = h / 200;
-		//SDL_RenderSetLogicalSize(renderer, h * 17/10, h);
-	} else {
-		viewport->w = w;
-		viewport->h = w * 10 / 17;
-		//pixelSize = w / 340;
-		//SDL_RenderSetLogicalSize(renderer, w, w * 10/17);
-	}
-	printf("\n\nViewoffset: %d \n\n", (w - viewport->w) / 2);
-	viewport->x = (w - viewport->w) / 2;
-	viewport->y = (h - viewport->h) / 2;
-
-	//SDL_RenderSetViewport(renderer, viewport);
-
-	//SDL_RenderSetScale(renderer, 7.2, 7.2);
 }
 
 int main(int argc, char * argv[]) {
@@ -146,9 +108,9 @@ int main(int argc, char * argv[]) {
 		"Riko4",
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
-		340*pixelSize,//lw / 2,
-		200*pixelSize,//lh / 2,
-		SDL_WINDOW_OPENGL //| SDL_WINDOW_FULLSCREEN
+		340*pixelSize,
+		200*pixelSize,
+		SDL_WINDOW_OPENGL
 	);
 
 	SDL_ShowCursor(SDL_DISABLE);
@@ -164,9 +126,6 @@ int main(int argc, char * argv[]) {
 	SDL_SetRenderDrawColor(renderer, 24, 24, 24, 255);
 	SDL_RenderClear(renderer);
 	SDL_RenderPresent(renderer);
-
-	SDL_Rect *viewport = new SDL_Rect();
-	SDL_SetRendererViewportRatio_17_10(window, renderer, viewport);
 
 	SDL_Surface *surface;
 	surface = SDL_LoadBMP("icon.ico");
@@ -270,11 +229,8 @@ int main(int argc, char * argv[]) {
 		SDL_Delay(1);
 	}
 
-	//closeAudio();
-
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
-	free(viewport);
 
 	SDL_Quit();
 
