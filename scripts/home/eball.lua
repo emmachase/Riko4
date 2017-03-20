@@ -6,6 +6,8 @@ local turn = 1
 local width, height = 340, 200
 local cx, cy = 170, 100
 
+local mousePosX, mousePosY = -5, -5
+
 local axis = math.min(width, height) - 50
 
 local radius = 5
@@ -331,6 +333,13 @@ local function drawframe()
     fillCircle(6, 6, 4, teams[turn])
   end
 
+  gpu.drawRectangle(mousePosX + 1, mousePosY + 1, 3, 3, 1)
+  gpu.drawRectangle(mousePosX + 2, mousePosY + 2, 3, 3, 1)
+  gpu.drawRectangle(mousePosX + 3, mousePosY + 3, 3, 3, 1)
+  gpu.drawPixel(mousePosX + 2, mousePosY + 2, 16)
+  gpu.drawPixel(mousePosX + 3, mousePosY + 3, 16)
+  gpu.drawPixel(mousePosX + 4, mousePosY + 4, 16)
+
   gpu.swap()
 end
 
@@ -377,6 +386,7 @@ local function processEvent(e, ...)
     end
   elseif e == "mouseMoved" then
     local x, y = args[1], args[2]
+    mousePosX, mousePosY = x, y
     if dragging > 0 then
       local xv = ((x - cx) - objects[dragging].x) * velscale
       local yv = ((y - cy) - objects[dragging].y) * velscale
