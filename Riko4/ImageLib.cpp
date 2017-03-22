@@ -11,7 +11,7 @@ extern SDL_Renderer *renderer;
 extern int pixelSize;
 extern int palette[16][3];
 
-typedef struct imageType {
+typedef struct {
 	int width;
 	int height;
 	bool free;

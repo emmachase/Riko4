@@ -175,7 +175,9 @@ int main(int argc, char * argv[]) {
 					
 					lua_pushnumber(mainThread, event.wheel.y * mult);
 					lua_pushnumber(mainThread, event.wheel.x * mult);
-					pushedArgs = 3;
+					lua_pushnumber(mainThread, lastMoveX);
+					lua_pushnumber(mainThread, lastMoveY);
+					pushedArgs = 5;
 					break;
 				case SDL_MOUSEMOTION:
 					cx = event.motion.x / afPixscale;
@@ -228,6 +230,8 @@ int main(int argc, char * argv[]) {
 		pushedArgs = 0;
 		SDL_Delay(1);
 	}
+
+	closeAudio();
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);

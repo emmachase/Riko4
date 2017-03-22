@@ -1,6 +1,7 @@
 #define LUA_LIB
 
 #define PI 3.141592654
+#define TAO PI * 2
 
 #include <rikoAudio.h>
 
@@ -14,116 +15,233 @@
 
 #include <math.h>
 
+typedef struct {
+	unsigned long long remainingCycles;
+	int frequency;
+	int frequencyShift;
+	double phase;
+} Sound;
+
+typedef struct node {
+	Sound* data;
+	struct node* next;
+} node_t;
+
+typedef struct queue {
+	node_t* head;
+	node_t* tail;
+} queue_t;
+
+queue_t* constructQueue() {
+	queue_t* newQueue = (queue_t*)malloc(sizeof(queue_t));
+	newQueue->head = NULL;
+	newQueue->tail = NULL;
+	return newQueue;
+}
+
+void pushToQueue(queue_t* wqueue, Sound* snd) {
+	node_t* nxtNode = (node_t*)malloc(sizeof(node_t));
+	nxtNode->data = snd;
+	nxtNode->next = NULL;
+	if (wqueue->head != NULL) 
+		  wqueue->head->next = nxtNode;
+	else  wqueue->tail = nxtNode;
+	wqueue->head = nxtNode;
+}
+
+Sound* popFromQueue(queue_t* wqueue) {
+	if (wqueue->tail == NULL) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Attempt to pop from empty queue (%p)", (void*)wqueue);
+		return NULL;
+	}
+	Sound* data = wqueue->tail->data;
+	node_t* old = wqueue->tail;
+	if (old == wqueue->head) {
+		wqueue->head = NULL;
+		wqueue->tail = NULL;
+		free(old);
+		return data;
+	}
+	wqueue->tail = wqueue->tail->next;
+	free(old);
+
+	return data;
+}
+
+void falloutQueue(queue_t* wqueue) {
+	if (wqueue->tail == NULL) {
+		if (wqueue->head != wqueue->tail) {
+			puts("WARN: Queue has dangling head! Some elements may not be freed correctly!\n");
+			free(wqueue->head);
+		}
+		return;
+	}
+
+	while (wqueue->tail->next != NULL) {
+		Sound* snd = popFromQueue(wqueue);
+		free(snd);
+
+		if (wqueue->tail == NULL) {
+			if (wqueue->head != wqueue->tail) {
+				puts("WARN: Queue has dangling head! Some elements may not be freed correctly!\n");
+				free(wqueue->head);
+			}
+			return;
+		}
+	}
+
+	if (wqueue->head != wqueue->tail) {
+		puts("WARN: Queue has dangling head/tail! Some elements may not be freed correctly!\n");
+		free(wqueue->head);
+	}
+
+	free(wqueue->tail);
+}
+
 SDL_AudioSpec want, have;
 SDL_AudioDeviceID dev;
 
-const double tao = 2*PI;
 const int sampleRate = 48000;
 const int samples = 1024;
 
-int sineCounter = 0;
-double freq = 500; // in Hz
-double phi = tao * freq * sineCounter / sampleRate;
-double time = 0.1;
-double freqEnd = 500;
-void sinWaveCallback(void *userdata, uint8_t *stream, int len) {
-	
-
-	// (x*(-2*x2*y1 + x*(y1 - y2) + 2*x1*y2))/(2*(x1 - x2))
-	
-	//int y1 = 528;
-	
-
-	//(x*(-2 * x2*y1 + x*(y1 - y2) + 2 * x1*y2)) / (2 * (x1 - x2))
-
-
-	double delta = tao * freq / sampleRate;
-	double f_delta = (freqEnd - freq) / ((sampleRate * time));
-	int p1 = (freqEnd - freq);
-	int p2 = ((sampleRate * time));
-	double p3 = (double) p1 / (double) p2;
-
-	printf("%d %d %f", p1, p2, p3);
-
-	for (int z = 0; z < len; z++) {
-		stream[z] = (uint8_t)(sin(phi) * 127 + 127);
-		phi += delta;
-		//freq += p3;
-		//delta = tao * freq / sampleRate;
-	}
-}
-
-int sawCounter = 0;
-void sawWaveCallback(void *userdata, uint8_t *stream, int len) {
-	for (int z = 0; z < len; z++) {
-		stream[z] = (uint8_t)((++sawCounter / 16) % 256 - 127);
-	}
-}
-
-int triCounter = 0;
-void triWaveCallback(void *userdata, uint8_t *stream, int len) {
-	for (int z = 0; z < len; z++) {
-		stream[z] = (uint8_t)abs((++triCounter % 255) - 127) * 2;
-	}
-}
-
-int pulseCounter = 0;
-void pulseWaveCallback(void *userdata, uint8_t *stream, int len) {
-	int hz = 500;
-	for (int z = 0; z < len; z++) {
-		double innerSin = hz * PI * (++pulseCounter) / sampleRate;
-		//if (z < len / 16) {
-		//	printf("%d\n", (uint8_t)(floor(sin(innerSin) * 0.5) + 1) * 256);
-		//}
-		stream[z] = (uint8_t)(floor(sin(innerSin) * 0.5) + 1) * 127 + 127;
-	}
-}
+const int channelCount = 5;
+const int queueSize = 512;
+static queue* audioQueues[channelCount];
+static Sound* playingAudio[channelCount];
+static bool channelHasSnd[channelCount];
 
 bool sinq = false;
 int count = 0;
-double phase = 0;
-float phase_inc = 380.0 / (float) sampleRate;
+double phase = TAO;
+double phase2 = 0;
+float phase_inc = TAO * 261.6 / (float)sampleRate;
 int cnt = 0;
 float lstRnd = 0;
 float rndCt = 50;
 void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 	float* floatStream = (float*) byteStream;
-	double delta = tao * freq / sampleRate;
-	double f_delta = (freqEnd - freq) / ((sampleRate * time));
+
+	for (int i = 0; i < channelCount; i++) {
+		if (!channelHasSnd[i] && audioQueues[i]->tail != NULL) {
+			playingAudio[i] = popFromQueue(audioQueues[i]);
+			channelHasSnd[i] = true;
+		}
+	}
 
 	for (int z = 0; z < samples; z++) {
-		if (sinq) {
-			//floatStream[z] = phase >= 0.5 ? 0.1 : -0.1;
-			//floatStream[z] = (float)(sin(phase) * 0.001);
-			//phase += phase_inc;
-			if (cnt == 0) {
-				lstRnd = ((float)rand() / (float)RAND_MAX) * 0.03;
+		//if (sinq) {
+		//	////floatStream[z] = phase >= 0.5 ? 0.1 : -0.1;
+		//	//floatStream[z] =  (float)(sin(phase)  * 1);
+		//	////floatStream[z] += (float)(sin(phase2) * 0.5);
+		//	//phase += phase_inc;
+		//	//phase2 += phase_inc2;
+		//	if (cnt == 0) {
+		//		lstRnd = ((float)rand() / (float)RAND_MAX) * 0.03;
+		//	}
+		//	cnt = fmod((cnt + 1), rndCt);
+		//	rndCt -= 0.001;
+		//	floatStream[z] = lstRnd;
+		//	//phase = fmod(phase + phase_inc, 1.0f);
+		//	/*phase_inc += 0.000001;
+		//	phase_inc2 += 0.000001;*/
+		//	//phi += delta;
+		//} else {
+		//	count = ++count;
+		//	floatStream[z] = 0;
+		//}
+
+		floatStream[z] = 0;
+
+		for (int i = 0; i < channelCount; i++) {
+			if (!channelHasSnd[i]) {
+				if (audioQueues[i]->tail != NULL) {
+					playingAudio[i] = popFromQueue(audioQueues[i]);
+					channelHasSnd[i] = true;
+				} else {
+					continue;
+				}
 			}
-			cnt = fmod((cnt + 1), rndCt);
-			rndCt -= 0.001;
-			floatStream[z] = lstRnd;
-			//phase = fmod(phase + phase_inc, 1.0f);
-			phase_inc += 0.000001;
-			//phi += delta;
-		} else {
-			count = ++count;
-			floatStream[z] = 0;
+
+			if (playingAudio[i]->remainingCycles == 0) {
+				free(playingAudio[i]);
+
+				if (audioQueues[i]->tail != NULL) {
+					// Awesome got another sound queued up, so load it in
+					playingAudio[i] = popFromQueue(audioQueues[i]);
+				} else {
+					channelHasSnd[i] = false;
+				}
+			}
+
+			if (!channelHasSnd[i]) continue;
+
+			switch (i) {
+			case 0:
+			case 1:
+				// Pulse Wave
+				// TODO: Actually make it a pulse wave kek
+				floatStream[z] += fmod(phase, TAO) > PI/4 ? -0.5 : 0.5;//(float)sin(phase);
+				phase += TAO * playingAudio[i]->frequency / sampleRate;
+				break;
+			case 2:
+				// Triangle Wave
+				// Period (in s) = 1 / f
+				// Period (in cycles) = sampleRate / f
+				floatStream[z] += (fabs(fmod(playingAudio[i]->phase - (sampleRate / (4 * playingAudio[i]->frequency)), 
+					sampleRate / playingAudio[i]->frequency) - (sampleRate / (2 * playingAudio[i]->frequency))) 
+					- (sampleRate / (4 * playingAudio[i]->frequency))) / (sampleRate / playingAudio[i]->frequency);
+				playingAudio[i]->phase += 1;
+				break;
+			case 3:
+				// Sawtooth Wave
+				floatStream[z] += 2 * (fmod(playingAudio[i]->phase, sampleRate / playingAudio[i]->frequency) / 
+					(sampleRate / playingAudio[i]->frequency) - 0.5);
+				playingAudio[i]->phase += 1;
+				break;
+			case 4:
+				// Noise (Wave?)
+				break;
+			}
+
+			playingAudio[i]->remainingCycles--;
 		}
 	}
 }
 
 static int aud_play(lua_State *L) {
-	puts("Commencing playback of payload");
+	int off = lua_gettop(L);
+	if (off == 0) {
+		luaL_error(L, "Expected table as first argument");
+		return 0;
+	}
+	if (lua_type(L, -off) != 5) {
+		luaL_error(L, "Expected table as first argument");
+		return 0;
+	}
 
-	int f = luaL_checknumber(L, 1);
+	lua_pushstring(L, "channel");
+	lua_gettable(L, -1 - off);
+	int chan = luaL_checkinteger(L, -1);
 
-	sineCounter = 0;
-	freq = f; // in Hz
-	time = luaL_checknumber(L, 2); // in seconds
-	phi = tao * freq * sineCounter / sampleRate;
+	if (chan <= 0 || chan > channelCount) {
+		luaL_error(L, "Channel must be between 1 and %d", channelCount);
+	}
 
-	//play();
-	sinq = true;
+	lua_pushstring(L, "frequency");
+	lua_gettable(L, -2 - off);
+	int freq = luaL_checkinteger(L, -1);
+
+	lua_pushstring(L, "time");
+	lua_gettable(L, -3 - off);
+	double time = luaL_checknumber(L, -1);
+
+	Sound* puls = (Sound*)malloc(sizeof(Sound));
+	puls->frequency = freq;
+	puls->phase = 0;
+	puls->frequencyShift = 0;
+	puls->remainingCycles = time * sampleRate;
+	pushToQueue(audioQueues[chan - 1], puls);
+
 	return 0;
 }
 
@@ -133,6 +251,10 @@ static const luaL_Reg audLib[] = {
 };
 
 LUALIB_API int luaopen_aud(lua_State *L) {
+	for (int i = 0; i < channelCount; i++) {
+		audioQueues[i] = constructQueue();
+	}
+
 	for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i) {
 		printf("Audio driver %d: %s\n", i, SDL_GetAudioDriver(i));
 	}
@@ -147,7 +269,7 @@ LUALIB_API int luaopen_aud(lua_State *L) {
 	want.callback = audioCallback;
 	want.userdata = NULL;
 
-	//dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE);
+	dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE);
 	if (dev == 0) {
 		SDL_Log("Failed to open audio: %s", SDL_GetError());
 	} else {
@@ -164,5 +286,10 @@ LUALIB_API int luaopen_aud(lua_State *L) {
 void closeAudio() {
 	if (dev != 0) {
 		SDL_CloseAudioDevice(dev);
+	}
+
+	for (int i = 0; i < channelCount; i++) {
+		falloutQueue(audioQueues[i]);
+		free(audioQueues[i]);
 	}
 }
