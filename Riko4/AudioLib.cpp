@@ -19,7 +19,7 @@ typedef struct {
 	unsigned long long remainingCycles;
 	int frequency;
 	int frequencyShift;
-	double phase;
+	int noiseFr;
 } Sound;
 
 typedef struct node {
@@ -109,6 +109,7 @@ const int queueSize = 512;
 static queue* audioQueues[channelCount];
 static Sound* playingAudio[channelCount];
 static bool channelHasSnd[channelCount];
+static double streamPhase[channelCount];
 
 bool sinq = false;
 int count = 0;
@@ -180,26 +181,32 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 			case 1:
 				// Pulse Wave
 				// TODO: Actually make it a pulse wave kek
-				floatStream[z] += fmod(phase, TAO) > PI/4 ? -0.5 : 0.5;//(float)sin(phase);
-				phase += TAO * playingAudio[i]->frequency / sampleRate;
+				floatStream[z] += fmod(streamPhase[i], TAO) > PI/4 ? -0.5 : 0.5;//(float)sin(phase);
+				streamPhase[i] += TAO * playingAudio[i]->frequency / sampleRate;
 				break;
 			case 2:
 				// Triangle Wave
 				// Period (in s) = 1 / f
 				// Period (in cycles) = sampleRate / f
-				floatStream[z] += (fabs(fmod(playingAudio[i]->phase - (sampleRate / (4 * playingAudio[i]->frequency)), 
+				floatStream[z] += (fabs(fmod(streamPhase[i] - (sampleRate / (4 * playingAudio[i]->frequency)),
 					sampleRate / playingAudio[i]->frequency) - (sampleRate / (2 * playingAudio[i]->frequency))) 
 					- (sampleRate / (4 * playingAudio[i]->frequency))) / (sampleRate / playingAudio[i]->frequency);
-				playingAudio[i]->phase += 1;
+				streamPhase[i] += 1;
 				break;
 			case 3:
 				// Sawtooth Wave
-				floatStream[z] += 2 * (fmod(playingAudio[i]->phase, sampleRate / playingAudio[i]->frequency) / 
+				floatStream[z] += 2 * (fmod(streamPhase[i], sampleRate / playingAudio[i]->frequency) /
 					(sampleRate / playingAudio[i]->frequency) - 0.5);
-				playingAudio[i]->phase += 1;
+				streamPhase[i] += 1;
 				break;
 			case 4:
 				// Noise (Wave?)
+				streamPhase[i] = fmod((streamPhase[i] + 1), playingAudio[i]->noiseFr);
+				if (streamPhase[i] == 0) {
+					lstRnd = ((float)rand() / (float)RAND_MAX) * 0.03;
+				}
+				floatStream[z] += lstRnd;
+
 				break;
 			}
 
@@ -237,7 +244,7 @@ static int aud_play(lua_State *L) {
 
 	Sound* puls = (Sound*)malloc(sizeof(Sound));
 	puls->frequency = freq;
-	puls->phase = 0;
+	puls->noiseFr = floor(110 - (12 * (log(pow(2, 1 / 12) * freq / 16.35) / log(2))));
 	puls->frequencyShift = 0;
 	puls->remainingCycles = time * sampleRate;
 	pushToQueue(audioQueues[chan - 1], puls);
@@ -253,6 +260,7 @@ static const luaL_Reg audLib[] = {
 LUALIB_API int luaopen_aud(lua_State *L) {
 	for (int i = 0; i < channelCount; i++) {
 		audioQueues[i] = constructQueue();
+		streamPhase[i] = 0;
 	}
 
 	for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i) {
