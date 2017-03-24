@@ -19,7 +19,7 @@ typedef struct {
 	unsigned long long remainingCycles;
 	int frequency;
 	int frequencyShift;
-	int noiseFr;
+	double noiseFr;
 } Sound;
 
 typedef struct node {
@@ -176,6 +176,8 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 
 			if (!channelHasSnd[i]) continue;
 
+			double delta;
+
 			switch (i) {
 			case 0:
 			case 1:
@@ -188,23 +190,25 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 				// Triangle Wave
 				// Period (in s) = 1 / f
 				// Period (in cycles) = sampleRate / f
-				floatStream[z] += (fabs(fmod(streamPhase[i] - (sampleRate / (4 * playingAudio[i]->frequency)),
+				/*floatStream[z] += (fabs(fmod(streamPhase[i] - (sampleRate / (4 * playingAudio[i]->frequency)),
 					sampleRate / playingAudio[i]->frequency) - (sampleRate / (2 * playingAudio[i]->frequency))) 
-					- (sampleRate / (4 * playingAudio[i]->frequency))) / (sampleRate / playingAudio[i]->frequency);
-				streamPhase[i] += 1;
+					- (sampleRate / (4 * playingAudio[i]->frequency))) / (sampleRate / playingAudio[i]->frequency);*/
+				floatStream[z] += 1 - 4 * fabs(fmod(streamPhase[i], 1) - 0.5);
+				streamPhase[i] += (double)playingAudio[i]->frequency / sampleRate;
 				break;
 			case 3:
 				// Sawtooth Wave
-				floatStream[z] += 2 * (fmod(streamPhase[i], sampleRate / playingAudio[i]->frequency) /
-					(sampleRate / playingAudio[i]->frequency) - 0.5);
-				streamPhase[i] += 1;
+				floatStream[z] += 2 * fmod(streamPhase[i] - 0.5, 1) - 1;
+				streamPhase[i] += (double)playingAudio[i]->frequency / sampleRate;
 				break;
 			case 4:
 				// Noise (Wave?)
-				streamPhase[i] = fmod((streamPhase[i] + 1), playingAudio[i]->noiseFr);
-				if (streamPhase[i] == 0) {
+				delta = fmod((streamPhase[i] + 1), playingAudio[i]->noiseFr);
+				if (streamPhase[i] > delta) {
 					lstRnd = ((float)rand() / (float)RAND_MAX) * 0.03;
 				}
+				streamPhase[i] = delta;
+				
 				floatStream[z] += lstRnd;
 
 				break;
@@ -244,7 +248,7 @@ static int aud_play(lua_State *L) {
 
 	Sound* puls = (Sound*)malloc(sizeof(Sound));
 	puls->frequency = freq;
-	puls->noiseFr = floor(110 - (12 * (log(pow(2, 1 / 12) * freq / 16.35) / log(2))));
+	puls->noiseFr = (110 - (12 * (log(pow(2, 1 / 12) * freq / 16.35) / log(2))));
 	puls->frequencyShift = 0;
 	puls->remainingCycles = time * sampleRate;
 	pushToQueue(audioQueues[chan - 1], puls);
