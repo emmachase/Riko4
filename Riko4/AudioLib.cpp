@@ -128,9 +128,6 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 			if (!channelHasSnd[i]) {
 				if (audioQueues[i]->tail != NULL) {
 					playingAudio[i] = popFromQueue(audioQueues[i]);
-					if (i == 4) {
-						streamPhase[i] = 0;
-					}
 					channelHasSnd[i] = true;
 				} else {
 					continue;
@@ -143,9 +140,6 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 				if (audioQueues[i]->tail != NULL) {
 					// Awesome got another sound queued up, so load it in
 					playingAudio[i] = popFromQueue(audioQueues[i]);
-					if (i == 4) {
-						streamPhase[i] = 0;
-					}
 				} else {
 					channelHasSnd[i] = false;
 				}
