@@ -130,27 +130,6 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 	}
 
 	for (int z = 0; z < samples; z++) {
-		//if (sinq) {
-		//	////floatStream[z] = phase >= 0.5 ? 0.1 : -0.1;
-		//	//floatStream[z] =  (float)(sin(phase)  * 1);
-		//	////floatStream[z] += (float)(sin(phase2) * 0.5);
-		//	//phase += phase_inc;
-		//	//phase2 += phase_inc2;
-		//	if (cnt == 0) {
-		//		lstRnd = ((float)rand() / (float)RAND_MAX) * 0.03;
-		//	}
-		//	cnt = fmod((cnt + 1), rndCt);
-		//	rndCt -= 0.001;
-		//	floatStream[z] = lstRnd;
-		//	//phase = fmod(phase + phase_inc, 1.0f);
-		//	/*phase_inc += 0.000001;
-		//	phase_inc2 += 0.000001;*/
-		//	//phi += delta;
-		//} else {
-		//	count = ++count;
-		//	floatStream[z] = 0;
-		//}
-
 		floatStream[z] = 0;
 
 		for (int i = 0; i < channelCount; i++) {
@@ -182,17 +161,11 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 			case 0:
 			case 1:
 				// Pulse Wave
-				// TODO: Actually make it a pulse wave kek
-				floatStream[z] += fmod(streamPhase[i], TAO) > PI/4 ? -0.5 : 0.5;//(float)sin(phase);
+				floatStream[z] += fmod(streamPhase[i], TAO) > PI/4 ? -0.5 : 0.5;
 				streamPhase[i] += TAO * playingAudio[i]->frequency / sampleRate;
 				break;
 			case 2:
 				// Triangle Wave
-				// Period (in s) = 1 / f
-				// Period (in cycles) = sampleRate / f
-				/*floatStream[z] += (fabs(fmod(streamPhase[i] - (sampleRate / (4 * playingAudio[i]->frequency)),
-					sampleRate / playingAudio[i]->frequency) - (sampleRate / (2 * playingAudio[i]->frequency))) 
-					- (sampleRate / (4 * playingAudio[i]->frequency))) / (sampleRate / playingAudio[i]->frequency);*/
 				floatStream[z] += 1 - 4 * fabs(fmod(streamPhase[i], 1) - 0.5);
 				streamPhase[i] += (double)playingAudio[i]->frequency / sampleRate;
 				break;
@@ -273,7 +246,7 @@ LUALIB_API int luaopen_aud(lua_State *L) {
 
 	SDL_InitSubSystem(SDL_INIT_AUDIO);
 
-	SDL_memset(&want, 0, sizeof(want)); /* or SDL_zero(want) */
+	SDL_zero(want);
 	want.freq = sampleRate;
 	want.format = AUDIO_F32SYS;
 	want.channels = 1;
