@@ -17,9 +17,8 @@
 
 typedef struct {
 	unsigned long long remainingCycles;
-	int frequency;
-	int frequencyShift;
-	double noiseFr;
+	double frequency;
+	double frequencyShift;
 } Sound;
 
 typedef struct node {
@@ -110,15 +109,8 @@ static queue* audioQueues[channelCount];
 static Sound* playingAudio[channelCount];
 static bool channelHasSnd[channelCount];
 static double streamPhase[channelCount];
-
-bool sinq = false;
-int count = 0;
-double phase = TAO;
-double phase2 = 0;
-float phase_inc = TAO * 261.6 / (float)sampleRate;
-int cnt = 0;
 float lstRnd = 0;
-float rndCt = 50;
+
 void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 	float* floatStream = (float*) byteStream;
 
@@ -136,6 +128,9 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 			if (!channelHasSnd[i]) {
 				if (audioQueues[i]->tail != NULL) {
 					playingAudio[i] = popFromQueue(audioQueues[i]);
+					if (i == 4) {
+						streamPhase[i] = 0;
+					}
 					channelHasSnd[i] = true;
 				} else {
 					continue;
@@ -148,6 +143,9 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 				if (audioQueues[i]->tail != NULL) {
 					// Awesome got another sound queued up, so load it in
 					playingAudio[i] = popFromQueue(audioQueues[i]);
+					if (i == 4) {
+						streamPhase[i] = 0;
+					}
 				} else {
 					channelHasSnd[i] = false;
 				}
@@ -161,7 +159,7 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 			case 0:
 			case 1:
 				// Pulse Wave
-				floatStream[z] += fmod(streamPhase[i], TAO) > PI/4 ? -0.5 : 0.5;
+				floatStream[z] += fmod(streamPhase[i], TAO) > PI/4 ? -1 : 1;
 				streamPhase[i] += TAO * playingAudio[i]->frequency / sampleRate;
 				break;
 			case 2:
@@ -176,7 +174,7 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 				break;
 			case 4:
 				// Noise (Wave?)
-				delta = fmod((streamPhase[i] + 1), playingAudio[i]->noiseFr);
+				delta = fmod((streamPhase[i] + 1), playingAudio[i]->frequency);
 				if (streamPhase[i] > delta) {
 					lstRnd = ((float)rand() / (float)RAND_MAX) * 0.03;
 				}
@@ -188,6 +186,8 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 			}
 
 			playingAudio[i]->remainingCycles--;
+			
+			playingAudio[i]->frequency += playingAudio[i]->frequencyShift;
 		}
 	}
 }
@@ -215,14 +215,23 @@ static int aud_play(lua_State *L) {
 	lua_gettable(L, -2 - off);
 	int freq = luaL_checkinteger(L, -1);
 
-	lua_pushstring(L, "time");
+	lua_pushstring(L, "shift");
 	lua_gettable(L, -3 - off);
+	int freqShft = luaL_checkinteger(L, -1);
+
+	lua_pushstring(L, "time");
+	lua_gettable(L, -4 - off);
 	double time = luaL_checknumber(L, -1);
 
 	Sound* puls = (Sound*)malloc(sizeof(Sound));
-	puls->frequency = freq;
-	puls->noiseFr = (110 - (12 * (log(pow(2, 1 / 12) * freq / 16.35) / log(2))));
-	puls->frequencyShift = 0;
+	if (chan == 5) {
+		puls->frequency = (110 - (12 * (log(pow(2, 1 / 12) * freq / 16.35) / log(2))));
+		puls->frequencyShift = ((110 - (12 * (log(pow(2, 1 / 12) * (freq + freqShft) / 16.35) / log(2)))) - puls->frequency) / (sampleRate * time);
+	} else {
+		puls->frequency = freq;
+		puls->frequencyShift = (double)freqShft / (sampleRate * time);
+	}
+	
 	puls->remainingCycles = time * sampleRate;
 	pushToQueue(audioQueues[chan - 1], puls);
 
