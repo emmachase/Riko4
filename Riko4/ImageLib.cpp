@@ -1,10 +1,10 @@
 #define LUA_LIB
 
+#include "rikoImage.h"
+
 #include <LuaJIT/lua.hpp>
 #include <LuaJIT/lauxlib.h>
 #include <SDL2/SDL.h>
-
-#include <rikoImage.h>
 
 extern SDL_Window *window;
 extern SDL_Renderer *renderer;

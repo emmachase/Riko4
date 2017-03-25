@@ -28,9 +28,9 @@
 
 #include <LFS/lfs.h>
 
-#include <rikoGPU.h>
-#include <rikoAudio.h>
-#include <rikoImage.h>
+#include "rikoGPU.h"
+#include "rikoAudio.h"
+#include "rikoImage.h"
 
 SDL_Window *window;
 SDL_Renderer *renderer;

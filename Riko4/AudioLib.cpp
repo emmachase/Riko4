@@ -3,7 +3,7 @@
 #define PI 3.141592654
 #define TAO PI * 2
 
-#include <rikoAudio.h>
+#include "rikoAudio.h"
 
 #include <LuaJIT/lua.hpp>
 #include <LuaJIT/lauxlib.h>
@@ -19,6 +19,7 @@ typedef struct {
 	unsigned long long remainingCycles;
 	double frequency;
 	double frequencyShift;
+	float volume;
 } Sound;
 
 typedef struct node {
@@ -153,24 +154,24 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 			case 0:
 			case 1:
 				// Pulse Wave
-				floatStream[z] += fmod(streamPhase[i], TAO) > PI/4 ? -1 : 1;
+				floatStream[z] += (fmod(streamPhase[i], TAO) > PI/4 ? -1 : 1) * playingAudio[i]->volume;
 				streamPhase[i] += TAO * playingAudio[i]->frequency / sampleRate;
 				break;
 			case 2:
 				// Triangle Wave
-				floatStream[z] += 1 - 4 * fabs(fmod(streamPhase[i], 1) - 0.5);
+				floatStream[z] += (float)(1 - 4 * fabs(fmod(streamPhase[i], 1) - 0.5)) * playingAudio[i]->volume;
 				streamPhase[i] += (double)playingAudio[i]->frequency / sampleRate;
 				break;
 			case 3:
 				// Sawtooth Wave
-				floatStream[z] += 2 * fmod(streamPhase[i] - 0.5, 1) - 1;
+				floatStream[z] += (float)(2 * fmod(streamPhase[i] - 0.5, 1) - 1) * playingAudio[i]->volume;
 				streamPhase[i] += (double)playingAudio[i]->frequency / sampleRate;
 				break;
 			case 4:
 				// Noise (Wave?)
 				delta = fmod((streamPhase[i] + 1), playingAudio[i]->frequency);
 				if (streamPhase[i] > delta) {
-					lstRnd = ((float)rand() / (float)RAND_MAX) * 0.03;
+					lstRnd = (float)(((float)rand() / (float)RAND_MAX) * 2 - 1) * playingAudio[i]->volume;
 				}
 				streamPhase[i] = delta;
 				
@@ -192,29 +193,38 @@ static int aud_play(lua_State *L) {
 		luaL_error(L, "Expected table as first argument");
 		return 0;
 	}
-	if (lua_type(L, -off) != 5) {
+	if (lua_type(L, -off) != LUA_TTABLE) {
 		luaL_error(L, "Expected table as first argument");
 		return 0;
 	}
 
 	lua_pushstring(L, "channel");
 	lua_gettable(L, -1 - off);
-	int chan = luaL_checkinteger(L, -1);
+	int chan = (int)luaL_checkinteger(L, -1);
 
 	if (chan <= 0 || chan > channelCount) {
 		luaL_error(L, "Channel must be between 1 and %d", channelCount);
 	}
 
-	lua_pushstring(L, "frequency");
+	lua_pushstring(L, "volume");
 	lua_gettable(L, -2 - off);
-	int freq = luaL_checkinteger(L, -1);
+	double vol;
+	if (lua_isnil(L, -1)) {
+		vol = 1;
+	} else {
+		vol = lua_tonumber(L, -1);
+	}
+
+	lua_pushstring(L, "frequency");
+	lua_gettable(L, -3 - off);
+	int freq = (int)luaL_checkinteger(L, -1);
 
 	lua_pushstring(L, "shift");
-	lua_gettable(L, -3 - off);
-	int freqShft = luaL_checkinteger(L, -1);
+	lua_gettable(L, -4 - off);
+	int freqShft = (int)luaL_checkinteger(L, -1);
 
 	lua_pushstring(L, "time");
-	lua_gettable(L, -4 - off);
+	lua_gettable(L, -5 - off);
 	double time = luaL_checknumber(L, -1);
 
 	Sound* puls = (Sound*)malloc(sizeof(Sound));
@@ -226,7 +236,8 @@ static int aud_play(lua_State *L) {
 		puls->frequencyShift = (double)freqShft / (sampleRate * time);
 	}
 	
-	puls->remainingCycles = time * sampleRate;
+	puls->volume = vol < 0 ? 0 : (vol > 1 ? 1 : (float)vol);
+	puls->remainingCycles = (unsigned long long)(time * sampleRate);
 	pushToQueue(audioQueues[chan - 1], puls);
 
 	return 0;

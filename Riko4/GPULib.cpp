@@ -8,7 +8,7 @@
 #endif
 #endif
 
-#include <rikoGPU.h>
+#include "rikoGPU.h"
 
 #include <LuaJIT/lua.hpp>
 #include <LuaJIT/lauxlib.h>
