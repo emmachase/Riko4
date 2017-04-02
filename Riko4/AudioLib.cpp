@@ -16,9 +16,12 @@
 #include <math.h>
 
 typedef struct {
+	double totalTime;
 	unsigned long long remainingCycles;
 	double frequency;
 	double frequencyShift;
+	double attack;
+	double release;
 	float volume;
 } Sound;
 
@@ -149,29 +152,42 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 			if (!channelHasSnd[i]) continue;
 
 			double delta;
+			double atC;
+			double rlC;
+
+			if (playingAudio[i]->attack == 0) {
+				atC = 1;
+			} else {
+				atC = (playingAudio[i]->totalTime - ((double)playingAudio[i]->remainingCycles / sampleRate)) / playingAudio[i]->attack;
+				atC = atC > 1 ? 1 : atC;
+			}
+
+			rlC = playingAudio[i]->release - ((double)playingAudio[i]->remainingCycles / sampleRate);
+			rlC = rlC > 0 ? 1 - rlC / playingAudio[i]->release : 1;
+			double vol = playingAudio[i]->volume * atC * rlC;
 
 			switch (i) {
 			case 0:
 			case 1:
 				// Pulse Wave
-				floatStream[z] += (fmod(streamPhase[i], TAO) > PI/4 ? -1 : 1) * playingAudio[i]->volume;
+				floatStream[z] += (float)((fmod(streamPhase[i], TAO) > PI/4 ? -1 : 1) * vol);
 				streamPhase[i] += TAO * playingAudio[i]->frequency / sampleRate;
 				break;
 			case 2:
 				// Triangle Wave
-				floatStream[z] += (float)(1 - 4 * fabs(fmod(streamPhase[i], 1) - 0.5)) * playingAudio[i]->volume;
+				floatStream[z] += (float)((1 - 4 * fabs(fmod(streamPhase[i], 1) - 0.5)) * vol);
 				streamPhase[i] += (double)playingAudio[i]->frequency / sampleRate;
 				break;
 			case 3:
 				// Sawtooth Wave
-				floatStream[z] += (float)(2 * fmod(streamPhase[i] - 0.5, 1) - 1) * playingAudio[i]->volume;
+				floatStream[z] += (float)((2 * fmod(streamPhase[i] - 0.5, 1) - 1) * vol);
 				streamPhase[i] += (double)playingAudio[i]->frequency / sampleRate;
 				break;
 			case 4:
 				// Noise (Wave?)
 				delta = fmod((streamPhase[i] + 1), playingAudio[i]->frequency);
 				if (streamPhase[i] > delta) {
-					lstRnd = (float)(((float)rand() / (float)RAND_MAX) * 2 - 1) * playingAudio[i]->volume;
+					lstRnd = (float)((((float)rand() / (float)RAND_MAX) * 2 - 1) * vol);
 				}
 				streamPhase[i] = delta;
 				
@@ -221,11 +237,42 @@ static int aud_play(lua_State *L) {
 
 	lua_pushstring(L, "shift");
 	lua_gettable(L, -4 - off);
-	int freqShft = (int)luaL_checkinteger(L, -1);
+	int freqShft;
+	if (lua_isnil(L, -1)) {
+		freqShft = 0;
+	} else {
+		freqShft = (int)lua_tointeger(L, -1);
+	}
 
 	lua_pushstring(L, "time");
 	lua_gettable(L, -5 - off);
-	double time = luaL_checknumber(L, -1);
+	double time;
+	if (lua_type(L, -1) != LUA_TNUMBER) {
+		luaL_error(L, "bad argument 'time' to 'play' (number expected, got %s)", lua_typename(L, lua_type(L, -1)));
+		return 0;
+	} else {
+		time = lua_tonumber(L, -1);
+		if (time <= 0) {
+			luaL_error(L, "bad argument 'time' to 'play' (number must be greater than 0)");
+			return 0;
+		}
+	}
+
+	lua_pushstring(L, "attack");
+	lua_gettable(L, -6 - off);
+	double atK = luaL_checknumber(L, -1);
+	if (atK < 0) {
+		luaL_error(L, "bad argument 'attack' to 'play' (number must be greater than or equal to 0)");
+		return 0;
+	}
+
+	lua_pushstring(L, "release");
+	lua_gettable(L, -7 - off);
+	double rls = luaL_checknumber(L, -1);
+	if (rls < 0) {
+		luaL_error(L, "bad argument 'release' to 'play' (number must be greater than or equal to 0)");
+		return 0;
+	}
 
 	Sound* puls = (Sound*)malloc(sizeof(Sound));
 	if (chan == 5) {
@@ -237,6 +284,9 @@ static int aud_play(lua_State *L) {
 	}
 	
 	puls->volume = vol < 0 ? 0 : (vol > 1 ? 1 : (float)vol);
+	puls->totalTime = time;
+	puls->attack = atK;
+	puls->release = rls;
 	puls->remainingCycles = (unsigned long long)(time * sampleRate);
 	pushToQueue(audioQueues[chan - 1], puls);
 
