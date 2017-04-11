@@ -240,3 +240,9 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+riko4
