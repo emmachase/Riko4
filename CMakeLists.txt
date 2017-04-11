@@ -5,11 +5,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 file(GLOB_RECURSE SOURCE_FILES Riko4/*.cpp Riko4/*.c)
 add_executable(riko4 ${SOURCE_FILES}) 
-add_definitions(-D__STDC_WANT_LIB_EXT1__=1)
-
-if(UNIX)
-	add_definitions(-DNO_STRERROR)
-endif()
 
 set(CMAKE_C_STANDARD 11)
 
