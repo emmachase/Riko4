@@ -1,5 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS
-
 #if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) \
  || defined(__TOS_WIN__) || defined(__WINDOWS__)
 /* Compiling for Windows */
