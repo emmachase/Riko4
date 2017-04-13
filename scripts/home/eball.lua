@@ -3,7 +3,7 @@ local simulating = false
 
 local turn = 1
 
-local width, height = 340, 200
+local width, height = gpu.width, gpu.height
 local cx, cy = 170, 100
 
 local mousePosX, mousePosY = -5, -5
@@ -360,9 +360,9 @@ local function processEvent(e, ...)
   local args = {...}
   if e == "key" then
     local key = args[1]
-    if key == "Escape" then
+    if key == "escape" then
       running = false
-    elseif key == "Space" then
+    elseif key == "space" then
       if not simulating then
         turn = 1--(turn % #teams) + 1
         if turn == 1 then

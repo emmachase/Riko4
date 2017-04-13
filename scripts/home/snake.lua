@@ -1,6 +1,6 @@
 local running = true
 
-local width, height = 340, 200
+local width, height = gpu.width, gpu.height
 
 local gw, gh = width / 5 - 2, height / 5 - 2
 
@@ -80,15 +80,15 @@ local function processEvent(e, ...)
 
   if e == "key" then
     local k = args[1]
-    if k == "Escape" then
+    if k == "escape" then
       running = false
-    elseif k == "Up" then
+    elseif k == "up" then
       dir = 1
-    elseif k == "Right" then
+    elseif k == "right" then
       dir = 2
-    elseif k == "Down" then
+    elseif k == "down" then
       dir = 3
-    elseif k == "Left" then
+    elseif k == "left" then
       dir = 4
     end
   end

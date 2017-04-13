@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) \
  || defined(__TOS_WIN__) || defined(__WINDOWS__)
 /* Compiling for Windows */
@@ -27,6 +29,8 @@
 #include <LuaJIT/lua.hpp>
 
 #include <LFS/lfs.h>
+
+#include "rikoConsts.h"
 
 #include "rikoGPU.h"
 #include "rikoAudio.h"
@@ -83,6 +87,91 @@ void createLuaInstance(const char* filename) {
 	}
 }
 
+/* Taken from SDL_iconv() */
+char *sane_UCS4ToUTF8(Uint32 ch, char *dst)
+{
+	Uint8 *p = (Uint8 *)dst;
+	if (ch <= 0x7F) {
+		*p = (Uint8)ch;
+		++dst;
+	} else if (ch <= 0x7FF) {
+		p[0] = 0xC0 | (Uint8)((ch >> 6) & 0x1F);
+		p[1] = 0x80 | (Uint8)(ch & 0x3F);
+		dst += 2;
+	} else if (ch <= 0xFFFF) {
+		p[0] = 0xE0 | (Uint8)((ch >> 12) & 0x0F);
+		p[1] = 0x80 | (Uint8)((ch >> 6) & 0x3F);
+		p[2] = 0x80 | (Uint8)(ch & 0x3F);
+		dst += 3;
+	} else if (ch <= 0x1FFFFF) {
+		p[0] = 0xF0 | (Uint8)((ch >> 18) & 0x07);
+		p[1] = 0x80 | (Uint8)((ch >> 12) & 0x3F);
+		p[2] = 0x80 | (Uint8)((ch >> 6) & 0x3F);
+		p[3] = 0x80 | (Uint8)(ch & 0x3F);
+		dst += 4;
+	} else if (ch <= 0x3FFFFFF) {
+		p[0] = 0xF8 | (Uint8)((ch >> 24) & 0x03);
+		p[1] = 0x80 | (Uint8)((ch >> 18) & 0x3F);
+		p[2] = 0x80 | (Uint8)((ch >> 12) & 0x3F);
+		p[3] = 0x80 | (Uint8)((ch >> 6) & 0x3F);
+		p[4] = 0x80 | (Uint8)(ch & 0x3F);
+		dst += 5;
+	} else {
+		p[0] = 0xFC | (Uint8)((ch >> 30) & 0x01);
+		p[1] = 0x80 | (Uint8)((ch >> 24) & 0x3F);
+		p[2] = 0x80 | (Uint8)((ch >> 18) & 0x3F);
+		p[3] = 0x80 | (Uint8)((ch >> 12) & 0x3F);
+		p[4] = 0x80 | (Uint8)((ch >> 6) & 0x3F);
+		p[5] = 0x80 | (Uint8)(ch & 0x3F);
+		dst += 6;
+	}
+	return dst;
+}
+
+const char *sane_GetScancodeName(SDL_Scancode scancode)
+{
+	const char *name;
+	if (((int)scancode) < ((int)SDL_SCANCODE_UNKNOWN) || scancode >= SDL_NUM_SCANCODES) {
+		SDL_InvalidParamError("scancode");
+		return "";
+	}
+
+	name = sane_scancode_names[scancode];
+	if (name)
+		return name;
+	else
+		return "";
+}
+
+const char *cleanKeyName(SDL_Keycode key) {
+	static char name[8];
+	char *end;
+
+	if (key & SDLK_SCANCODE_MASK) {
+		return
+			sane_GetScancodeName((SDL_Scancode)(key & ~SDLK_SCANCODE_MASK));
+	}
+
+	switch (key) {
+	case SDLK_RETURN:
+		return sane_GetScancodeName(SDL_SCANCODE_RETURN);
+	case SDLK_ESCAPE:
+		return sane_GetScancodeName(SDL_SCANCODE_ESCAPE);
+	case SDLK_BACKSPACE:
+		return sane_GetScancodeName(SDL_SCANCODE_BACKSPACE);
+	case SDLK_TAB:
+		return sane_GetScancodeName(SDL_SCANCODE_TAB);
+	case SDLK_SPACE:
+		return sane_GetScancodeName(SDL_SCANCODE_SPACE);
+	case SDLK_DELETE:
+		return sane_GetScancodeName(SDL_SCANCODE_DELETE);
+	default:
+		end = sane_UCS4ToUTF8((Uint32)key, name);
+		*end = '\0';
+		return name;
+	}
+}
+
 int main(int argc, char * argv[]) {
 	SDL_Init(SDL_INIT_VIDEO);
 
@@ -108,8 +197,8 @@ int main(int argc, char * argv[]) {
 		"Riko4",
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
-		340*pixelSize,
-		200*pixelSize,
+		SCRN_WIDTH  * pixelSize,
+		SCRN_HEIGHT * pixelSize,
 		SDL_WINDOW_OPENGL
 	);
 
@@ -161,12 +250,12 @@ int main(int argc, char * argv[]) {
 					break;
 				case SDL_KEYDOWN:
 					lua_pushstring(mainThread, "key");
-					lua_pushstring(mainThread, SDL_GetKeyName(event.key.keysym.sym));
+					lua_pushstring(mainThread, cleanKeyName(event.key.keysym.sym));
 					pushedArgs = 2;
 					break;
 				case SDL_KEYUP:
 					lua_pushstring(mainThread, "keyUp");
-					lua_pushstring(mainThread, SDL_GetKeyName(event.key.keysym.sym));
+					lua_pushstring(mainThread, cleanKeyName(event.key.keysym.sym));
 					pushedArgs = 2;
 					break;
 				case SDL_MOUSEWHEEL:

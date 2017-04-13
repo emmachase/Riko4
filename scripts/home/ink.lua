@@ -1,5 +1,7 @@
 local RIF = dofile("../lib/rif.lua")
 
+local scrnWidth, scrnHeight = gpu.width, gpu.height
+
 local running = true
 
 local lang = "en"
@@ -35,35 +37,49 @@ local locale = {
     saved = "Saved",
     failSave = "Failure saving",
     loaded = "Loaded",
-    failLoad = "Failure loading"
+    failLoad = "Failure loading",
+    select = "Select",
+    copied = "Copied",
+    pasted = "Pasted",
+    noclip = "No clipboard data"
   }
 }
 
 -- Baked images
-local backMatte, transMatte
+local backMatte, transMatte, checkMatte
 do
-  backMatte = image.newImage(344, 200)
+  backMatte = image.newImage(scrnWidth + 4, scrnHeight)
   local backBuffer = {}
-  for i = 1, 200 do
-    for j = 1, 344 do
-      backBuffer[(i - 1)*344 + j] = ((i + (j / 2)) % 2 == 1) and 6 or 1
+  for i = 1, scrnHeight do
+    for j = 1, scrnWidth + 4 do
+      backBuffer[(i - 1) * (scrnWidth + 4) + j] = ((i + (j / 2)) % 2 == 1) and 6 or 1
     end
   end
-  backMatte:blitPixels(0, 0, 344, 200, backBuffer)
+  backMatte:blitPixels(0, 0, scrnWidth + 4, scrnHeight, backBuffer)
   backMatte:flush()
 
-  transMatte = image.newImage(351, 211)
+  transMatte = image.newImage(scrnWidth + 11, scrnHeight + 11)
   local transBuffer = {}
-  for i = 1, 351 do
-    for j = 1, 211 do
-      transBuffer[(j - 1)*351 + i] = ((math.floor((i - 1) / 6) + math.floor((j - 1) / 6)) % 2 == 1) and 16 or 7
+  for i = 1, scrnWidth + 11 do
+    for j = 1, scrnHeight + 11 do
+      transBuffer[(j - 1)*(scrnWidth + 11) + i] = ((math.floor((i - 1) / 6) + math.floor((j - 1) / 6)) % 2 == 1) and 16 or 7
     end
   end
-  transMatte:blitPixels(0, 0, 351, 211, transBuffer)
+  transMatte:blitPixels(0, 0, scrnWidth + 11, scrnHeight + 11, transBuffer)
   transMatte:flush()
+
+  checkMatte = image.newImage(scrnWidth + 1, scrnHeight + 1)
+  local checkBuffer = {}
+  for i = 1, scrnWidth + 1 do
+    for j = 1, scrnHeight + 1 do
+      checkBuffer[(j - 1)*(scrnWidth + 1) + i] = ((i + j) % 2 == 1) and 16 or 1
+    end
+  end
+  checkMatte:blitPixels(0, 0, scrnWidth + 1, scrnHeight + 1, checkBuffer)
+  checkMatte:flush()
 end
 
-local canvArea = image.newImage(340, 180)
+local canvArea = image.newImage(scrnWidth, scrnHeight - 20)
 
 
 -- Annnnd some inline helper classes ;)
@@ -181,6 +197,8 @@ local drawOffY = 75
 
 local zoomFactor = 1
 
+local clipboard = {w = 0, h = 0, full = false, prev = false, data = {}}
+
 local mouseDown = {false, false, false}
 
 local toolPalette = window.new(locale[lang].tools, 60, 80, 340 - 65, 60)
@@ -208,7 +226,7 @@ local newVars = {
   mode = 1
 }
 
-local windows = {newDialog, pathDialog, toolPalette, colorPalette }
+local windows = {newDialog, pathDialog, toolPalette, colorPalette}
 
 local function wep(name, ...)
   for i = 1, #windows do
@@ -228,6 +246,7 @@ local workingImage = {}
 local dispImage
 
 local function constructImage()
+  workingImage = {}
   for i = 1, imgWidth do
     workingImage[i] = {}
     for j = 1, imgHeight do
@@ -402,8 +421,28 @@ local toolVars = {
     locx = -1,
     locy = -1,
     state = 1
+  },
+  select = {
+    mouseDown = false,
+    exists = false,
+    mposx = -1,
+    mposy = -1,
+    isx = -1, isy = -1, iex = -1, iey = -1,
+    locx = -1,
+    locy = -1,
+    endx = -1,
+    endy = -1,
+    state = 1
   }
 }
+
+local function propSel()
+  toolVars.select.locx = math.min(toolVars.select.isx, toolVars.select.iex)
+  toolVars.select.locy = math.min(toolVars.select.isy, toolVars.select.iey)
+  toolVars.select.endx = math.max(toolVars.select.isx, toolVars.select.iex)
+  toolVars.select.endy = math.max(toolVars.select.isy, toolVars.select.iey)
+end
+
 local toolList = {
   {
     name = locale[lang].pencil,
@@ -497,8 +536,83 @@ local toolList = {
         zoomFactor + fstate * 2, zoomFactor + fstate * 2, primColor)
       toolVars.fill.state = (toolVars.fill.state) % 16 + 1
     end
+  },
+  {
+    name = locale[lang].select,
+    mouseDown = function(x, y, b)
+      if b == 1 then
+        local tx, ty = convertScrn2I(x, y)
+        -- Check bounds
+        tx = tx < 0 and 0 or tx >= imgWidth and imgWidth - 1 or tx
+        ty = ty < 0 and 0 or ty >= imgHeight and imgHeight - 1 or ty
+
+        toolVars.select.isx = tx
+        toolVars.select.isy = ty
+        toolVars.select.iex = tx
+        toolVars.select.iey = ty
+        toolVars.select.mouseDown = true
+        toolVars.select.exists = true
+        propSel()
+      end
+    end,
+    mouseUp = function(x, y, b)
+      if b == 1 then
+        local tx, ty = convertScrn2I(x, y)
+        -- Check bounds
+        tx = tx < 0 and 0 or tx >= imgWidth and imgWidth - 1 or tx
+        ty = ty < 0 and 0 or ty >= imgHeight and imgHeight - 1 or ty
+        toolVars.select.iex = tx
+        toolVars.select.iey = ty
+        propSel()
+
+        toolVars.select.mouseDown = false
+      end
+    end,
+    mouseMoved = function(x, y)
+      toolVars.select.mposx = x
+      toolVars.select.mposy = y
+      if toolVars.select.mouseDown then
+        local tx, ty = convertScrn2I(x, y)
+        -- Check bounds
+        tx = tx < 0 and 0 or tx >= imgWidth and imgWidth - 1 or tx
+        ty = ty < 0 and 0 or ty >= imgHeight and imgHeight - 1 or ty
+        toolVars.select.iex = tx
+        toolVars.select.iey = ty
+        propSel()
+      end
+    end,
+    draw = function()
+      local transX, transY = convertScrn2I(toolVars.select.mposx, toolVars.select.mposy)
+      gpu.drawRectangle((transX * zoomFactor) + drawOffX + (zoomFactor / 2 - 0.5), (transY * zoomFactor) + drawOffY + 9,
+        ((zoomFactor + 1) % 2) + 1, 1, primColor)
+      gpu.drawRectangle((transX * zoomFactor) + drawOffX + (zoomFactor / 2 - 0.5), ((transY + 1) * zoomFactor) + drawOffY + 10,
+        ((zoomFactor + 1) % 2) + 1, 1, primColor)
+
+      gpu.drawRectangle((transX * zoomFactor) + drawOffX - 1, (transY * zoomFactor) + drawOffY + 10 + (zoomFactor / 2 - 0.5),
+        1, ((zoomFactor + 1) % 2) + 1, primColor)
+      gpu.drawRectangle(((transX + 1) * zoomFactor) + drawOffX - 1, (transY * zoomFactor) + drawOffY + 10 + (zoomFactor / 2 - 0.5),
+        1, ((zoomFactor + 1) % 2) + 1, primColor)
+    end
   }
 }
+
+colorPalette.repaint = function()
+  colorPalette:drawRectangle(0, 0, 6*4 + 20, 6*4, 6)
+
+  for i=1, 16 do
+    colorPalette:drawRectangle((i - 1) % 4 * 6, math.floor((i - 1) / 4) * 6, 6, 6, i)
+  end
+
+  colorPalette:drawRectangle(30, 6, 12, 12, 16)
+  colorPalette:drawRectangle(27, 2, 12, 12, 16)
+
+  colorPalette:drawRectangle(31, 7, 10, 10, secColor)
+  colorPalette:drawRectangle(28, 3, 10, 10, primColor)
+
+  colorPalette:flush()
+end
+
+colorPalette.repaint()
 
 colorPalette.mousePressed = function(x, y, b)
   if x < 24 then
@@ -506,17 +620,34 @@ colorPalette.mousePressed = function(x, y, b)
     local ind = (offs * 4) + math.floor(x / 6) + 1
     if b == 1 then
       primColor = ind
+      colorPalette.repaint()
     elseif b == 3 then
       secColor = ind
+      colorPalette.repaint()
     end
   end
 end
+
+toolPalette.repaint = function()
+  toolPalette:drawRectangle(0, 0, 60, 80, 6)
+
+  toolPalette:drawRectangle(0, 1 + (10 * (selectedTool - 1)), 60, 10, 1)
+
+  for i=1, #toolList do
+    write(toolList[i].name, 2, 2 + (10 * (i - 1)), 16, toolPalette.canv)
+  end
+
+  toolPalette:flush()
+end
+
+toolPalette.repaint()
 
 toolPalette.mousePressed = function(_, y)
   if y == 0 then return end
   local newInd = math.floor((y - 1) / 10) + 1
   if newInd <= #toolList then
     selectedTool = newInd
+    toolPalette.repaint()
   end
 end
 
@@ -623,146 +754,156 @@ do
   end
 end
 
+local function repaintCanv()
+  canvArea:clear()
+
+  canvArea:drawRectangle(0, 0, scrnWidth, scrnHeight, 1)
+
+  backMatte:copy(canvArea, drawOffX % 4 - 4, drawOffY % 2 - 2)
+
+  transMatte:copy(canvArea,
+    clamp(drawOffX, 0), clamp(drawOffY, 0),
+      imgWidth * zoomFactor - clamp(-drawOffX, 0),
+      imgHeight * zoomFactor - clamp(-drawOffY, 0),
+    clamp(-drawOffX, 0) % 12, clamp(-drawOffY, 0) % 12 )
+
+  canvArea:flush()
+end
+repaintCanv()
+
+local TEMPFRIGGINI = 1
 local function drawContent()
-    canvArea:clear()
+  canvArea:render(0, 10)
 
-    canvArea:drawRectangle(0, 0, 340, 200, 1)
+  -- Render painting here
 
-    backMatte:copy(canvArea, drawOffX % 4 - 4, drawOffY % 2 - 2)
+  dispImage:render(drawOffX, drawOffY + 10, 0, 0, imgWidth, imgHeight, zoomFactor)
 
-    transMatte:copy(canvArea,
-      clamp(drawOffX, 0), clamp(drawOffY, 0),
-        imgWidth * zoomFactor - clamp(-drawOffX, 0),
-        imgHeight * zoomFactor - clamp(-drawOffY, 0),
-      clamp(-drawOffX, 0) % 12, clamp(-drawOffY, 0) % 12 )
+  if clipboard.prev then
+    clipboard.pimg:render(
+      math.floor((mousePosX - drawOffX) / zoomFactor) * zoomFactor + drawOffX,
+      math.floor((mousePosY - drawOffY - 10) / zoomFactor) * zoomFactor + (10 + drawOffY),
+      0, 0, clipboard.w, clipboard.h, zoomFactor)
+  end
 
-    canvArea:flush()
-    canvArea:render(0, 10)
+  TEMPFRIGGINI = TEMPFRIGGINI % 8 + 1
+  if toolVars.select.exists then
+    checkMatte:render(
+      (toolVars.select.locx) * zoomFactor + drawOffX,
+      (toolVars.select.locy) * zoomFactor + drawOffY + 10,
+      TEMPFRIGGINI / 4, 0,
+      (toolVars.select.endx - toolVars.select.locx + 1) * zoomFactor, 1)
 
-    -- Render painting here
+    checkMatte:render(
+      (toolVars.select.locx) * zoomFactor + drawOffX,
+      (toolVars.select.endy + 1) * zoomFactor + drawOffY + 9,
+      TEMPFRIGGINI / 4, 1,
+      (toolVars.select.endx - toolVars.select.locx + 1) * zoomFactor, 1)
 
-    -- for i = 1, imgWidth do
-    --   for j = 1, imgHeight do
-    --     if workingImage[i][j] ~= 0 then
-    --       gpu.drawRectangle((i - 1) * zoomFactor + drawOffX, (j - 1) * zoomFactor + drawOffY + 10, zoomFactor, zoomFactor, workingImage[i][j])
-    --     end
-    --   end
-    -- end
+    checkMatte:render(
+      (toolVars.select.locx) * zoomFactor + drawOffX,
+      (toolVars.select.locy) * zoomFactor + drawOffY + 10,
+      TEMPFRIGGINI / 4, 0,
+      1, (toolVars.select.endy - toolVars.select.locy + 1) * zoomFactor)
 
-    dispImage:render(drawOffX, drawOffY + 10, 0, 0, imgWidth, imgHeight, zoomFactor)
+    checkMatte:render(
+      (toolVars.select.endx + 1) * zoomFactor + drawOffX - 1,
+      (toolVars.select.locy) * zoomFactor + drawOffY + 10,
+      TEMPFRIGGINI / 4, 0,
+      1, (toolVars.select.endy - toolVars.select.locy + 1) * zoomFactor)
+  end
 
-    toolList[selectedTool].draw()
+  if not toolList[selectedTool] then
+    selectedTool = 1
+  end
+  toolList[selectedTool].draw()
 
-    -- Done
+  -- Done
 
-    colorPalette:drawRectangle(0, 0, 6*4 + 20, 6*4, 6)
+  colorPalette:drawSelf()
 
-    for i=1, 16 do
-      colorPalette:drawRectangle((i - 1) % 4 * 6, math.floor((i - 1) / 4) * 6, 6, 6, i)
+  toolPalette:drawSelf()
+
+  if pathVars.visible then
+    pathDialog:drawRectangle(0, 0, 100, 26, 6)
+
+    pathDialog:drawRectangle(1, 1, 98, 10, 1)
+    write(pathVars.str, 1, 2, 16, pathDialog.canv)
+    if pathVars.focus and math.floor(((os.clock() - pathVars.time) * 2) % 2) == 0 then
+      pathDialog:drawRectangle(pathVars.cpos * 7 + 3, 9, 4, 1, 16)
     end
 
-    colorPalette:drawRectangle(30, 6, 12, 12, 16)
-    colorPalette:drawRectangle(27, 2, 12, 12, 16)
+    pathDialog:flush()
 
-    colorPalette:drawRectangle(31, 7, 10, 10, secColor)
-    colorPalette:drawRectangle(28, 3, 10, 10, primColor)
+    pathDialog:drawSelf()
+  end
 
-    colorPalette:flush()
+  if newVars.visible then
+    newDialog:drawRectangle(0, 0, 100, 26, 6)
 
-    colorPalette:drawSelf()
+    write(locale[lang].width, 1, 2, 16, newDialog.canv)
+    newDialog:drawRectangle(1, 13, 48, 10, 1)
+    write(newVars.wnum, 1, 14, 16, newDialog.canv)
 
-    toolPalette:drawRectangle(0, 0, 60, 80, 6)
+    write(locale[lang].height, 50, 2, 16, newDialog.canv)
+    newDialog:drawRectangle(50, 13, 48, 10, 1)
+    write(newVars.hnum, 50, 14, 16, newDialog.canv)
 
-    toolPalette:drawRectangle(0, 1 + (10 * (selectedTool - 1)), 60, 10, 1)
-
-    for i=1, #toolList do
-      write(toolList[i].name, 2, 2 + (10 * (i - 1)), 16, toolPalette.canv)
+    if newVars.focus and math.floor(((os.clock() - newVars.time) * 2) % 2) == 0 then
+      local off = newVars.mode == 1 and 3 or 3 + 49
+      local dof = newVars.mode == 1 and newVars.cposw or newVars.cposh
+      newDialog:drawRectangle(dof * 7 + off, 21, 4, 1, 16)
     end
 
-    toolPalette:flush()
+    newDialog:flush()
 
-    toolPalette:drawSelf()
+    newDialog:drawSelf()
+  end
 
-    if pathVars.visible then
-      pathDialog:drawRectangle(0, 0, 100, 26, 6)
+  gpu.drawRectangle(0, 0, scrnWidth, 10, 6)
 
-      pathDialog:drawRectangle(1, 1, 98, 10, 1)
-      write(pathVars.str, 1, 2, 16, pathDialog.canv)
-      if pathVars.focus and math.floor(((os.clock() - pathVars.time) * 2) % 2) == 0 then
-        pathDialog:drawRectangle(pathVars.cpos * 7 + 3, 9, 4, 1, 16)
-      end
-
-      pathDialog:flush()
-
-      pathDialog:drawSelf()
+  local acp
+  for i=1, #toolbar do
+    local pt = toolbar[i]
+    if toolbarActive and i == selToolbar then
+      gpu.drawRectangle(pt.offset - 4, 0, #pt.name * 7 + 10, 10, 1)
+      acp = pt.offset - 4
     end
+    write(pt.name, pt.offset, 1, 16)
+  end
 
-    if newVars.visible then
-      newDialog:drawRectangle(0, 0, 100, 26, 6)
+  if closeHover then
+    gpu.drawRectangle(scrnWidth - 10, 0, 10, 10, 8)
+  end
+  write("X", scrnWidth - 10, 1, 16)
 
-      write(locale[lang].width, 1, 2, 16, newDialog.canv)
-      newDialog:drawRectangle(1, 13, 48, 10, 1)
-      write(newVars.wnum, 1, 14, 16, newDialog.canv)
-
-      write(locale[lang].height, 50, 2, 16, newDialog.canv)
-      newDialog:drawRectangle(50, 13, 48, 10, 1)
-      write(newVars.hnum, 50, 14, 16, newDialog.canv)
-
-      if newVars.focus and math.floor(((os.clock() - newVars.time) * 2) % 2) == 0 then
-        local off = newVars.mode == 1 and 3 or 3 + 49
-        local dof = newVars.mode == 1 and newVars.cposw or newVars.cposh
-        newDialog:drawRectangle(dof * 7 + off, 21, 4, 1, 16)
-      end
-
-      newDialog:flush()
-
-      newDialog:drawSelf()
+  if toolbarActive then
+    gpu.drawRectangle(acp, 10, toolbar[selToolbar].maxACL * 7 + 16, #toolbar[selToolbar].actions * 10, 7)
+    for i=1, #toolbar[selToolbar].actions do
+      write(toolbar[selToolbar].actions[i][1], acp + 4, i * 10, 1)
     end
+  end
 
-    gpu.drawRectangle(0, 0, 340, 10, 6)
+  gpu.drawRectangle(0, scrnHeight - 10, scrnWidth, 10, 2)
 
-    local acp
-    for i=1, #toolbar do
-      local pt = toolbar[i]
-      if toolbarActive and i == selToolbar then
-        gpu.drawRectangle(pt.offset - 4, 0, #pt.name * 7 + 10, 10, 1)
-        acp = pt.offset - 4
-      end
-      write(pt.name, pt.offset, 1, 16)
+  rightWrite(tostring(zoomFactor * 100) .. "%", scrnWidth - 2, scrnHeight - 9)
+
+  local transX, transY = convertScrn2I(mousePosX, mousePosY)
+  rightWrite(transX .. ", " .. transY, scrnWidth - 60, scrnHeight - 9)
+
+  if statusPos < 0 then
+    write(status, 2, statusPos + 200)
+    if os.clock() - statusTime > 0.3 then
+      statusPos = statusPos + 1
     end
+  end
 
-    if closeHover then
-      gpu.drawRectangle(330, 0, 10, 10, 8)
-    end
-    write("X", 330, 1, 16)
-
-    if toolbarActive then
-      gpu.drawRectangle(acp, 10, toolbar[selToolbar].maxACL * 7 + 16, #toolbar[selToolbar].actions * 10, 7)
-      for i=1, #toolbar[selToolbar].actions do
-        write(toolbar[selToolbar].actions[i][1], acp + 4, i * 10, 1)
-      end
-    end
-
-    gpu.drawRectangle(0, 190, 340, 10, 6)
-
-    rightWrite(tostring(zoomFactor * 100) .. "%", 338, 191)
-
-    local transX, transY = convertScrn2I(mousePosX, mousePosY)
-    rightWrite(transX .. ", " .. transY, 280, 191)
-
-    if statusPos < 0 then
-      write(status, 2, statusPos + 200)
-      if os.clock() - statusTime > 0.3 then
-        statusPos = statusPos + 1
-      end
-    end
-
-    gpu.drawRectangle(mousePosX + 1, mousePosY + 1, 3, 3, 1)
-    gpu.drawRectangle(mousePosX + 2, mousePosY + 2, 3, 3, 1)
-    gpu.drawRectangle(mousePosX + 3, mousePosY + 3, 3, 3, 1)
-    gpu.drawPixel(mousePosX + 2, mousePosY + 2, 16)
-    gpu.drawPixel(mousePosX + 3, mousePosY + 3, 16)
-    gpu.drawPixel(mousePosX + 4, mousePosY + 4, 16)
+  gpu.drawRectangle(mousePosX + 1, mousePosY + 1, 3, 3, 1)
+  gpu.drawRectangle(mousePosX + 2, mousePosY + 2, 3, 3, 1)
+  gpu.drawRectangle(mousePosX + 3, mousePosY + 3, 3, 3, 1)
+  gpu.drawPixel(mousePosX + 2, mousePosY + 2, 16)
+  gpu.drawPixel(mousePosX + 3, mousePosY + 3, 16)
+  gpu.drawPixel(mousePosX + 4, mousePosY + 4, 16)
 end
 
 local function processEvent(ev, p1, p2, p3, p4)
@@ -792,12 +933,54 @@ local function processEvent(ev, p1, p2, p3, p4)
       keyMods.alt = false
     end
   elseif ev == "key" then
-    if p1 == "Tab" then
+    if p1 == "escape" then
+      toolVars.select.exists = false
+    elseif p1 == "tab" then
       if newVars.visible and newVars.focus then
         newVars.mode = (newVars.mode % 2) + 1
         newVars.time = os.clock()
       end
-    elseif p1 == "S" then
+    elseif p1 == "c" then
+      if keyMods.ctrl and toolVars.select.exists then
+        local x, y, w, h =
+          toolVars.select.locx,
+          toolVars.select.locy,
+          toolVars.select.endx - toolVars.select.locx + 1,
+          toolVars.select.endy - toolVars.select.locy + 1
+        clipboard.w = w
+        clipboard.h = h
+        clipboard.data = {}
+        for i = 1, w do
+          clipboard.data[i] = {}
+          for j = 1, h do
+            clipboard.data[i][j] = workingImage[x + i][y + j]
+          end
+        end
+        clipboard.full = true
+        clipboard.pimg = image.newImage(w, h)
+        clipboard.pimg:blitPixels(0, 0, w, h, toBlitTable(clipboard.data))
+        clipboard.pimg:flush()
+
+        toolVars.select.exists = false
+
+        status = locale[lang].copied
+        statusPos = statusRest
+        statusTime = os.clock()
+      end
+    elseif p1 == "v" then
+      if keyMods.ctrl then
+        if clipboard.full then
+          clipboard.prev = true
+          status = locale[lang].pasted
+          statusPos = statusRest
+          statusTime = os.clock()
+        else
+          status = locale[lang].noclip
+          statusPos = statusRest
+          statusTime = os.clock()
+        end
+      end
+    elseif p1 == "s" then
       if keyMods.ctrl then
         if keyMods.shift then
           openPath(1, "save")
@@ -809,25 +992,25 @@ local function processEvent(ev, p1, p2, p3, p4)
           end
         end
       end
-    elseif p1 == "N" then
+    elseif p1 == "n" then
       if keyMods.ctrl then
         openNew()
       end
-    elseif p1 == "O" then
+    elseif p1 == "o" then
       if keyMods.ctrl then
         openPath(2, "load")
       end
-    elseif p1 == "W" then
+    elseif p1 == "w" then
       if keyMods.ctrl and keyMods.alt then
         running = false
       end
-    elseif p1 == "Left Ctrl" then
+    elseif p1 == "leftCtrl" then
       keyMods.ctrl = true
-    elseif p1 == "Left Shift" then
+    elseif p1 == "leftShift" then
       keyMods.shift = true
-    elseif p1 == "Left Alt" then
+    elseif p1 == "leftAlt" then
       keyMods.alt = true
-    elseif p1 == "Return" then
+    elseif p1 == "return" then
       if pathVars.focus then
         if pathVars.mode == 1 then
           saveImage(pathVars.str)
@@ -845,14 +1028,14 @@ local function processEvent(ev, p1, p2, p3, p4)
         newVars.visible = false
         newVars.focus = false
       end
-    elseif p1 == "Delete" then
+    elseif p1 == "delete" then
       if pathVars.focus then
         if pathVars.cpos < #pathVars.str then
           pathVars.str = pathVars.str:sub(1, pathVars.cpos) .. pathVars.str:sub(pathVars.cpos + 2)
           pathVars.time = os.clock()
         end
       end
-    elseif p1 == "Backspace" then
+    elseif p1 == "backspace" then
       if pathVars.visible and pathVars.focus then
         if pathVars.cpos > 0 then
           pathVars.str = pathVars.str:sub(1, pathVars.cpos - 1) .. pathVars.str:sub(pathVars.cpos + 1)
@@ -868,7 +1051,7 @@ local function processEvent(ev, p1, p2, p3, p4)
           newVars["cpos" .. woh] = pos - 1
         end
       end
-    elseif p1 == "Left" then
+    elseif p1 == "left" then
       if pathVars.focus then
         pathVars.cpos = pathVars.cpos - 1
         if pathVars.cpos < 0 then
@@ -877,8 +1060,9 @@ local function processEvent(ev, p1, p2, p3, p4)
         pathVars.time = os.clock()
       else
         drawOffX = drawOffX + 5
+        repaintCanv()
       end
-    elseif p1 == "Right" then
+    elseif p1 == "right" then
       if pathVars.focus then
         pathVars.cpos = pathVars.cpos + 1
         if pathVars.cpos > #pathVars.str then
@@ -887,14 +1071,31 @@ local function processEvent(ev, p1, p2, p3, p4)
         pathVars.time = os.clock()
       else
         drawOffX = drawOffX - 5
+        repaintCanv()
       end
-    elseif p1 == "Up" then
+    elseif p1 == "up" then
       drawOffY = drawOffY + 5
-    elseif p1 == "Down" then
+      repaintCanv()
+    elseif p1 == "down" then
       drawOffY = drawOffY - 5
+      repaintCanv()
     end
   elseif ev == "mousePressed" then
-    local x, y, _ = p1, p2, p3
+    local x, y = p1, p2
+    if clipboard.prev then
+      local tx, ty = convertScrn2I(x, y)
+      for i = 1, clipboard.w do
+        for j = 1, clipboard.h do
+          workingImage[i + tx][j + ty] = clipboard.data[i][j]
+          dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage))
+          dispImage:flush()
+        end
+      end
+
+      clipboard.prev = false
+      return
+    end
+
     local tBar = toolbarActive
     toolbarActive = false
 
@@ -912,7 +1113,7 @@ local function processEvent(ev, p1, p2, p3, p4)
     end
 
     if y < 10 then
-      if x > 330 and x < 340 then
+      if x >= scrnWidth - 10 and x < scrnWidth then
         running = false
         return
       end
@@ -940,7 +1141,7 @@ local function processEvent(ev, p1, p2, p3, p4)
   elseif ev == "mouseMoved" then
     closeHover = false
     if p2 < 10 then
-      if p1 > 330 and p1 < 340 then
+      if p1 >= scrnWidth - 10 and p1 < scrnWidth then
         closeHover = true
       end
     end
@@ -950,6 +1151,7 @@ local function processEvent(ev, p1, p2, p3, p4)
         -- Move draw offsets
         drawOffX = drawOffX + p3
         drawOffY = drawOffY + p4
+        repaintCanv()
       end
 
       toolList[selectedTool].mouseMoved(p1, p2, p3, p4)
@@ -962,6 +1164,7 @@ local function processEvent(ev, p1, p2, p3, p4)
     zoomFactor = clamp(zoomFactor + p1, 1)
     drawOffX = mousePosX - px * zoomFactor
     drawOffY = (mousePosY - 10) - py * zoomFactor
+    repaintCanv()
   end
 end
 

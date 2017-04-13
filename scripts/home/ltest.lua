@@ -2,7 +2,7 @@ local running = true
 
 local rif = dofile("../lib/rif.lua")
 
-local handle = io.open("logo.rif", "rb")
+local handle = io.open("tex.rif", "rb")
 local data = handle:read("*a")
 handle:close()
 
@@ -15,7 +15,7 @@ for i = 1, h do
   for j = 1, w do
     local d = rifData[c]
     if d ~= -1 then
-      track[#track + 1] = {c = d, dx = j + 140, dy = i + 85, x = j + 140 + math.random(-40, 40), y = i + 85 + math.random(-40, 40)}
+      track[#track + 1] = {c = d, dx = j + (gpu.width / 2 - 15), dy = i + (gpu.height / 2 - 20)} --x = j + 140 + math.random(-40, 40), y = i + 85 + math.random(-40, 40)}
     end
     c = c + 1
   end
@@ -25,7 +25,7 @@ local function processEvent(e, ...)
   local args = {...}
   if e == "key" then
     local key = args[1]
-    if key == "Escape" then
+    if key == "escape" then
       running = false
     end
   end
@@ -41,7 +41,14 @@ local round = function(x)
 end
 
 local function drawContent()
+  local brkpt = 5
   for i=1, #track do
+    if not track[i].x then
+      track[i].x = track[i].dx + math.random(-40, 40)
+      track[i].y = track[i].dy + math.random(-40, 40)
+      brkpt = brkpt - 1
+      if brkpt == 0 then break end
+    end
     gpu.drawPixel(round(track[i].x), round(track[i].y), track[i].c)
 
     track[i].x = (track[i].dx - track[i].x) * 0.04 + track[i].x

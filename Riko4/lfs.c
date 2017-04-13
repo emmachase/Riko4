@@ -19,6 +19,8 @@
 **   lfs.unlock (fh)
 */
 
+#define _CRT_SECURE_NO_WARNINGS
+
 #ifndef LFS_DO_NOT_USE_LARGE_FILE
 #ifndef _WIN32
 #ifndef _AIX
@@ -179,7 +181,7 @@ static int get_dir (lua_State *L) {
         path = realloc(path, size);
         if (!path) /* failed to allocate */
             return pusherror(L, "get_dir realloc() failed");
-        if (getcwd(path, size) != NULL) {
+        if (getcwd(path, (int)size) != NULL) {
             /* success, push the path to the Lua stack */
             lua_pushstring(L, path);
             result = 1;

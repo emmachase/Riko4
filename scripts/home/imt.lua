@@ -28,9 +28,9 @@ while true do
   local e, p1 = coroutine.yield()
 
   if e == "key" then
-    if p1 == "Escape" then
+    if p1 == "escape" then
       break
-    elseif p1 == "Return" then
+    elseif p1 == "return" then
       free = true
     end
   end

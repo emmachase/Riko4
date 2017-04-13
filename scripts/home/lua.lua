@@ -9,7 +9,7 @@ local function processEvent(e, ...)
     
     if key == "Return" then
       pushOutput("Waddup")
-    elseif key == "Escape" then
+    elseif key == "escape" then
       running = false
     end
   end

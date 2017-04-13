@@ -19,7 +19,7 @@ local function processEvent(e, ...)
   if e == "key" then
     local k = data[1]
 
-    if k == "Escape" then
+    if k == "escape" then
       running = false
     end
   end

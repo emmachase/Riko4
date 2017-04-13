@@ -1,10 +1,15 @@
+local rif = dofile("../lib/rif.lua")
+local cur = rif.createImage("curs.rif")
+
 local running = true
 local simulating = false
 
 local turn = 1
 
-local width, height = 340, 200
+local width, height = gpu.width, gpu.height
 local cx, cy = 170, 100
+
+local mouse = {-5, -5}
 
 local axis = math.min(width, height) - 50
 
@@ -313,6 +318,8 @@ local function drawframe()
     fillCircle(6, 6, 4, teams[turn])
   end
 
+  cur:render(mouse[1], mouse[2])
+
   gpu.swap()
 end
 
@@ -333,9 +340,9 @@ local function processEvent(e, ...)
   local args = {...}
   if e == "key" then
     local key = args[1]
-    if key == "Escape" then
+    if key == "escape" then
       running = false
-    elseif key == "Space" then
+    elseif key == "space" then
       if not simulating then
         turn = (turn % #teams) + 1
         if turn == 1 then
@@ -359,6 +366,7 @@ local function processEvent(e, ...)
     end
   elseif e == "mouseMoved" then
     local x, y = args[1], args[2]
+    mouse = {x, y}
     if dragging > 0 then
       local xv = (x - cx) - objects[dragging].x
       local yv = (y - cy) - objects[dragging].y

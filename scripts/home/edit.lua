@@ -15,6 +15,8 @@ local syntaxTheme = {
   catch = 16       -- everything else is white
 }
 
+local width, height = gpu.width, gpu.height
+
 local args = {...}
 if #args < 1 then
   if pushOutput then
@@ -220,7 +222,7 @@ local function pullEvent(filter)
 end
 
 local drawOffsets = {0, 0}
-local lines = math.floor(190 / 8) - 1
+local lines = math.floor((height - 10) / 8) - 1
 local hintText = "Press <ctrl> to open menu"
 
 local function drawCursor(force, which)
@@ -285,7 +287,7 @@ local function drawContent()
       cx = cx + 7 * #chk[1]
     end
 
-    gpu.drawRectangle(0, 189, 340, 12, editorTheme.selBar)
+    gpu.drawRectangle(0, height - 11, width, 12, editorTheme.selBar)
 
     local delta = os.clock() - lastI
 
@@ -295,15 +297,15 @@ local function drawContent()
     braceWidth = braceWidth + (braceWidthGoal - braceWidth)*10*delta
     if math.abs(braceWidthGoal - braceWidth) < 0.1 then braceWidth = braceWidthGoal end
 
-    write(hintText, 2, 190, editorTheme.text)
+    write(hintText, 2, height - 10, editorTheme.text)
 
     if inMenu then
-      write("[", braceX, 190, editorTheme.selChar)
-      write("]", braceX + braceWidth, 190, editorTheme.selChar)
+      write("[", braceX, height - 10, editorTheme.selChar)
+      write("]", braceX + braceWidth, height - 10, editorTheme.selChar)
     end
 
     local locStr = "Ln "..cursorLine..", Col "..(cursorPos + 1)
-    write(locStr, 335 - (#locStr * 7), 190, editorTheme.text)
+    write(locStr, (width - 5) - (#locStr * 7), height - 10, editorTheme.text)
 
     lastI = os.clock()
   end
@@ -312,8 +314,8 @@ local function drawContent()
 end
 
 local function checkDrawBounds()
-  if cursorPos > math.floor(340/7) - drawOffsets[1] - 1 then
-    drawOffsets[1] = math.floor(340/7) - cursorPos - 1
+  if cursorPos > math.floor(width/7) - drawOffsets[1] - 1 then
+    drawOffsets[1] = math.floor(width/7) - cursorPos - 1
   elseif cursorPos < -drawOffsets[1] then
     drawOffsets[1] = -cursorPos
   end
@@ -330,35 +332,35 @@ local mouseDown = false
 
 local function processEvent(e, p1, p2)
   if e == "key" then
-    if p1 == "Left Ctrl" then
+    if p1 == "leftCtrl" then
       inMenu = not inMenu
       updateHint()
     elseif inMenu then
-      if p1 == "Left" then
+      if p1 == "left" then
         menuSelected = menuSelected == 1 and #menuItems or menuSelected - 1
         updateHint()
-      elseif p1 == "Right" then
+      elseif p1 == "right" then
         menuSelected = menuSelected == #menuItems and 1 or menuSelected + 1
         updateHint()
-      elseif p1 == "Return" then
+      elseif p1 == "return" then
         menuFunctions[menuSelected]()
         inMenu = false
         updateHint()
       end
     else
-      if p1 == "Up" then
+      if p1 == "up" then
         local nx, ny = cursorPos, cursorLine
         if cursorLine > 1 then ny = cursorLine - 1 else nx = 0 end
         if cursorPos > #content[ny] then nx = #content[ny] end
         updateCursor(nx, ny)
         checkDrawBounds()
-      elseif p1 == "Down" then
+      elseif p1 == "down" then
         local nx, ny = cursorPos, cursorLine
         if cursorLine < #content then ny = cursorLine + 1 else nx = #content[ny] end
         if cursorPos > #content[ny] then nx = #content[ny] end
         updateCursor(nx, ny)
         checkDrawBounds()
-      elseif p1 == "Left" then
+      elseif p1 == "left" then
         local nx, ny = cursorPos, cursorLine
         if cursorPos > 0 then
           nx = cursorPos - 1
@@ -368,7 +370,7 @@ local function processEvent(e, p1, p2)
         end
         updateCursor(nx, ny)
         checkDrawBounds()
-      elseif p1 == "Right" then
+      elseif p1 == "right" then
         local nx, ny = cursorPos, cursorLine
         if cursorPos < #content[ny] then
           nx = cursorPos + 1
@@ -378,7 +380,7 @@ local function processEvent(e, p1, p2)
         end
         updateCursor(nx, ny)
         checkDrawBounds()
-      elseif p1 == "Backspace" then
+      elseif p1 == "backspace" then
         if cursorPos > 0 then
           content[cursorLine] = content[cursorLine]:sub(1, cursorPos - 1) .. content[cursorLine]:sub(cursorPos + 1)
           updateCursor(cursorPos - 1, cursorLine)
@@ -391,7 +393,7 @@ local function processEvent(e, p1, p2)
           colorizeLine(cursorLine)
         end
         checkDrawBounds()
-      elseif p1 == "Delete" then
+      elseif p1 == "delete" then
         if cursorPos < #content[cursorLine] then
           content[cursorLine] = content[cursorLine]:sub(1, cursorPos) .. content[cursorLine]:sub(cursorPos + 2)
           colorizeLine(cursorLine)
@@ -401,7 +403,7 @@ local function processEvent(e, p1, p2)
           colorizeLine(cursorLine)
         end
         blinkTimeCorrection = os.clock()
-      elseif p1 == "Return" then
+      elseif p1 == "return" then
         local cont = content[cursorLine]:sub(cursorPos + 1)
         local localIndent = content[cursorLine]:find("%S")
         localIndent = localIndent and localIndent - 1 or #content[cursorLine]
@@ -412,7 +414,7 @@ local function processEvent(e, p1, p2)
         colorizeLine(cursorLine - 1)
         colorizeLine(cursorLine)
         checkDrawBounds()
-      elseif p1 == "Home" then
+      elseif p1 == "home" then
         local fpos, _ = content[cursorLine]:find("%S")
         if not fpos or cursorPos < fpos then
           updateCursor(0, cursorLine)
@@ -420,10 +422,10 @@ local function processEvent(e, p1, p2)
           updateCursor(fpos - 1, cursorLine)
         end
         checkDrawBounds()
-      elseif p1 == "End" then
+      elseif p1 == "end" then
         updateCursor(#content[cursorLine], cursorLine)
         checkDrawBounds()
-      elseif p1 == "Tab" then
+      elseif p1 == "tab" then
         content[cursorLine] = content[cursorLine]:sub(1, cursorPos) .. "  " .. content[cursorLine]:sub(cursorPos + 1)
         updateCursor(cursorPos + 2, cursorLine)
         colorizeLine(cursorLine)

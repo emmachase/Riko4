@@ -7,7 +7,7 @@
 
 local bitmap = dofile("../lib/bitmap.lua")
 
-local ditherImage = bitmap.createBitmapFromFile("astc.bmp")
+local ditherImage = bitmap.createBitmapFromFile("land.bmp")
 
 local palette = {
 	{24,   24,   24 },
@@ -99,5 +99,5 @@ while true do
 
   gpu.swap()
   local e, p1 = coroutine.yield()
-  if e == "key" and p1 == "Escape" then break end
+  if e == "key" and p1 == "escape" then break end
 end

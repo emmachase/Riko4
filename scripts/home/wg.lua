@@ -238,17 +238,17 @@ local function processEvent(e, ...)
   local args = {...}
   if e == "key" or e == "keyUp" then
     local key = args[1]
-    if key == "Escape" then
+    if key == "escape" then
       running = false
-    elseif key == "Left" then
+    elseif key == "left" then
       prd[1] = e == "key"
-    elseif key == "Right" then
+    elseif key == "right" then
       prd[2] = e == "key"
-    elseif key == "Up" then
+    elseif key == "up" then
       prd[3] = e == "key"
-    elseif key == "Down" then
+    elseif key == "down" then
       prd[4] = e == "key"
-    elseif key == "X" then
+    elseif key == "x" then
       prd[5] = e == "key"
     end
   end

@@ -1,3 +1,7 @@
+os.exit = function() error("Nope") end
+
+local w, h = gpu.width, gpu.height
+
 local write = write
 
 local function round(n, p)
@@ -12,18 +16,30 @@ local function split(str)
   return tab
 end
 
+local oldPrint = print
+
 local pureHistory = {}
 local pureHistoryPoint = 1
+
+shell = {}
+local shell = shell
 
 local lineHistory = {{{"rikoOS 1.0"}, {13}}}
 local historyPoint = 2
 local lineOffset = 0
-function pushOutput(msg, c)
+local c = 4
+function pushOutput(msg, ...)
+  msg = tostring(msg)
+  local ar = {...}
+  for k,v in ipairs(ar) do
+    msg = msg .. "  " .. tostring(v)
+  end
   lineHistory[#lineHistory + 1] = {{msg}, {c or 16}}
   historyPoint = #lineHistory + 1
   if historyPoint >= 200 / 8 - 1 then
     lineOffset = lineOffset + 1
   end
+  shell.redraw(true)
 end
 
 local prefix = "> "
@@ -38,8 +54,6 @@ local fps = 60
 
 local mouseX, mouseY = 0, 0
 
-shell = {}
-local shell = shell
 function shell.redraw(swap)
   swap = (swap == nil) and swap or true -- just to be explicit
 
@@ -58,8 +72,8 @@ function shell.redraw(swap)
     end
   end
 
-  gpu.drawRectangle(0, 190, 340, 10, 6)
-  write("FPS: " .. tostring(round(fps, 0.01)), 2, 191)
+  gpu.drawRectangle(0, h - 10, w, 10, 6)
+  write("FPS: " .. tostring(round(fps, 0.01)), 2, 189)
 
   gpu.drawRectangle(mouseX, mouseY, 2, 1, 7)
   gpu.drawRectangle(mouseX, mouseY, 1, 2, 7)
@@ -93,17 +107,17 @@ local function processEvent(e, ...)
   elseif e == "mouseMoved" then
     mouseX, mouseY = p1, p2
   elseif e == "key" then
-    if p1 == "Backspace" then
+    if p1 == "backspace" then
       str = str:sub(1, #str - 1)
       lastP = os.clock() * 2
-    elseif p1 == "Up" then
+    elseif p1 == "up" then
       pureHistoryPoint = pureHistoryPoint - 1
       if pureHistoryPoint < 1 then
         pureHistoryPoint = 1
       else
         str = pureHistory[pureHistoryPoint]
       end
-    elseif p1 == "Down" then
+    elseif p1 == "down" then
       pureHistoryPoint = pureHistoryPoint + 1
       if pureHistoryPoint > #pureHistory then
         pureHistoryPoint = #pureHistory + 1
@@ -111,7 +125,7 @@ local function processEvent(e, ...)
       else
         str = pureHistory[pureHistoryPoint]
       end
-    elseif p1 == "Return" then
+    elseif p1 == "return" then
       if not str:match("%S+") then
         lineHistory[historyPoint][1][4] = "" -- Remove the "_" if it is there
         historyPoint = historyPoint + 1
@@ -126,12 +140,13 @@ local function processEvent(e, ...)
         lastRun = str
         local s, er = pcall(function() cfunc = loadfile(str:match("%S+")..".lua") end)
         if not s then
+          c = 7
           if er then
             er = er:sub(er:find("%:") + 1)
             er = er:sub(er:find("%:") + 2)
-            pushOutput("Error: " .. tostring(er), 7)
+            pushOutput("Error: " .. tostring(er))
           else
-            pushOutput("Error: Unknown error", 7)
+            pushOutput("Error: Unknown error")
           end
         else
           if cfunc then
@@ -149,8 +164,11 @@ local function processEvent(e, ...)
             end
             --cc = nil
             collectgarbage("collect")
+
+            print = oldPrint
           else
-            pushOutput("Unknown program `"..str:match("%S+").."`", 7)
+            c = 7
+            pushOutput("Unknown program `"..str:match("%S+").."`")
           end
           if historyPoint == startPoint then
             historyPoint = historyPoint + 1

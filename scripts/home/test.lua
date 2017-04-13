@@ -70,15 +70,15 @@ while true do
   local e, p1 = coroutine.yield()
 
   if e == "key" then
-    if p1 == "Escape" then
+    if p1 == "escape" then
       break
-    elseif p1 == "Left" then
+    elseif p1 == "left" then
       x = x - 5
-    elseif p1 == "Right" then
+    elseif p1 == "right" then
       x = x + 5
-    elseif p1 == "Up" then
+    elseif p1 == "up" then
       y = y - 5
-    elseif p1 == "Down" then
+    elseif p1 == "down" then
       y = y + 5
     end
   end

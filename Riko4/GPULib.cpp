@@ -8,6 +8,8 @@
 #endif
 #endif
 
+#include "rikoConsts.h"
+
 #include "rikoGPU.h"
 
 #include <LuaJIT/lua.hpp>
@@ -156,9 +158,9 @@ static const luaL_Reg gpuLib[] = {
 
 LUALIB_API int luaopen_gpu(lua_State *L) {
 	luaL_openlib(L, RIKO_GPU_NAME, gpuLib, 0);
-	lua_pushnumber(L, 340);
+	lua_pushnumber(L, SCRN_WIDTH);
 	lua_setfield(L, -2, "width");
-	lua_pushnumber(L, 200);
+	lua_pushnumber(L, SCRN_HEIGHT);
 	lua_setfield(L, -2, "height");
 	return 1;
 }
