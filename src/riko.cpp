@@ -42,6 +42,8 @@ lua_State *mainThread;
 int pixelSize = 5;
 int afPixscale = 5;
 
+bool audEnabled = true;
+
 void printLuaError(int result) {
 	if (result != 0) {
 		switch (result) {
@@ -171,6 +173,12 @@ const char *cleanKeyName(SDL_Keycode key) {
 }
 
 int main(int argc, char * argv[]) {
+	if (argc > 1) {
+		if (!strcmp("--noaud", argv[1])) {
+			audEnabled = false;
+		}
+	}
+
 	SDL_Init(SDL_INIT_VIDEO);
 
 	SDL_DisplayMode current;

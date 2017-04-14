@@ -15,6 +15,8 @@
 
 #include <math.h>
 
+extern bool audEnabled;
+
 typedef struct {
 	double totalTime;
 	unsigned long long remainingCycles;
@@ -304,28 +306,31 @@ LUALIB_API int luaopen_aud(lua_State *L) {
 		streamPhase[i] = 0;
 	}
 
-	for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i) {
-		printf("Audio driver %d: %s\n", i, SDL_GetAudioDriver(i));
-	}
-
-	SDL_InitSubSystem(SDL_INIT_AUDIO);
-
-	SDL_zero(want);
-	want.freq = sampleRate;
-	want.format = AUDIO_F32SYS;
-	want.channels = 1;
-	want.samples = samples;
-	want.callback = audioCallback;
-	want.userdata = NULL;
-
-	dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE);
-	if (dev == 0) {
-		SDL_Log("Failed to open audio: %s", SDL_GetError());
-	} else {
-		if (have.format != want.format) { /* we let this one thing change. */
-			SDL_Log("We didn't get Float32 audio format.");
+	if (audEnabled) {
+		for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i) {
+			printf("Audio driver %d: %s\n", i, SDL_GetAudioDriver(i));
 		}
-		SDL_PauseAudioDevice(dev, 0); /* start audio playing. */
+
+		SDL_InitSubSystem(SDL_INIT_AUDIO);
+
+		SDL_zero(want);
+		want.freq = sampleRate;
+		want.format = AUDIO_F32SYS;
+		want.channels = 1;
+		want.samples = samples;
+		want.callback = audioCallback;
+		want.userdata = NULL;
+
+
+		dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE);
+		if (dev == 0) {
+			SDL_Log("Failed to open audio: %s", SDL_GetError());
+		} else {
+			if (have.format != want.format) { /* we let this one thing change. */
+				SDL_Log("We didn't get Float32 audio format.");
+			}
+			SDL_PauseAudioDevice(dev, 0); /* start audio playing. */
+		}
 	}
 
 	luaL_openlib(L, RIKO_AUD_NAME, audLib, 0);
