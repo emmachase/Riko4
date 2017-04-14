@@ -3,7 +3,7 @@ project(riko4)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
-file(GLOB_RECURSE SOURCE_FILES Riko4/*.cpp Riko4/*.c)
+file(GLOB_RECURSE SOURCE_FILES src/*.cpp src/*.c)
 add_executable(riko4 ${SOURCE_FILES}) 
 
 set(CMAKE_C_STANDARD 11)
