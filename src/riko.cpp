@@ -16,6 +16,7 @@
 #endif
 
 #include <climits>
+#include <string.h>
 
 #include <iostream>
 
