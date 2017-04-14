@@ -244,8 +244,12 @@ int main(int argc, char * argv[]) {
 
 	int exitCode = 0;
 
+	bool readyForProp = true;
+
 	while (running) {
-		if (SDL_PollEvent(&event)) {
+		while (SDL_PollEvent(&event)) {
+			readyForProp = true;
+
 			switch (event.type) {
 				case SDL_QUIT:
 					break;
@@ -286,6 +290,8 @@ int main(int argc, char * argv[]) {
 						lastMoveX = cx;
 						lastMoveY = cy;
 						pushedArgs = 5;
+					} else {
+						readyForProp = false;
 					}
 					break;
 				case SDL_MOUSEBUTTONDOWN:
@@ -309,21 +315,23 @@ int main(int argc, char * argv[]) {
 			break;
 		}
 
-		if (canRun) {
-			int result = lua_resume(mainThread, pushedArgs);
+		if (readyForProp) {
+			if (canRun) {
+				int result = lua_resume(mainThread, pushedArgs);
 
-			if (result == 0) {
-				printf("Script finished!\n");
-				canRun = false;
-			} else if (result != LUA_YIELD) {
-				printLuaError(result);
-				canRun = false;
-				exitCode = 1;
+				if (result == 0) {
+					printf("Script finished!\n");
+					canRun = false;
+				} else if (result != LUA_YIELD) {
+					printLuaError(result);
+					canRun = false;
+					exitCode = 1;
+				}
 			}
-		}	
 
+			SDL_Delay(1);
+		}
 		pushedArgs = 0;
-		SDL_Delay(1);
 	}
 
 	closeAudio();
