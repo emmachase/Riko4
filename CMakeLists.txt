@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.2)
 project(riko4)
 
-set(CMAKE_CXX_FLAGS "-pagezero_size 10000 -image_base 100000000")
+if(APPLE)
+  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-pagezero_size 10000 -image_base 100000000")
+endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
