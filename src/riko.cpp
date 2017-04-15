@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include <SDL2/SDL.h>
 
@@ -39,6 +40,8 @@ SDL_Window *window;
 SDL_Renderer *renderer;
 
 lua_State *mainThread;
+
+char* appPath;
 
 int pixelSize = 5;
 int afPixscale = 5;
@@ -182,6 +185,12 @@ int main(int argc, char * argv[]) {
 
 	SDL_Init(SDL_INIT_VIDEO);
 
+	appPath = SDL_GetPrefPath("riko4", "app");
+	if (appPath == NULL) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unable to open application directory, possibly out of free space?");
+		return 2;
+	}
+
 	SDL_DisplayMode current;
 	int lw = INT_MAX;
 	int lh = INT_MAX;
@@ -247,7 +256,22 @@ int main(int argc, char * argv[]) {
 
 	bool readyForProp = true;
 
+	bool ctrlMod = false;
+	bool holdR = false;
+	clock_t holdL = 0;
+
 	while (running) {
+		if (ctrlMod && holdR && clock() - holdL >= CLOCKS_PER_SEC) {
+			closeAudio();
+			lua_close(mainThread);
+			createLuaInstance("scripts/boot.lua");
+			int result = lua_resume(mainThread, 0);
+
+			ctrlMod = false;
+			holdR = false;
+			holdL = 0;
+		}
+
 		while (SDL_PollEvent(&event)) {
 			readyForProp = true;
 
@@ -263,11 +287,28 @@ int main(int argc, char * argv[]) {
 					lua_pushstring(mainThread, "key");
 					lua_pushstring(mainThread, cleanKeyName(event.key.keysym.sym));
 					pushedArgs = 2;
+
+					if (event.key.keysym.scancode == SDL_SCANCODE_LCTRL) {
+						ctrlMod = true;
+					} else if (event.key.keysym.scancode == SDL_SCANCODE_R) {
+						holdR = true;
+					}
+					if (holdL == 0 && ctrlMod && holdR) {
+						holdL = clock();
+					}
 					break;
 				case SDL_KEYUP:
 					lua_pushstring(mainThread, "keyUp");
 					lua_pushstring(mainThread, cleanKeyName(event.key.keysym.sym));
 					pushedArgs = 2;
+
+					if (event.key.keysym.scancode == SDL_SCANCODE_LCTRL) {
+						ctrlMod = false;
+						holdL = 0;
+					} else if (event.key.keysym.scancode == SDL_SCANCODE_R) {
+						holdR = false;
+						holdL = 0;
+					}
 					break;
 				case SDL_MOUSEWHEEL:
 					lua_pushstring(mainThread, "mouseWheel");
@@ -334,6 +375,8 @@ int main(int argc, char * argv[]) {
 		}
 		pushedArgs = 0;
 	}
+
+	SDL_free(appPath);
 
 	closeAudio();
 
