@@ -272,7 +272,7 @@ int main(int argc, char * argv[]) {
 			holdL = 0;
 		}
 
-		while (SDL_PollEvent(&event)) {
+		if (SDL_PollEvent(&event)) {
 			readyForProp = true;
 
 			switch (event.type) {
@@ -331,6 +331,7 @@ int main(int argc, char * argv[]) {
 						lua_pushnumber(mainThread, cy - lastMoveY);
 						lastMoveX = cx;
 						lastMoveY = cy;
+						readyForProp = true;
 						pushedArgs = 5;
 					} else {
 						readyForProp = false;
@@ -350,6 +351,8 @@ int main(int argc, char * argv[]) {
 					lua_pushnumber(mainThread, event.button.button);
 					pushedArgs = 4;
 					break;
+				default:
+					readyForProp = false;
 			}
 		}
 
@@ -373,6 +376,8 @@ int main(int argc, char * argv[]) {
 
 			SDL_Delay(1);
 		}
+
+		readyForProp = true;
 		pushedArgs = 0;
 	}
 
