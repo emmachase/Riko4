@@ -30,6 +30,9 @@
     <ClCompile Include="lfs.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="fsLib.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rikoGPU.h">
@@ -45,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="rikoConsts.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rikoFs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
