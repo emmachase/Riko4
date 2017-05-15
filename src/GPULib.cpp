@@ -45,6 +45,8 @@ int palette[16][3] = {
 	{236,  236,  236}
 };
 
+int paletteNum = 0;
+
 static int getColor(lua_State *L, int arg) {
 	int color = luaL_checkint(L, arg) - 1;
 	return color < 0 ? 0 : (color > 15 ? 15 : color);
@@ -104,7 +106,7 @@ static int gpu_blit_pixels(lua_State *L) {
 		if (!lua_isnumber(L, -1)) {
 			luaL_error(L, "Index %d is non-numeric", i);
 		}
-		int color = lua_tointeger(L, -1) - 1;
+		int color = (int)lua_tointeger(L, -1) - 1;
 		if (color == -1) {
 			continue;
 		}
@@ -129,6 +131,62 @@ static int gpu_blit_pixels(lua_State *L) {
 	return 0;
 }
 
+static int gpu_set_palette_color(lua_State *L) {
+	int slot = getColor(L, 1);
+	int r = luaL_checkint(L, 2);
+	int g = luaL_checkint(L, 3);
+	int b = luaL_checkint(L, 4);
+
+	palette[slot][0] = r;
+	palette[slot][1] = g;
+	palette[slot][2] = b;
+	paletteNum++;
+
+	SDL_SetRenderDrawColor(renderer, palette[0][0], palette[0][1], palette[0][2], 255);
+	SDL_RenderClear(renderer);
+
+	return 0;
+}
+
+static int gpu_blit_palette(lua_State *L) {
+	char amt = (char) lua_objlen(L, -1);
+	if (amt < 1) {
+		return 0;
+	}
+
+	amt = amt > 16 ? 16 : amt;
+
+	for (int i = 1; i <= amt; i++) {
+		lua_pushnumber(L, i);
+		lua_gettable(L, -2);
+
+		if (lua_type(L, -1) == LUA_TNUMBER) {
+			lua_pop(L, 1);
+			continue;
+		}
+
+		lua_pushnumber(L, 1);
+		lua_gettable(L, -2);
+		palette[i - 1][0] = luaL_checkint(L, -1);
+
+		lua_pushnumber(L, 2);
+		lua_gettable(L, -3);
+		palette[i - 1][1] = luaL_checkint(L, -1);
+
+		lua_pushnumber(L, 3);
+		lua_gettable(L, -4);
+		palette[i - 1][2] = luaL_checkint(L, -1);
+
+		lua_pop(L, 4);
+	}
+
+	paletteNum++;
+	SDL_SetRenderDrawColor(renderer, palette[0][0], palette[0][1], palette[0][2], 255);
+	SDL_RenderClear(renderer);
+
+	return 0;
+}
+
 static int gpu_clear(lua_State *L) {
 	if (lua_gettop(L) > 0) {
 		int color = getColor(L, 1);
@@ -148,6 +206,8 @@ static int gpu_swap(lua_State *L) {
 }
 
 static const luaL_Reg gpuLib[] = {
+	{ "setPaletteColor", gpu_set_palette_color },
+	{ "blitPalette", gpu_blit_palette },
 	{ "drawPixel", gpu_draw_pixel },
 	{ "drawRectangle", gpu_draw_rectangle },
 	{ "blitPixels", gpu_blit_pixels },
