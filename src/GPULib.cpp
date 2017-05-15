@@ -187,6 +187,23 @@ static int gpu_blit_palette(lua_State *L) {
 	return 0;
 }
 
+static int gpu_get_palette(lua_State *L) {
+	lua_newtable(L);
+
+	for (int i = 0; i < 16; i++) {
+		lua_pushinteger(L, i + 1);
+		lua_newtable(L);
+		for (int j = 0; j < 3; j++) {
+			lua_pushinteger(L, j + 1);
+			lua_pushinteger(L, palette[i][j]);
+			lua_rawset(L, -3);
+		}
+		lua_rawset(L, -3);
+	}
+
+	return 1;
+}
+
 static int gpu_clear(lua_State *L) {
 	if (lua_gettop(L) > 0) {
 		int color = getColor(L, 1);
@@ -208,6 +225,7 @@ static int gpu_swap(lua_State *L) {
 static const luaL_Reg gpuLib[] = {
 	{ "setPaletteColor", gpu_set_palette_color },
 	{ "blitPalette", gpu_blit_palette },
+	{ "getPalette", gpu_get_palette },
 	{ "drawPixel", gpu_draw_pixel },
 	{ "drawRectangle", gpu_draw_rectangle },
 	{ "blitPixels", gpu_blit_pixels },
