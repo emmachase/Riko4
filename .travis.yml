@@ -16,6 +16,7 @@ addons:
       - libsdl2-dev
       - luajit
       - libluajit-5.1-2
+      - libluajit-5.1-dev
 
 install: true
 
