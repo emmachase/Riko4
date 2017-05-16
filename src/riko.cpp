@@ -32,6 +32,7 @@
 
 #include "rikoConsts.h"
 
+#include "rikoFS.h"
 #include "rikoGPU.h"
 #include "rikoAudio.h"
 #include "rikoImage.h"
@@ -75,6 +76,7 @@ void createLuaInstance(const char* filename) {
 	// Make standard libraries available in the Lua object
 	luaL_openlibs(state);
 
+	luaopen_fs(state);
 	luaopen_gpu(state);
 	luaopen_aud(state);
 	luaopen_image(state);
@@ -185,7 +187,9 @@ int main(int argc, char * argv[]) {
 
 	SDL_Init(SDL_INIT_VIDEO);
 
-	appPath = SDL_GetPrefPath("riko4", "app");
+	appPath = (char*)malloc(MAX_PATH + 1);
+	char *ambPath = SDL_GetPrefPath("riko4", "app");
+	GetFullPathName(ambPath, MAX_PATH, appPath, NULL);
 	if (appPath == NULL) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unable to open application directory, possibly out of free space?");
 		return 2;
@@ -381,7 +385,8 @@ int main(int argc, char * argv[]) {
 		pushedArgs = 0;
 	}
 
-	SDL_free(appPath);
+	free(appPath);
+	SDL_free(ambPath);
 
 	closeAudio();
 
