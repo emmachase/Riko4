@@ -187,9 +187,7 @@ int main(int argc, char * argv[]) {
 
 	SDL_Init(SDL_INIT_VIDEO);
 
-	appPath = (char*)malloc(MAX_PATH + 1);
-	char *ambPath = SDL_GetPrefPath("riko4", "app");
-	GetFullPathName(ambPath, MAX_PATH, appPath, NULL);
+	appPath = SDL_GetPrefPath("riko4", "app");
 	if (appPath == NULL) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unable to open application directory, possibly out of free space?");
 		return 2;
@@ -385,8 +383,7 @@ int main(int argc, char * argv[]) {
 		pushedArgs = 0;
 	}
 
-	free(appPath);
-	SDL_free(ambPath);
+	SDL_free(appPath);
 
 	closeAudio();
 
