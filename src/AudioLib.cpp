@@ -321,7 +321,7 @@ LUALIB_API int luaopen_aud(lua_State *L) {
 		want.userdata = NULL;
 
 
-		int dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE);
+		dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE);
 		if (dev == 0) {
 			SDL_Log("Failed to open audio: %s", SDL_GetError());
 		} else {
