@@ -106,8 +106,9 @@ void falloutQueue(queue_t* wqueue) {
 SDL_AudioSpec want, have;
 SDL_AudioDeviceID dev;
 
-const int sampleRate = 48000;
-const int samples = 1024;
+static int sampleRate = 48000;
+static int samples = 1024;
+static int audDevChanCount = 1;
 
 const int channelCount = 5;
 const int queueSize = 512;
@@ -127,80 +128,82 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
 		}
 	}
 
-	for (int z = 0; z < samples; z++) {
-		floatStream[z] = 0;
+	for (int z = 0; z < samples * audDevChanCount; z++) {
+		for (int cc = 0; cc < audDevChanCount; cc++) {
+			floatStream[z] = 0;
 
-		for (int i = 0; i < channelCount; i++) {
-			if (!channelHasSnd[i]) {
-				if (audioQueues[i]->tail != NULL) {
-					playingAudio[i] = popFromQueue(audioQueues[i]);
-					channelHasSnd[i] = true;
-				} else {
-					continue;
+			for (int i = 0; i < channelCount; i++) {
+				if (!channelHasSnd[i]) {
+					if (audioQueues[i]->tail != NULL) {
+						playingAudio[i] = popFromQueue(audioQueues[i]);
+						channelHasSnd[i] = true;
+					} else {
+						continue;
+					}
 				}
-			}
 
-			if (playingAudio[i]->remainingCycles == 0) {
-				free(playingAudio[i]);
+				if (playingAudio[i]->remainingCycles == 0) {
+					free(playingAudio[i]);
 
-				if (audioQueues[i]->tail != NULL) {
-					// Awesome got another sound queued up, so load it in
-					playingAudio[i] = popFromQueue(audioQueues[i]);
-				} else {
-					channelHasSnd[i] = false;
+					if (audioQueues[i]->tail != NULL) {
+						// Awesome got another sound queued up, so load it in
+						playingAudio[i] = popFromQueue(audioQueues[i]);
+					} else {
+						channelHasSnd[i] = false;
+					}
 				}
-			}
 
-			if (!channelHasSnd[i]) continue;
+				if (!channelHasSnd[i]) continue;
 
-			double delta;
-			double atC;
-			double rlC;
+				double delta;
+				double atC;
+				double rlC;
 
-			if (playingAudio[i]->attack == 0) {
-				atC = 1;
-			} else {
-				atC = (playingAudio[i]->totalTime - ((double)playingAudio[i]->remainingCycles / sampleRate)) / playingAudio[i]->attack;
-				atC = atC > 1 ? 1 : atC;
-			}
+				if (playingAudio[i]->attack == 0) {
+					atC = 1;
+				} else {
+					atC = (playingAudio[i]->totalTime - ((double)playingAudio[i]->remainingCycles / sampleRate)) / playingAudio[i]->attack;
+					atC = atC > 1 ? 1 : atC;
+				}
 
-			rlC = playingAudio[i]->release - ((double)playingAudio[i]->remainingCycles / sampleRate);
-			rlC = rlC > 0 ? 1 - rlC / playingAudio[i]->release : 1;
-			double vol = playingAudio[i]->volume * atC * rlC;
+				rlC = playingAudio[i]->release - ((double)playingAudio[i]->remainingCycles / sampleRate);
+				rlC = rlC > 0 ? 1 - rlC / playingAudio[i]->release : 1;
+				double vol = playingAudio[i]->volume * atC * rlC;
 
-			switch (i) {
-			case 0:
-			case 1:
-				// Pulse Wave
+				switch (i) {
+				case 0:
+				case 1:
+					// Pulse Wave
 				floatStream[z] += (float)((fmod(streamPhase[i], TAO) > PI/4 ? -1 : 1) * vol);
-				streamPhase[i] += TAO * playingAudio[i]->frequency / sampleRate;
-				break;
-			case 2:
-				// Triangle Wave
+					streamPhase[i] += TAO * playingAudio[i]->frequency / sampleRate;
+					break;
+				case 2:
+					// Triangle Wave
 				floatStream[z] += (float)((1 - 4 * fabs(fmod(streamPhase[i], 1) - 0.5)) * vol);
-				streamPhase[i] += (double)playingAudio[i]->frequency / sampleRate;
-				break;
-			case 3:
-				// Sawtooth Wave
+					streamPhase[i] += (double)playingAudio[i]->frequency / sampleRate;
+					break;
+				case 3:
+					// Sawtooth Wave
 				floatStream[z] += (float)((2 * fmod(streamPhase[i] - 0.5, 1) - 1) * vol);
-				streamPhase[i] += (double)playingAudio[i]->frequency / sampleRate;
-				break;
-			case 4:
-				// Noise (Wave?)
-				delta = fmod((streamPhase[i] + 1), playingAudio[i]->frequency);
-				if (streamPhase[i] > delta) {
-					lstRnd = (float)((((float)rand() / (float)RAND_MAX) * 2 - 1) * vol);
-				}
-				streamPhase[i] = delta;
-				
+					streamPhase[i] += (double)playingAudio[i]->frequency / sampleRate;
+					break;
+				case 4:
+					// Noise (Wave?)
+					delta = fmod((streamPhase[i] + 1), playingAudio[i]->frequency);
+					if (streamPhase[i] > delta) {
+						lstRnd = (float)((((float)rand() / (float)RAND_MAX) * 2 - 1) * vol);
+					}
+					streamPhase[i] = delta;
+					
 				floatStream[z] += lstRnd;
 
-				break;
-			}
+					break;
+				}
 
-			playingAudio[i]->remainingCycles--;
-			
-			playingAudio[i]->frequency += playingAudio[i]->frequencyShift;
+				playingAudio[i]->remainingCycles--;
+				
+				playingAudio[i]->frequency += playingAudio[i]->frequencyShift;
+			}
 		}
 	}
 }
@@ -307,29 +310,30 @@ LUALIB_API int luaopen_aud(lua_State *L) {
 	}
 
 	if (audEnabled) {
-		for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i) {
-			printf("Audio driver %d: %s\n", i, SDL_GetAudioDriver(i));
-		}
-
 		SDL_InitSubSystem(SDL_INIT_AUDIO);
 
 		SDL_zero(want);
 		want.freq = sampleRate;
 		want.format = AUDIO_F32SYS;
-		want.channels = 1;
+		want.channels = audDevChanCount;
 		want.samples = samples;
 		want.callback = audioCallback;
 		want.userdata = NULL;
 
 
-		dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE);
+		int dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE);
 		if (dev == 0) {
 			SDL_Log("Failed to open audio: %s", SDL_GetError());
 		} else {
-			if (have.format != want.format) { /* we let this one thing change. */
+			sampleRate = have.freq;
+			samples = have.samples;
+			audDevChanCount = have.channels;
+
+			if (have.format != want.format) { /* we can't let this one thing change. */
 				SDL_Log("We didn't get Float32 audio format.");
+			} else {
+				SDL_PauseAudioDevice(dev, 0); /* start audio playing. */
 			}
-			SDL_PauseAudioDevice(dev, 0); /* start audio playing. */
 		}
 	}
 
