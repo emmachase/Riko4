@@ -2,7 +2,7 @@ with import <nixpkgs> {};
 
 stdenv.mkDerivation {
   name = "riko4";
-  version = "0.1.1"; # put something sensible here
+  version = "0.1.1";
   src = ./.;
 
   buildInputs = [ SDL2 luajit
