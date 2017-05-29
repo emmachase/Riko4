@@ -10,6 +10,7 @@
 #  include <Windows.h>
 #endif/* Predefined Windows macros */
 
+#include <stdlib.h>
 #include <stdio.h>
 
 #include <LuaJIT/lua.hpp>
@@ -74,7 +75,7 @@ typedef struct {
 #else
 typedef struct {
 	int TODO; // REPLACE THIS WITH ACTUAL IMPL 
-} fileHandle;
+} fileHandleType;
 #endif
 
 static fileHandleType *checkFsObj(lua_State *L) {

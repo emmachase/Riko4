@@ -11,6 +11,15 @@
 #define NULL 0
 #endif
 
+#ifndef MAX_PATH
+#  include <limits.h>
+#  ifdef PATH_MAX
+#    define MAX_PATH PATH_MAX
+#  else
+#    define MAX_PATH 256
+#  endif
+#endif
+
 #define FS_LINE_INCR 256
 
 static const char *sane_scancode_names[sane_NUM_SCANCODES] = {
