@@ -1,10 +1,17 @@
 #pragma once
 
+#define _RIKO_VERSION_ "0.1.0"
+
 #define SCRN_WIDTH 352
 #define SCRN_HEIGHT 198
 
 #define sane_NUM_SCANCODES 512
+
+#ifndef NULL
 #define NULL 0
+#endif
+
+#define FS_LINE_INCR 256
 
 static const char *sane_scancode_names[sane_NUM_SCANCODES] = {
 	NULL, NULL, NULL, NULL,

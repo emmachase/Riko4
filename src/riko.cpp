@@ -81,6 +81,9 @@ void createLuaInstance(const char* filename) {
 	luaopen_aud(state);
 	luaopen_image(state);
 
+	lua_pushstring(state, _RIKO_VERSION_);
+	lua_setglobal(state, "riko");
+
 	mainThread = lua_newthread(state);
 
 	int result;
