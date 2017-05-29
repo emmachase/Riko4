@@ -12,6 +12,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <LuaJIT/lua.hpp>
 #include <LuaJIT/lauxlib.h>
@@ -60,23 +61,17 @@
 		}                                                                                                                 \
 	} while (0);
 #else
-#define getPath(luaInput, varName)                                                                                        \
+#define checkPath(luaInput, varName)                                                                                        \
 	return luaL_error(L, "filesystem unsupported");
 #endif
 
 extern char* appPath;
 
-#ifdef __WINDOWS__
 typedef struct {
-	FILE *winRep;
+	FILE *fileStream;
 	bool open;
 	bool canWrite;
 } fileHandleType;
-#else
-typedef struct {
-	int TODO; // REPLACE THIS WITH ACTUAL IMPL 
-} fileHandleType;
-#endif
 
 static fileHandleType *checkFsObj(lua_State *L) {
 	void *ud = luaL_checkudata(L, 1, "Riko4.fsObj");
@@ -177,14 +172,14 @@ static int fsObjRead(lua_State *L) {
 			char *dataBuf = (char*)malloc(bufLen);
 			if (dataBuf == NULL) return luaL_error(L, "unable to allocate enough memory for read operation");
 
-			fgets(dataBuf, FS_LINE_INCR, data->winRep);
+			fgets(dataBuf, FS_LINE_INCR, data->fileStream);
 
 			size_t dataBufLen = strlen(dataBuf);
 			if (dataBuf[dataBufLen - 1] == '\n') {
 				lua_pushlstring(L, dataBuf, dataBufLen - 1);
 				free(dataBuf);
 				return 1;
-			} else if (feof(data->winRep)) {
+			} else if (feof(data->fileStream)) {
 				lua_pushlstring(L, dataBuf, dataBufLen);
 				free(dataBuf);
 				return 1;
@@ -195,14 +190,14 @@ static int fsObjRead(lua_State *L) {
 				dataBuf = (char*)realloc(dataBuf, bufLen);
 				if (dataBuf == NULL) return luaL_error(L, "unable to allocate enough memory for read operation");
 
-				fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->winRep);
+				fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->fileStream);
 
 				size_t dataBufLen = strlen(dataBuf);
 				if (dataBuf[dataBufLen - 1] == '\n') {
 					lua_pushlstring(L, dataBuf, dataBufLen - 1);
 					free(dataBuf);
 					return 1;
-				} else if (feof(data->winRep)) {
+				} else if (feof(data->fileStream)) {
 					lua_pushlstring(L, dataBuf, dataBufLen);
 					free(dataBuf);
 					return 1;
@@ -220,14 +215,14 @@ static int fsObjRead(lua_State *L) {
 				if (mode[1] == 'a') {
 					// All
 
-					fseek(data->winRep, 0, SEEK_END);
-					long lSize = ftell(data->winRep);
-					rewind(data->winRep);
+					fseek(data->fileStream, 0, SEEK_END);
+					long lSize = ftell(data->fileStream);
+					rewind(data->fileStream);
 
 					char *dataBuf = (char*)malloc(sizeof(char) * (lSize + 1));
 					if (dataBuf == NULL) return luaL_error(L, "unable to allocate enough memory for read operation");
 
-					size_t result = fread(dataBuf, 1, lSize, data->winRep);
+					size_t result = fread(dataBuf, 1, lSize, data->fileStream);
 					if (result != lSize) return luaL_error(L, "unknown read error");
 
 					dataBuf[result] = 0;
@@ -244,14 +239,14 @@ static int fsObjRead(lua_State *L) {
 					char *dataBuf = (char*)malloc(bufLen);
 					if (dataBuf == NULL) return luaL_error(L, "unable to allocate enough memory for read operation");
 
-					fgets(dataBuf, FS_LINE_INCR, data->winRep);
+					fgets(dataBuf, FS_LINE_INCR, data->fileStream);
 
 					size_t dataBufLen = strlen(dataBuf);
 					if (dataBuf[dataBufLen - 1] == '\n') {
 						lua_pushlstring(L, dataBuf, dataBufLen - 1);
 						free(dataBuf);
 						return 1;
-					} else if (feof(data->winRep)) {
+					} else if (feof(data->fileStream)) {
 						lua_pushlstring(L, dataBuf, dataBufLen);
 						free(dataBuf);
 						return 1;
@@ -262,14 +257,14 @@ static int fsObjRead(lua_State *L) {
 						dataBuf = (char*)realloc(dataBuf, bufLen);
 						if (dataBuf == NULL) return luaL_error(L, "unable to allocate enough memory for read operation");
 
-						fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->winRep);
+						fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->fileStream);
 
 						size_t dataBufLen = strlen(dataBuf);
 						if (dataBuf[dataBufLen - 1] == '\n') {
 							lua_pushlstring(L, dataBuf, dataBufLen - 1);
 							free(dataBuf);
 							return 1;
-						} else if (feof(data->winRep)) {
+						} else if (feof(data->fileStream)) {
 							lua_pushlstring(L, dataBuf, dataBufLen);
 							free(dataBuf);
 							return 1;
@@ -289,7 +284,7 @@ static int fsObjRead(lua_State *L) {
 			char *dataBuf = (char*)malloc(sizeof(char) * (len + 1));
 			if (dataBuf == NULL) return luaL_error(L, "unable to allocate enough memory for read operation");
 
-			size_t result = fread(dataBuf, sizeof(char), len, data->winRep);
+			size_t result = fread(dataBuf, sizeof(char), len, data->fileStream);
 
 			dataBuf[result] = 0;
 
@@ -315,7 +310,7 @@ static int fsObjCloseHandle(lua_State *L) {
 	fileHandleType *data = checkFsObj(L);
 
 	if (data->open)
-		fclose(data->winRep);
+		fclose(data->fileStream);
 
 	data->open = false;
 
