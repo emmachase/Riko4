@@ -32,7 +32,7 @@
 
 #include "rikoConsts.h"
 
-#include "rikoFS.h"
+#include "rikoFs.h"
 #include "rikoGPU.h"
 #include "rikoAudio.h"
 #include "rikoImage.h"
