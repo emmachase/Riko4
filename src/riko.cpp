@@ -28,8 +28,6 @@
 
 #include <LuaJIT/lua.hpp>
 
-#include <LFS/lfs.h>
-
 #include "rikoConsts.h"
 
 #include "rikoFs.h"
@@ -43,6 +41,7 @@ SDL_Renderer *renderer;
 lua_State *mainThread;
 
 char* appPath;
+char* scriptsPath;
 
 int pixelSize = 5;
 int afPixscale = 5;
