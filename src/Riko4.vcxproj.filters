@@ -27,7 +27,7 @@
     <ClCompile Include="ImageLib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="lfs.c">
+    <ClCompile Include="fsLib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="fsLib.cpp">

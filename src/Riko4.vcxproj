@@ -131,7 +131,6 @@
     <ClCompile Include="fsLib.cpp" />
     <ClCompile Include="GPULib.cpp" />
     <ClCompile Include="ImageLib.cpp" />
-    <ClCompile Include="lfs.c" />
     <ClCompile Include="riko.cpp" />
   </ItemGroup>
   <ItemGroup>

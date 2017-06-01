@@ -71,9 +71,9 @@ As a result, be very careful to check for NULL return values.
 
 A SDL_Finger has the following fields:
 * x, y:
-	The current coordinates of the touch.
+    The current coordinates of the touch.
 * pressure:
-	The pressure of the touch.
+    The pressure of the touch.
 
 
 ===========================================================================

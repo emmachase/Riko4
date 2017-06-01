@@ -1,9 +1,5 @@
 local funcs = {
-  {io, "open"},
-  {io, "lines"},
-  {io, "input"},
-  {_G, "dofile"},
-  {_G, "loadfile"}
+  {fs, "open"}
 }
 
 local function checkBounds(path)
@@ -11,7 +7,7 @@ local function checkBounds(path)
   for word in path:gmatch("[^%/^%\\]+") do
     if word == ".." then
       level = level - 1
-      if level <= 0 then
+      if level < 0 then
         return false
       end
     else
@@ -28,7 +24,7 @@ for i=1, #funcs do
     if fn:sub(1, 1) == "/" then
       fn = fn:sub(2)
     end
-    fn = "scripts/home/" .. fn
+    fn = "home/" .. fn
 
     if checkBounds(tostring(fn)) then
       return ref(fn, ...)

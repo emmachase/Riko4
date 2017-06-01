@@ -26,11 +26,23 @@ if jit.os == "Linux" or jit.os == "OSX" or jit.os == "BSD" or jit.os == "POSIX" 
   end
 end
 
-dofile("scripts/adaptIO.lua")
+loadfile = function(inp)
+  local handle = fs.open(inp, "r")
+  local cont = handle:read("*a")
+  handle:close()
+
+  return load(cont)
+end
+
+dofile = function(inp)
+  return loadfile(inp)()
+end
+
+dofile("adaptIO.lua")
 
 local font = dofile("../font.lua")
 
-local dataH = io.open("../coreFont", "rb")
+local dataH = fs.open("../coreFont", "rb")
 local data = dataH:read("*a")
 dataH:close()
 

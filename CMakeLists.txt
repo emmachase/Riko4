@@ -15,15 +15,15 @@ set(CMAKE_C_STANDARD 11)
 find_package(SDL2 REQUIRED)
 
 if(SDL2_FOUND)
-	include_directories(${SDL2_INCLUDE_DIR})
-	target_link_libraries(riko4 ${SDL2_LIBRARY})
+    include_directories(${SDL2_INCLUDE_DIR})
+    target_link_libraries(riko4 ${SDL2_LIBRARY})
 endif()
 
 find_package(LuaJIT REQUIRED)
 
 if(LUAJIT_FOUND)
-	include_directories(${LUAJIT_INCLUDE_DIR})
-	target_link_libraries(riko4 ${LUAJIT_LIBRARIES})
+    include_directories(${LUAJIT_INCLUDE_DIR})
+    target_link_libraries(riko4 ${LUAJIT_LIBRARIES})
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/libs/include)
