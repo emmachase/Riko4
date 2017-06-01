@@ -32,7 +32,7 @@
 
 #include "rikoConsts.h"
 
-#include "rikoFS.h"
+#include "rikoFs.h"
 #include "rikoGPU.h"
 #include "rikoAudio.h"
 #include "rikoImage.h"
@@ -44,8 +44,8 @@ lua_State *mainThread;
 
 char* appPath;
 
-int pixelSize = 5;
-int afPixscale = 5;
+int pixelSize = 2;
+int afPixscale = 2;
 
 bool audEnabled = true;
 
@@ -192,6 +192,7 @@ int main(int argc, char * argv[]) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unable to open application directory, possibly out of free space?");
 		return 2;
 	}
+	printf("Riko4 path: '%s'\n", appPath);
 
 	SDL_DisplayMode current;
 	int lw = INT_MAX;

@@ -330,7 +330,7 @@ LUALIB_API int luaopen_aud(lua_State *L) {
 			audDevChanCount = have.channels;
 
 			if (have.format != want.format) { /* we can't let this one thing change. */
-				SDL_Log("We didn't get Float32 audio format.");
+				SDL_Log("Unable to open Float32 audio.");
 			} else {
 				SDL_PauseAudioDevice(dev, 0); /* start audio playing. */
 			}

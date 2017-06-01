@@ -2,7 +2,15 @@ local running = true
 
 local width, height = gpu.width, gpu.height
 
-local gw, gh = width / 5 - 2, height / 5 - 2
+local gw, gh = math.floor(width / 5 - 2), math.floor(height / 5 - 2)
+
+if gw % 2 ~= 0 then
+  gw = gw - 1
+end
+
+if gh % 2 ~= 0 then
+  gh = gh - 1
+end
 
 local grid = {}
 for i = 1, gw do

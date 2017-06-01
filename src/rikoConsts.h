@@ -4,7 +4,10 @@
 #define SCRN_HEIGHT 198
 
 #define sane_NUM_SCANCODES 512
+
+#ifndef NULL
 #define NULL 0
+#endif
 
 static const char *sane_scancode_names[sane_NUM_SCANCODES] = {
 	NULL, NULL, NULL, NULL,

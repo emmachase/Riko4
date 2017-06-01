@@ -38,7 +38,7 @@ for i=1, #song do
   if item ~= "===" then
     fr = notes[tonumber(item:sub(3, 3)) * 12 + lookup[item:sub(1, 2)]]
   end
-  speaker.play({channel = 3, frequency = fr, time = periodicTime, shift = 0, volume = 0.03, attack = 0, release = 0})
+  speaker.play({channel = 5, frequency = fr, time = periodicTime, shift = 0, volume = 0.1, attack = 0, release = 0})
 end
 
 -- Down below is half fledged pacman audio
