@@ -1,3 +1,31 @@
+if jit.os == "Linux" or jit.os == "OSX" or jit.os == "BSD" or jit.os == "POSIX" or jit.os == "Other" then
+  local ffi = require("ffi")
+
+  ffi.cdef [[
+    struct timeval {
+      long tv_sec;
+      long tv_usec;
+    };
+    struct timezone {
+      int tz_minuteswest;
+      int tz_dsttime;
+    };
+    int gettimeofday(struct timeval *tv, struct timezone *tz);
+  ]]
+
+  local start
+  do
+    local a = ffi.new("struct timeval") ffi.C.gettimeofday(a, nil)
+    start = (tonumber(a.tv_sec) + (tonumber(a.tv_usec) / 1000000))
+  end
+
+  function os.clock()
+    local Time = ffi.new("struct timeval")
+    ffi.C.gettimeofday(Time, nil)
+    return tonumber(Time.tv_sec) + (tonumber(Time.tv_usec) / 1000000) - start;
+  end
+end
+
 dofile("scripts/adaptIO.lua")
 
 local font = dofile("../font.lua")
