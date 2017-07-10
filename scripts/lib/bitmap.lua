@@ -2,7 +2,7 @@ local Bitmap = {}
 local sb = string.byte
 do
   function Bitmap.createBitmapFromFile(filename)
-    local handle = io.open(filename, "rb")
+    local handle = fs.open(filename, "rb")
     local header = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 
     for i=1, 54 do

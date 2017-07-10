@@ -5,9 +5,11 @@
 --
 --  (1/32)
 
-local bitmap = dofile("../lib/bitmap.lua")
+local bitmap = dofile("/lib/bitmap.lua")
 
-local ditherImage = bitmap.createBitmapFromFile("land.bmp")
+local file = ({...})[1] or "land.bmp"
+
+local ditherImage = bitmap.createBitmapFromFile(file)
 
 local palette = {
     {24,   24,   24 },

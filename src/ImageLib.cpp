@@ -319,6 +319,10 @@ static int imageCopy(lua_State *L) {
     SDL_BlitSurface(src->surface, &srcRect, dst->surface, &rect);
     for (int xp = srcRect.x; xp < srcRect.x + srcRect.w; xp++) {
         for (int yp = srcRect.y; yp < srcRect.y + srcRect.h; yp++) {
+			if (xp >= src->width || xp < 0 || yp >= src->height || yp < 0) {
+				//printf("%d : %d => %d\n", xp, yp, src->internalRep[xp][yp]);
+				continue;
+			}
             internalDrawPixel(dst, xp, yp, src->internalRep[xp][yp]);
         }
     }

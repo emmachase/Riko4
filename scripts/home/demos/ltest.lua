@@ -1,8 +1,8 @@
 local running = true
 
-local rif = dofile("../lib/rif.lua")
+local rif = dofile("/lib/rif.lua")
 
-local handle = io.open("tex.rif", "rb")
+local handle = fs.open("logo.rif", "rb")
 local data = handle:read("*a")
 handle:close()
 
@@ -15,7 +15,8 @@ for i = 1, h do
   for j = 1, w do
     local d = rifData[c]
     if d ~= -1 then
-      track[#track + 1] = {c = d, dx = j + (gpu.width / 2 - 15), dy = i + (gpu.height / 2 - 20)} --x = j + 140 + math.random(-40, 40), y = i + 85 + math.random(-40, 40)}
+      track[#track + 1] = {c = d, dx = j + (gpu.width / 2 - 15), dy = i + (gpu.height / 2 - 35)}
+      --x = j + 140 + math.random(-40, 40), y = i + 85 + math.random(-40, 40)}
     end
     c = c + 1
   end

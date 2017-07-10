@@ -28,14 +28,26 @@ end
 
 loadfile = function(inp)
   local handle = fs.open(inp, "r")
-  local cont = handle:read("*a")
+
+  local cont
+  if handle then
+    cont = handle:read("*a")
+  else
+    return nil
+  end
+
   handle:close()
 
   return load(cont)
 end
 
 dofile = function(inp)
-  return loadfile(inp)()
+  local f = loadfile(inp)
+  if f then
+    return f()
+  else
+    error("cannot open " .. inp .. ": No such file", 2)
+  end
 end
 
 dofile("adaptIO.lua")

@@ -153,7 +153,7 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
                     }
                 }
 
-                if (!channelHasSnd[i]) continue;
+				if (!channelHasSnd[i]) continue;
 
                 double delta;
                 double atC;
@@ -166,25 +166,30 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
                     atC = atC > 1 ? 1 : atC;
                 }
 
-                rlC = playingAudio[i]->release - ((double)playingAudio[i]->remainingCycles / sampleRate);
-                rlC = rlC > 0 ? 1 - rlC / playingAudio[i]->release : 1;
-                double vol = playingAudio[i]->volume * atC * rlC;
+				if (playingAudio[i]->release == 0) {
+					rlC = 1;
+				} else {
+					rlC = playingAudio[i]->release - ((double)playingAudio[i]->remainingCycles / sampleRate);
+					rlC = rlC > 0 ? 1 - rlC / playingAudio[i]->release : 1;
+				}
 
+                double vol = playingAudio[i]->volume * atC * rlC;
+				
                 switch (i) {
                 case 0:
                 case 1:
                     // Pulse Wave
-                floatStream[z] += (float)((fmod(streamPhase[i], TAO) > PI/4 ? -1 : 1) * vol);
+					floatStream[z] += (float)((fmod(streamPhase[i], TAO) > PI/4 ? -1 : 1) * vol);
                     streamPhase[i] += TAO * playingAudio[i]->frequency / sampleRate;
                     break;
                 case 2:
                     // Triangle Wave
-                floatStream[z] += (float)((1 - 4 * fabs(fmod(streamPhase[i], 1) - 0.5)) * vol);
+					floatStream[z] += (float)((1 - 4 * fabs(fmod(streamPhase[i], 1) - 0.5)) * vol);
                     streamPhase[i] += (double)playingAudio[i]->frequency / sampleRate;
                     break;
                 case 3:
                     // Sawtooth Wave
-                floatStream[z] += (float)((2 * fmod(streamPhase[i] - 0.5, 1) - 1) * vol);
+					floatStream[z] += (float)((2 * fmod(streamPhase[i] - 0.5, 1) - 1) * vol);
                     streamPhase[i] += (double)playingAudio[i]->frequency / sampleRate;
                     break;
                 case 4:
@@ -195,7 +200,7 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
                     }
                     streamPhase[i] = delta;
                     
-                floatStream[z] += lstRnd;
+					floatStream[z] += lstRnd;
 
                     break;
                 }
@@ -206,6 +211,64 @@ void audioCallback(void *userdata, uint8_t *byteStream, int len) {
             }
         }
     }
+}
+
+static int aud_stopChan(lua_State *L) {
+	int chan = luaL_checkint(L, 1) - 1;
+	if (chan < 0 || chan >= channelCount) {
+		lua_pushboolean(L, false);
+		return 1;
+	}
+
+	if (!channelHasSnd[chan]) {
+		if (audioQueues[chan]->tail != NULL) {
+			playingAudio[chan] = popFromQueue(audioQueues[chan]);
+			channelHasSnd[chan] = true;
+		} else {
+			lua_pushboolean(L, false);
+			return 1;
+		}
+	}
+
+	free(playingAudio[chan]);
+
+	while (audioQueues[chan]->tail != NULL) {
+		playingAudio[chan] = popFromQueue(audioQueues[chan]);
+		free(playingAudio[chan]);
+	}
+
+	channelHasSnd[chan] = false;
+
+	streamPhase[chan] = 0;
+
+	lua_pushboolean(L, true);
+	return 1;
+}
+
+static int aud_stopAll(lua_State *L) {
+	for (int i = 0; i < channelCount; i++) {
+		if (!channelHasSnd[i]) {
+			if (audioQueues[i]->tail != NULL) {
+				playingAudio[i] = popFromQueue(audioQueues[i]);
+				channelHasSnd[i] = true;
+			} else {
+				continue;
+			}
+		}
+
+		free(playingAudio[i]);
+
+		while (audioQueues[i]->tail != NULL) {
+			playingAudio[i] = popFromQueue(audioQueues[i]);
+			free(playingAudio[i]);
+		}
+
+		channelHasSnd[i] = false;
+
+		streamPhase[i] = 0;
+	}
+
+    return 0;
 }
 
 static int aud_play(lua_State *L) {
@@ -300,6 +363,8 @@ static int aud_play(lua_State *L) {
 
 static const luaL_Reg audLib[] = {
     { "play", aud_play },
+	{ "stopChannel", aud_stopChan },
+	{ "stopAll", aud_stopAll },
     { NULL, NULL }
 };
 

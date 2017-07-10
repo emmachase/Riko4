@@ -1,1 +1,0 @@
-riko4.exit()

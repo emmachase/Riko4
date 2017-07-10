@@ -1,4 +1,4 @@
-local rif = dofile("../lib/rif.lua")
+local rif = dofile("/lib/rif.lua")
 
 local running = true
 local won = false

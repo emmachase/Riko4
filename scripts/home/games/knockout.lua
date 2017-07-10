@@ -1,4 +1,4 @@
-local rif = dofile("../lib/rif.lua")
+local rif = dofile("/lib/rif.lua")
 local cur = rif.createImage("curs.rif")
 
 local running = true
