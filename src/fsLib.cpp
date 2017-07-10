@@ -37,7 +37,7 @@
 #ifdef __WINDOWS__
 #define getFullPath(a, b) GetFullPathName(a, MAX_PATH, b, NULL)
 #else
-#define getFullPath(a, b) do { realpath(a, b) } while (0);
+#define getFullPath(a, b) do { realpath(a, b); } while (0);
 #endif
 
 #define checkPath(luaInput, varName)                                                                                      \
