@@ -26,11 +26,33 @@ if jit.os == "Linux" or jit.os == "OSX" or jit.os == "BSD" or jit.os == "POSIX" 
   end
 end
 
-dofile("scripts/adaptIO.lua")
+loadfile = function(inp)
+  local handle = fs.open(inp, "r")
 
-local font = dofile("../font.lua")
+  local cont
+  if handle then
+    cont = handle:read("*a")
+  else
+    return nil
+  end
 
-local dataH = io.open("../coreFont", "rb")
+  handle:close()
+
+  return load(cont)
+end
+
+dofile = function(inp)
+  local f = loadfile(inp)
+  if f then
+    return f()
+  else
+    error("cannot open " .. inp .. ": No such file", 2)
+  end
+end
+
+local font = dofile("font.lua")
+
+local dataH = fs.open("coreFont", "rb")
 local data = dataH:read("*a")
 dataH:close()
 
@@ -74,4 +96,4 @@ function sleep(s)
   end
 end
 
-loadfile("../shell.lua")() -- dofile creates a seperate thread, so coroutines get messed up
+dofile("shell.lua")

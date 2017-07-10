@@ -84,32 +84,32 @@ If you want to use the Eclipse IDE, skip to the Eclipse section below.
 Here's an explanation of the files in the Android project, so you can customize them:
 
     android-project/
-        AndroidManifest.xml	- package manifest. Among others, it contains the class name
-        			  of the main Activity and the package name of the application.
-        build.properties	- empty
-        build.xml		- build description file, used by ant. The actual application name
-        			  is specified here.
-        default.properties	- holds the target ABI for the application, android-10 and up
-        project.properties	- holds the target ABI for the application, android-10 and up
-        local.properties	- holds the SDK path, you should change this to the path to your SDK
-        jni/			- directory holding native code
-        jni/Android.mk		- Android makefile that can call recursively the Android.mk files
-        			  in all subdirectories
-        jni/SDL/		- (symlink to) directory holding the SDL library files
-        jni/SDL/Android.mk	- Android makefile for creating the SDL shared library
-        jni/src/		- directory holding your C/C++ source
-        jni/src/Android.mk	- Android makefile that you should customize to include your 
+        AndroidManifest.xml    - package manifest. Among others, it contains the class name
+                      of the main Activity and the package name of the application.
+        build.properties    - empty
+        build.xml        - build description file, used by ant. The actual application name
+                      is specified here.
+        default.properties    - holds the target ABI for the application, android-10 and up
+        project.properties    - holds the target ABI for the application, android-10 and up
+        local.properties    - holds the SDK path, you should change this to the path to your SDK
+        jni/            - directory holding native code
+        jni/Android.mk        - Android makefile that can call recursively the Android.mk files
+                      in all subdirectories
+        jni/SDL/        - (symlink to) directory holding the SDL library files
+        jni/SDL/Android.mk    - Android makefile for creating the SDL shared library
+        jni/src/        - directory holding your C/C++ source
+        jni/src/Android.mk    - Android makefile that you should customize to include your 
                                   source code and any library references
-        res/			- directory holding resources for your application
-        res/drawable-*		- directories holding icons for different phone hardware. Could be
-        			  one dir called "drawable".
-        res/layout/main.xml	- Usually contains a file main.xml, which declares the screen layout.
-        			  We don't need it because we use the SDL video output.
-        res/values/strings.xml	- strings used in your application, including the application name
-        			  shown on the phone.
+        res/            - directory holding resources for your application
+        res/drawable-*        - directories holding icons for different phone hardware. Could be
+                      one dir called "drawable".
+        res/layout/main.xml    - Usually contains a file main.xml, which declares the screen layout.
+                      We don't need it because we use the SDL video output.
+        res/values/strings.xml    - strings used in your application, including the application name
+                      shown on the phone.
         src/org/libsdl/app/SDLActivity.java - the Java class handling the initialization and binding
-        			  to SDL.  Be very careful changing this, as the SDL library relies
-        			  on this implementation.
+                      to SDL.  Be very careful changing this, as the SDL library relies
+                      on this implementation.
 
 
 ================================================================================
@@ -265,7 +265,7 @@ The best place to start is with docs/OVERVIEW.TXT
 ================================================================================
 
 First make sure that you've installed Eclipse and the Android extensions as described here:
-	http://developer.android.com/tools/sdk/eclipse-adt.html
+    http://developer.android.com/tools/sdk/eclipse-adt.html
 
 Once you've copied the SDL android project and customized it, you can create an Eclipse project from it:
  * File -> New -> Other

@@ -1,4 +1,12 @@
+fs.setCWD("/home/")
+
+local ox = os.exit
 os.exit = function() error("Nope") end
+if not riko4 then riko4 = {} end
+riko4.exit = ox
+
+local config = dofile("/shellcfg.lua")
+table.insert(config.path, ".")
 
 local w, h = gpu.width, gpu.height
 
@@ -25,26 +33,50 @@ shell = {}
 local shell = shell
 
 local lineHistory = {{{"rikoOS 1.0"}, {13}}}
+
+local function insLine(t, c)
+  table.insert(lineHistory[#lineHistory][1], t)
+  table.insert(lineHistory[#lineHistory][2], c)
+end
+
 local historyPoint = 2
 local lineOffset = 0
 local c = 4
-function pushOutput(msg, ...)
+function shell.pushOutput(msg, ...)
   msg = tostring(msg)
   local ar = {...}
   for k,v in ipairs(ar) do
     msg = msg .. "  " .. tostring(v)
   end
-  lineHistory[#lineHistory + 1] = {{msg}, {c or 16}}
+  insLine(msg, 16)
+  lineHistory[#lineHistory + 1] = {{}, {}}
   historyPoint = #lineHistory + 1
-  if historyPoint >= 200 / 8 - 1 then
-    lineOffset = lineOffset + 1
+  if historyPoint - lineOffset >= 200 / 8 - 1 then
+    lineOffset = historyPoint - (200 / 8 - 2)
   end
   shell.redraw(true)
 end
 
+function shell.writeOutputC(msg, c, rd)
+  msg = tostring(msg)
+
+  while msg:find("\n") do
+    local pos = msg:find("\n")
+    local fsub = msg:sub(1, pos - 1)
+    insLine(fsub, c or 16)
+    msg = msg:sub(pos + 1)
+    lineHistory[#lineHistory + 1] = {{}, {}}
+    historyPoint = #lineHistory + 1
+    if historyPoint - lineOffset >= 200 / 8 - 1 then
+      lineOffset = historyPoint - (200 / 8 - 2)
+    end
+  end
+  insLine(msg, c or 16)
+  _ = rd and shell.redraw(true) or 1
+end
+
 local prefix = "> "
 local str = ""
-local path = ""
 
 -- local e, p1, p2
 local lastP = 0
@@ -88,11 +120,26 @@ function shell.getRunningProgram()
   return lastRun:match("(.+)%.lua")
 end
 
+local function getprefix()
+  local wd = fs.getCWD()
+  wd = wd:gsub("\\", "/")
+
+  if wd:sub(#wd) == "/" then
+    wd = wd:sub(1, #wd - 1)
+  end
+
+  if wd:sub(1, 1) ~= "/" then
+    wd = "/" .. wd
+  end
+
+  return wd
+end
+
 local function update()
   lineHistory[historyPoint] = {
-    {path, prefix, str,
+    {getprefix(), prefix, str,
     (math.floor((os.clock() * 2 - lastP) % 2) == 0 and "_" or "")},
-    {16, 10, 16, 16}
+    {13, 10, 16, 16}
   }
 
   shell.redraw()
@@ -136,65 +183,85 @@ local function processEvent(e, ...)
         pureHistory[pureHistoryPoint - 1] = str
 
         local startPoint = historyPoint
+
+        lineHistory[#lineHistory + 1] = {{}, {}}
+        historyPoint = historyPoint + 1
         local cfunc
         lastRun = str
-        local s, er = pcall(function() cfunc = loadfile(str:match("%S+")..".lua") end)
-        if not s then
-          c = 7
-          if er then
-            er = er:sub(er:find("%:") + 1)
-            er = er:sub(er:find("%:") + 2)
-            pushOutput("Error: " .. tostring(er))
-          else
-            pushOutput("Error: Unknown error")
-          end
-        else
-          if cfunc then
-            local cc = coroutine.create(cfunc)
-            local splitStr = split(str)
-            table.remove(splitStr, 1)
-            local ev = splitStr or {}
-            local upfunc = table.unpack and table.unpack or unpack
-            while coroutine.status(cc) ~= "dead" do
-              local su, eru = coroutine.resume(cc, upfunc(ev))
-              if not su then
-                print(eru)
-              end
-              ev = {coroutine.yield()}
-            end
-            --cc = nil
-            collectgarbage("collect")
 
-            print = oldPrint
-          else
+        local got = true
+        for pref = 1, #config.path do
+          local s, er = pcall(function() cfunc = loadfile(config.path[pref] .. "/" .. str:match("%S+")..".lua") end)
+          if not s then
             c = 7
-            pushOutput("Unknown program `"..str:match("%S+").."`")
-          end
-          if historyPoint == startPoint then
-            historyPoint = historyPoint + 1
+            if er then
+              er = er:sub(er:find("%:") + 1)
+              er = er:sub(er:find("%:") + 2)
+              shell.pushOutput("Error: " .. tostring(er))
+            else
+              shell.pushOutput("Error: Unknown error")
+            end
+
+            got = false
+            break
+          else
+            if cfunc then
+              local cc = coroutine.create(cfunc)
+              local splitStr = split(str)
+              table.remove(splitStr, 1)
+              local ev = splitStr or {}
+              local upfunc = table.unpack and table.unpack or unpack
+              while coroutine.status(cc) ~= "dead" do
+                local su, eru = coroutine.resume(cc, upfunc(ev))
+                if not su then
+                  print(eru)
+                end
+                ev = {coroutine.yield()}
+              end
+              --cc = nil
+              collectgarbage("collect")
+
+              print = oldPrint
+
+              historyPoint = #lineHistory + 1
+
+              got = false
+              break
+            end
           end
         end
+
+        if got then
+          c = 7
+          shell.writeOutputC("Unknown program `" .. str:match("%S+") .. "'", 8)
+          historyPoint = #lineHistory + 1
+        end
+
         str = ""
       end
-      if historyPoint >= 200 / 8 - 1 then
-        lineOffset = lineOffset + 1
+
+      if historyPoint - lineOffset >= 200 / 8 - 1 then
+        lineOffset = historyPoint - (200 / 8 - 2)
       end
     end
   end
 end
 
 local eventQueue = {}
+local last = os.clock()
 while true do
-  while true do
-    local e, p1, p2, p3, p4 = coroutine.yield()
-    if not e then break end
-    table.insert(eventQueue, {e, p1, p2, p3, p4})
-  end
+  while os.clock() - last < (1 / 60) do
+    while true do
+      local e, p1, p2, p3, p4 = coroutine.yield()
+      if not e then break end
+      table.insert(eventQueue, {e, p1, p2, p3, p4})
+    end
 
-  while #eventQueue > 0 do
-    processEvent(unpack(eventQueue[1]))
-    table.remove(eventQueue, 1)
+    while #eventQueue > 0 do
+      processEvent(unpack(eventQueue[1]))
+      table.remove(eventQueue, 1)
+    end
   end
-
+  last = os.clock()
   update()
 end

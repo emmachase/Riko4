@@ -146,7 +146,10 @@ function rif.createImage(filenameOrRifData, wa, ha)
   if type(filenameOrRifData) == "table" then
     rifData, w, h = filenameOrRifData, wa, ha
   elseif type(filenameOrRifData) == "string" then
-    local handle = io.open(filenameOrRifData, "rb")
+    local handle = fs.open(filenameOrRifData, "rb")
+    if not handle then
+      error("No such file", 2)
+    end
     local data = handle:read("*a")
     handle:close()
 

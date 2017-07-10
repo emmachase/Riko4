@@ -1134,5 +1134,5 @@ static const uint32_t fold_hash[978] = {
 0xffffffff
 };
 
-#define fold_hashkey(k)	(lj_rol(lj_rol((k),10)-(k),1)%977)
+#define fold_hashkey(k)    (lj_rol(lj_rol((k),10)-(k),1)%977)
 

@@ -13,7 +13,7 @@ What you need:
 
 * DirectFB 1.0.1, 1.2.x, 1.3.0
 * Kernel-Framebuffer support: required: vesafb, radeonfb .... 
-* Mesa 7.0.x	   - optional for OpenGL
+* Mesa 7.0.x       - optional for OpenGL
 
 /etc/directfbrc
 

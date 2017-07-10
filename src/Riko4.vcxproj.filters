@@ -27,7 +27,10 @@
     <ClCompile Include="ImageLib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="lfs.c">
+    <ClCompile Include="fsLib.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fsLib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -45,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="rikoConsts.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rikoFs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

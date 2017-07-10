@@ -13,11 +13,11 @@ Instructions:
 
 There are three build targets:
 - libSDL.a:
-	Build SDL as a statically linked library
+    Build SDL as a statically linked library
 - testsdl:
-	Build a test program (there are known test failures which are fine)
+    Build a test program (there are known test failures which are fine)
 - Template:
-	Package a project template together with the SDL for iPhone static libraries and copies of the SDL headers.  The template includes proper references to the SDL library and headers, skeleton code for a basic SDL program, and placeholder graphics for the application icon and startup screen.
+    Package a project template together with the SDL for iPhone static libraries and copies of the SDL headers.  The template includes proper references to the SDL library and headers, skeleton code for a basic SDL program, and placeholder graphics for the application icon and startup screen.
 
 
 ==============================================================================
@@ -185,13 +185,13 @@ Notes -- Keyboard
 The SDL keyboard API has been extended to support on-screen keyboards:
 
 void SDL_StartTextInput()
-	-- enables text events and reveals the onscreen keyboard.
+    -- enables text events and reveals the onscreen keyboard.
 
 void SDL_StopTextInput()
-	-- disables text events and hides the onscreen keyboard.
+    -- disables text events and hides the onscreen keyboard.
 
 SDL_bool SDL_IsTextInputActive()
-	-- returns whether or not text events are enabled (and the onscreen keyboard is visible)
+    -- returns whether or not text events are enabled (and the onscreen keyboard is visible)
 
 
 ==============================================================================
@@ -219,13 +219,13 @@ Notes -- iPhone SDL limitations
 ==============================================================================
 
 Windows:
-	Full-size, single window applications only.  You cannot create multi-window SDL applications for iPhone OS.  The application window will fill the display, though you have the option of turning on or off the menu-bar (pass SDL_CreateWindow() the flag SDL_WINDOW_BORDERLESS).
+    Full-size, single window applications only.  You cannot create multi-window SDL applications for iPhone OS.  The application window will fill the display, though you have the option of turning on or off the menu-bar (pass SDL_CreateWindow() the flag SDL_WINDOW_BORDERLESS).
 
 Textures:
-	The optimal texture formats on iOS are SDL_PIXELFORMAT_ABGR8888, SDL_PIXELFORMAT_ABGR8888, SDL_PIXELFORMAT_BGR888, and SDL_PIXELFORMAT_RGB24 pixel formats.
+    The optimal texture formats on iOS are SDL_PIXELFORMAT_ABGR8888, SDL_PIXELFORMAT_ABGR8888, SDL_PIXELFORMAT_BGR888, and SDL_PIXELFORMAT_RGB24 pixel formats.
 
 Loading Shared Objects:
-	This is disabled by default since it seems to break the terms of the iOS SDK agreement for iOS versions prior to iOS 8. It can be re-enabled in SDL_config_iphoneos.h.
+    This is disabled by default since it seems to break the terms of the iOS SDK agreement for iOS versions prior to iOS 8. It can be re-enabled in SDL_config_iphoneos.h.
 
 ==============================================================================
 Game Center 

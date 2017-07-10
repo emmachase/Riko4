@@ -18,7 +18,7 @@ If you are building SDL via configure, you will need to run autogen.sh
 before running configure.
 
 There is a web interface to the subversion repository at:
-	http://hg.libsdl.org/SDL/
+    http://hg.libsdl.org/SDL/
 
 There is an RSS feed available at that URL, for those that want to
 track commits in real time.
