@@ -1,3 +1,5 @@
+fs.setCWD("/home/")
+
 local ox = os.exit
 os.exit = function() error("Nope") end
 if not riko4 then riko4 = {} end

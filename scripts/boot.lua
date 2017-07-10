@@ -50,11 +50,9 @@ dofile = function(inp)
   end
 end
 
-dofile("adaptIO.lua")
+local font = dofile("font.lua")
 
-local font = dofile("../font.lua")
-
-local dataH = fs.open("../coreFont", "rb")
+local dataH = fs.open("coreFont", "rb")
 local data = dataH:read("*a")
 dataH:close()
 
@@ -98,4 +96,4 @@ function sleep(s)
   end
 end
 
-loadfile("../shell.lua")() -- dofile creates a seperate thread, so coroutines get messed up
+loadfile("shell.lua")() -- dofile creates a seperate thread, so coroutines get messed up
