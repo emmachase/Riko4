@@ -35,7 +35,7 @@
 #include <SDL2/SDL.h>
 
 #ifdef __WINDOWS__
-#define getFullPath GetFullPathName
+#define getFullPath(a, b) GetFullPathName(a, MAX_PATH, b, NULL)
 #else
 #define getFullPath realpath
 #endif
@@ -50,7 +50,7 @@
         char *concatStr = (char*)malloc(ln);                                                                              \
         sprintf(concatStr, "%s/%s", workingFront, luaInput);                                                              \
                                                                                                                           \
-        unsigned long bLen = getFullPath(concatStr, MAX_PATH, varName, NULL);                                             \
+        unsigned long bLen = getFullPath(concatStr, varName);                                                             \
         free(concatStr);                                                                                                  \
                                                                                                                           \
         int varNameLen = (int)strlen(varName);                                                                            \
