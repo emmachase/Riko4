@@ -37,7 +37,7 @@
 #ifdef __WINDOWS__
 #define getFullPath(a, b) GetFullPathName(a, MAX_PATH, b, NULL)
 #else
-#define getFullPath realpath
+#define getFullPath(a, b) do { b = realpath(a) } while (0);
 #endif
 
 #define checkPath(luaInput, varName)                                                                                      \
@@ -50,7 +50,7 @@
         char *concatStr = (char*)malloc(ln);                                                                              \
         sprintf(concatStr, "%s/%s", workingFront, luaInput);                                                              \
                                                                                                                           \
-        unsigned long bLen = getFullPath(concatStr, varName);                                                             \
+        getFullPath(concatStr, varName);                                                             \
         free(concatStr);                                                                                                  \
                                                                                                                           \
         int varNameLen = (int)strlen(varName);                                                                            \
@@ -495,11 +495,7 @@ static int fsSetCWD(lua_State *L) {
 
 		char *fpath = (char*)malloc(sizeof(char) * MAX_PATH);
 
-#ifdef _WINDOWS_
-		unsigned long bLen = GetFullPathName(concatStr, MAX_PATH, fpath, NULL);
-#else
-		realpath(concatStr, fpath);
-#endif
+		getFullPath(concatStr, fpath);
 
 		free(concatStr);
 
@@ -518,11 +514,7 @@ static int fsSetCWD(lua_State *L) {
 
 		char *fpath = (char*) malloc(sizeof(char) * MAX_PATH);
 
-#ifdef _WINDOWS_
-		unsigned long bLen = GetFullPathName(concatStr, MAX_PATH, fpath, NULL);
-#else
-		realpath(concatStr, fpath);
-#endif
+		getFullPath(concatStr, fpath);
 
 		free(concatStr);
 
@@ -558,7 +550,7 @@ static const luaL_Reg fsLib_m[] = {
 
 LUALIB_API int luaopen_fs(lua_State *L) {
 	char *fpath = (char*)malloc(sizeof(char) * MAX_PATH);
-	unsigned long bLen = GetFullPathName(scriptsPath, MAX_PATH, fpath, NULL);
+	getFullPath(scriptsPath, fpath);
 
 	if (strlen(fpath) < MAX_PATH)
 		strncpy(currentWorkingDirectory, fpath, strlen(fpath));
