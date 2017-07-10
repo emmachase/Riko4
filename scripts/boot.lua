@@ -96,4 +96,4 @@ function sleep(s)
   end
 end
 
-loadfile("shell.lua")() -- dofile creates a seperate thread, so coroutines get messed up
+dofile("shell.lua")
