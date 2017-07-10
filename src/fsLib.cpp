@@ -17,9 +17,10 @@
 #ifndef __WINDOWS__
 #include <unistd.h>
 #include <dirent.h>
+#define f_mkdir mkdir
 #else
 #include <direct.h>
-#define mkdir _mkdir
+#define f_mkdir(a, b) _mkdir(a)
 #endif
 
 #include <sys/types.h>
@@ -443,7 +444,7 @@ static int fsMkDir(lua_State *L) {
 	char filePath[MAX_PATH + 1];
 	checkPath(luaL_checkstring(L, 1), filePath);
 
-	lua_pushboolean(L, mkdir(filePath) + 1);
+	lua_pushboolean(L, f_mkdir(filePath, 0777) + 1);
 	return 1;
 }
 
