@@ -1,4 +1,4 @@
-local RIF = dofile("../lib/rif.lua")
+local RIF = dofile("/lib/rif.lua")
 
 local scrnWidth, scrnHeight = gpu.width, gpu.height
 
