@@ -43,7 +43,7 @@
 
 #define checkPath(luaInput, varName)                                                                                      \
     do {                                                                                                                  \
-		char* workingFront = (luaInput[0] == '\\' || luaInput[0] == '/') ? scriptsPath : currentWorkingDirectory;         \
+        char* workingFront = (luaInput[0] == '\\' || luaInput[0] == '/') ? scriptsPath : currentWorkingDirectory;         \
                                                                                                                           \
         int scriptsPathLen = (int)strlen(scriptsPath);                                                                    \
                                                                                                                           \
@@ -51,7 +51,7 @@
         char *concatStr = (char*)malloc(ln);                                                                              \
         sprintf(concatStr, "%s/%s", workingFront, luaInput);                                                              \
                                                                                                                           \
-        getFullPath(concatStr, varName);                                                             \
+        getFullPath(concatStr, varName);                                                                                  \
         free(concatStr);                                                                                                  \
                                                                                                                           \
         int varNameLen = (int)strlen(varName);                                                                            \
@@ -265,13 +265,13 @@ static int fsObjWrite(lua_State *L) {
 }
 
 int lineStrlen(char* s, int max) {
-	for (int i = 0; i < max; i++) {
-		if (s[i] == '\n') {
-			return i + 1;
-		}
-	}
+    for (int i = 0; i < max; i++) {
+        if (s[i] == '\n') {
+            return i + 1;
+        }
+    }
 
-	return max;
+    return max;
 }
 
 static int fsObjRead(lua_State *L) {
@@ -283,59 +283,59 @@ static int fsObjRead(lua_State *L) {
     if (data->canWrite)
         return luaL_error(L, "file is open for writing");
     
-	if (feof(data->fileStream)) {
-		lua_pushnil(L);
-		return 1;
-	}
+    if (feof(data->fileStream)) {
+        lua_pushnil(L);
+        return 1;
+    }
 
     int num = lua_gettop(L);
-	if (num == 0) {
-		// Read line
+    if (num == 0) {
+        // Read line
 
-		size_t bufLen = sizeof(char) * (FS_LINE_INCR + 1);
-		char *dataBuf = (char*)malloc(bufLen);
-		if (dataBuf == NULL) return luaL_error(L, "unable to allocate enough memory for read operation");
+        size_t bufLen = sizeof(char) * (FS_LINE_INCR + 1);
+        char *dataBuf = (char*)malloc(bufLen);
+        if (dataBuf == NULL) return luaL_error(L, "unable to allocate enough memory for read operation");
 
-		int st = ftell(data->fileStream);
+        int st = ftell(data->fileStream);
 
-		fgets(dataBuf, FS_LINE_INCR, data->fileStream);
+        fgets(dataBuf, FS_LINE_INCR, data->fileStream);
 
-		size_t dataBufLen = lineStrlen(dataBuf, FS_LINE_INCR);
-		if (dataBuf[dataBufLen - 1] == '\n') {
-			lua_pushlstring(L, dataBuf, dataBufLen - 1);
-			free(dataBuf);
-			return 1;
-		} else if (feof(data->fileStream)) {
-			dataBufLen = ftell(data->fileStream);
-			lua_pushlstring(L, dataBuf, dataBufLen - st);
-			free(dataBuf);
-			return 1;
-		}
+        size_t dataBufLen = lineStrlen(dataBuf, FS_LINE_INCR);
+        if (dataBuf[dataBufLen - 1] == '\n') {
+            lua_pushlstring(L, dataBuf, dataBufLen - 1);
+            free(dataBuf);
+            return 1;
+        } else if (feof(data->fileStream)) {
+            dataBufLen = ftell(data->fileStream);
+            lua_pushlstring(L, dataBuf, dataBufLen - st);
+            free(dataBuf);
+            return 1;
+        }
 
-		st = ftell(data->fileStream);
+        st = ftell(data->fileStream);
 
-		for (int i = 1;; i++) {
-			bufLen += sizeof(char) * FS_LINE_INCR;
-			dataBuf = (char*)realloc(dataBuf, bufLen);
-			if (dataBuf == NULL) return luaL_error(L, "unable to allocate enough memory for read operation");
+        for (int i = 1;; i++) {
+            bufLen += sizeof(char) * FS_LINE_INCR;
+            dataBuf = (char*)realloc(dataBuf, bufLen);
+            if (dataBuf == NULL) return luaL_error(L, "unable to allocate enough memory for read operation");
 
-			fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->fileStream);
+            fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->fileStream);
 
-			size_t dataBufLen = lineStrlen(dataBuf, bufLen / sizeof(char));
-			if (dataBuf[dataBufLen - 1] == '\n') {
-				lua_pushlstring(L, dataBuf, dataBufLen - 1);
-				free(dataBuf);
-				return 1;
-			} else if (feof(data->fileStream)) {
-				dataBufLen = ftell(data->fileStream);
-				lua_pushlstring(L, dataBuf, dataBufLen - st);
-				free(dataBuf);
-				return 1;
-			}
-		}
+            size_t dataBufLen = lineStrlen(dataBuf, bufLen / sizeof(char));
+            if (dataBuf[dataBufLen - 1] == '\n') {
+                lua_pushlstring(L, dataBuf, dataBufLen - 1);
+                free(dataBuf);
+                return 1;
+            } else if (feof(data->fileStream)) {
+                dataBufLen = ftell(data->fileStream);
+                lua_pushlstring(L, dataBuf, dataBufLen - st);
+                free(dataBuf);
+                return 1;
+            }
+        }
 
-		return 0;
-	}
+        return 0;
+    }
 
     int type = lua_type(L, 1 - num);
     if (type == LUA_TSTRING) {
@@ -368,7 +368,7 @@ static int fsObjRead(lua_State *L) {
                 char *dataBuf = (char*)malloc(bufLen);
                 if (dataBuf == NULL) return luaL_error(L, "unable to allocate enough memory for read operation");
 
-				int st = ftell(data->fileStream);
+                int st = ftell(data->fileStream);
 
                 fgets(dataBuf, FS_LINE_INCR, data->fileStream);
 
@@ -378,13 +378,13 @@ static int fsObjRead(lua_State *L) {
                     free(dataBuf);
                     return 1;
                 } else if (feof(data->fileStream)) {
-					dataBufLen = ftell(data->fileStream);
+                    dataBufLen = ftell(data->fileStream);
                     lua_pushlstring(L, dataBuf, dataBufLen - st);
                     free(dataBuf);
                     return 1;
                 }
 
-				st = ftell(data->fileStream);
+                st = ftell(data->fileStream);
 
                 for (int i = 1;; i++) {
                     bufLen += sizeof(char) * FS_LINE_INCR;
@@ -399,7 +399,7 @@ static int fsObjRead(lua_State *L) {
                         free(dataBuf);
                         return 1;
                     } else if (feof(data->fileStream)) {
-						dataBufLen = ftell(data->fileStream);
+                        dataBufLen = ftell(data->fileStream);
                         lua_pushlstring(L, dataBuf, dataBufLen - st);
                         free(dataBuf);
                         return 1;
@@ -441,30 +441,30 @@ static int fsObjRead(lua_State *L) {
 }
 
 static int fsMkDir(lua_State *L) {
-	char filePath[MAX_PATH + 1];
-	checkPath(luaL_checkstring(L, 1), filePath);
+    char filePath[MAX_PATH + 1];
+    checkPath(luaL_checkstring(L, 1), filePath);
 
-	lua_pushboolean(L, f_mkdir(filePath, 0777) + 1);
-	return 1;
+    lua_pushboolean(L, f_mkdir(filePath, 0777) + 1);
+    return 1;
 }
 
 static int fsMv(lua_State *L) {
-	char filePath[MAX_PATH + 1];
-	checkPath(luaL_checkstring(L, 1), filePath);
+    char filePath[MAX_PATH + 1];
+    checkPath(luaL_checkstring(L, 1), filePath);
 
-	char endPath[MAX_PATH + 1];
-	checkPath(luaL_checkstring(L, 2), endPath);
+    char endPath[MAX_PATH + 1];
+    checkPath(luaL_checkstring(L, 2), endPath);
 
-	lua_pushboolean(L, rename(filePath, endPath) + 1);
-	return 1;
+    lua_pushboolean(L, rename(filePath, endPath) + 1);
+    return 1;
 }
 
 static int fsDelete(lua_State *L) {
     char filePath[MAX_PATH + 1];
     checkPath(luaL_checkstring(L, 1), filePath);
 
-	lua_pushboolean(L, remove(filePath) + 1);
-	return 1;
+    lua_pushboolean(L, remove(filePath) + 1);
+    return 1;
 }
 
 static int fsObjCloseHandle(lua_State *L) {
@@ -479,55 +479,55 @@ static int fsObjCloseHandle(lua_State *L) {
 }
 
 static int fsGetCWD(lua_State *L) {
-	lua_pushstring(L, currentWorkingDirectory + strlen(scriptsPath));
+    lua_pushstring(L, currentWorkingDirectory + strlen(scriptsPath));
 
-	return 1;
+    return 1;
 }
 
 static int fsSetCWD(lua_State *L) {
-	const char* nwd = luaL_checkstring(L, 1);
+    const char* nwd = luaL_checkstring(L, 1);
 
-	if (nwd[0] == '\\' || nwd[0] == '/') {
-		int nwdlen = strlen(nwd);
+    if (nwd[0] == '\\' || nwd[0] == '/') {
+        int nwdlen = strlen(nwd);
 
-		int ln = (int)(strlen(scriptsPath) + nwdlen + 2);
-		char *concatStr = (char*)malloc(ln);
-		sprintf(concatStr, "%s/%s", scriptsPath, nwd);
+        int ln = (int)(strlen(scriptsPath) + nwdlen + 2);
+        char *concatStr = (char*)malloc(ln);
+        sprintf(concatStr, "%s/%s", scriptsPath, nwd);
 
-		char *fpath = (char*)malloc(sizeof(char) * MAX_PATH);
+        char *fpath = (char*)malloc(sizeof(char) * MAX_PATH);
 
-		getFullPath(concatStr, fpath);
+        getFullPath(concatStr, fpath);
 
-		free(concatStr);
+        free(concatStr);
 
-		if (strlen(fpath) < MAX_PATH) {
-			strncpy(currentWorkingDirectory, fpath, strlen(fpath));
-			currentWorkingDirectory[strlen(fpath)] = 0;
-		}
+        if (strlen(fpath) < MAX_PATH) {
+            strncpy(currentWorkingDirectory, fpath, strlen(fpath));
+            currentWorkingDirectory[strlen(fpath)] = 0;
+        }
 
-		free(fpath);
-	} else {
-		int nwdlen = strlen(nwd);
+        free(fpath);
+    } else {
+        int nwdlen = strlen(nwd);
 
-		int ln = (int)(strlen(currentWorkingDirectory) + nwdlen + 2);
-		char *concatStr = (char*) malloc(ln);
-		sprintf(concatStr, "%s/%s", currentWorkingDirectory, nwd);
+        int ln = (int)(strlen(currentWorkingDirectory) + nwdlen + 2);
+        char *concatStr = (char*) malloc(ln);
+        sprintf(concatStr, "%s/%s", currentWorkingDirectory, nwd);
 
-		char *fpath = (char*) malloc(sizeof(char) * MAX_PATH);
+        char *fpath = (char*) malloc(sizeof(char) * MAX_PATH);
 
-		getFullPath(concatStr, fpath);
+        getFullPath(concatStr, fpath);
 
-		free(concatStr);
+        free(concatStr);
 
-		if (strlen(fpath) < MAX_PATH) {
-			strncpy(currentWorkingDirectory, fpath, strlen(fpath));
-			currentWorkingDirectory[strlen(fpath)] = 0;
-		}
+        if (strlen(fpath) < MAX_PATH) {
+            strncpy(currentWorkingDirectory, fpath, strlen(fpath));
+            currentWorkingDirectory[strlen(fpath)] = 0;
+        }
 
-		free(fpath);
-	}
+        free(fpath);
+    }
 
-	return 0;
+    return 0;
 }
 
 static const luaL_Reg fsLib[] = {
@@ -535,10 +535,10 @@ static const luaL_Reg fsLib[] = {
     { "open", fsOpenFile },
     { "list", fsList },
     { "delete", fsDelete },
-	{ "mkdir", fsMkDir },
-	{ "move", fsMv },
-	{ "setCWD", fsSetCWD },
-	{ "getCWD", fsGetCWD },
+    { "mkdir", fsMkDir },
+    { "move", fsMv },
+    { "setCWD", fsSetCWD },
+    { "getCWD", fsGetCWD },
     { NULL, NULL }
 };
 
@@ -550,17 +550,17 @@ static const luaL_Reg fsLib_m[] = {
 };
 
 LUALIB_API int luaopen_fs(lua_State *L) {
-	char *fpath = (char*)malloc(sizeof(char) * MAX_PATH);
-	getFullPath(scriptsPath, fpath);
+    char *fpath = (char*)malloc(sizeof(char) * MAX_PATH);
+    getFullPath(scriptsPath, fpath);
 
-	if (strlen(fpath) < MAX_PATH)
-		strncpy(currentWorkingDirectory, fpath, strlen(fpath));
-	else {
-		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unable to initialize cwd");
-		return 2;
-	}
+    if (strlen(fpath) < MAX_PATH)
+        strncpy(currentWorkingDirectory, fpath, strlen(fpath));
+    else {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unable to initialize cwd");
+        return 2;
+    }
 
-	free(fpath);
+    free(fpath);
 
     luaL_newmetatable(L, "Riko4.fsObj");
 

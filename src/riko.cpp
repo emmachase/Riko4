@@ -3,18 +3,18 @@
 #if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) \
  || defined(__TOS_WIN__) || defined(__WINDOWS__)
 /* Compiling for Windows */
-#ifndef __WINDOWS__
-#define __WINDOWS__
-#endif
+#  ifndef __WINDOWS__
+#    define __WINDOWS__
+#  endif
 #  include <windows.h>
 #endif/* Predefined Windows macros */
 
 #ifndef CALLBACK
-#if defined(_ARM_)
-#define CALLBACK
-#else
-#define CALLBACK __stdcall
-#endif
+#  if defined(_ARM_)
+#    define CALLBACK
+#  else
+#    define CALLBACK __stdcall
+#  endif
 #endif
 
 #include <climits>
@@ -27,7 +27,7 @@
 #include <time.h>
 
 #ifndef __WINDOWS__
-#include <ftw.h>
+#  include <ftw.h>
 #endif
 
 #include <sys/types.h>
@@ -79,21 +79,21 @@ void printLuaError(int result) {
 }
 
 static const luaL_Reg lj_lib_load[] = {
-  { "",              luaopen_base },
-  { LUA_LOADLIBNAME, luaopen_package },
-  { LUA_TABLIBNAME,  luaopen_table },
-  { LUA_OSLIBNAME,   luaopen_os },
-  { LUA_STRLIBNAME,  luaopen_string },
-  { LUA_MATHLIBNAME, luaopen_math },
-  { LUA_DBLIBNAME,   luaopen_debug },
-  { LUA_BITLIBNAME,  luaopen_bit },
-  { LUA_JITLIBNAME,  luaopen_jit },
-  { NULL,  NULL }
+    { "",              luaopen_base },
+    { LUA_LOADLIBNAME, luaopen_package },
+    { LUA_TABLIBNAME,  luaopen_table },
+    { LUA_OSLIBNAME,   luaopen_os },
+    { LUA_STRLIBNAME,  luaopen_string },
+    { LUA_MATHLIBNAME, luaopen_math },
+    { LUA_DBLIBNAME,   luaopen_debug },
+    { LUA_BITLIBNAME,  luaopen_bit },
+    { LUA_JITLIBNAME,  luaopen_jit },
+    { NULL,  NULL }
 };
 
 static const luaL_Reg lj_lib_preload[] = {
-  { LUA_FFILIBNAME,  luaopen_ffi },
-  { NULL,  NULL }
+    { LUA_FFILIBNAME,  luaopen_ffi },
+    { NULL,  NULL }
 };
 
 bool fatalLoadError = false;
@@ -116,9 +116,9 @@ void createLuaInstance(const char* filename) {
     }
     lua_pop(state, 1);
 
-	if (luaopen_fs(state) == 2) {
-		fatalLoadError = true;
-	}
+    if (luaopen_fs(state) == 2) {
+        fatalLoadError = true;
+    }
     luaopen_gpu(state);
     luaopen_aud(state);
     luaopen_image(state);
@@ -136,6 +136,35 @@ void createLuaInstance(const char* filename) {
         printLuaError(result);
         return;
     }
+}
+
+lua_State* createConfigInstance(const char* filename) {
+    lua_State *state = luaL_newstate();
+
+    // Make standard libraries available in the Lua object
+    const luaL_Reg *lib;
+    for (lib = lj_lib_load; lib->func; lib++) {
+        lua_pushcfunction(state, lib->func);
+        lua_pushstring(state, lib->name);
+        lua_call(state, 1, 0);
+    }
+    luaL_findtable(state, LUA_REGISTRYINDEX, "_PRELOAD",
+        sizeof(lj_lib_preload) / sizeof(lj_lib_preload[0]) - 1);
+    for (lib = lj_lib_preload; lib->func; lib++) {
+        lua_pushcfunction(state, lib->func);
+        lua_setfield(state, -2, lib->name);
+    }
+    lua_pop(state, 1);
+
+    lua_State *L = lua_newthread(state);
+
+    int result;
+
+    result = luaL_loadfile(L, filename);
+
+    // We don't care if it errors bc the config can not exist and thats fine
+
+    return L;
 }
 
 /* Taken from SDL_iconv() */
@@ -266,21 +295,49 @@ int main(int argc, char * argv[]) {
 
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
 
-	/* Open the first available controller. */
-	SDL_GameController *controller = NULL;
-	for (int i = 0; i < SDL_NumJoysticks(); ++i) {
-		if (SDL_IsGameController(i)) {
-			controller = SDL_GameControllerOpen(i);
-			if (controller) {
-				printf("Connected controller %i\n", i);
-				break;
-			} else {
-				fprintf(stderr, "Could not open gamecontroller %i: %s\n", i, SDL_GetError());
-			}
-		}
-	}
+    /* Open the first available controller. */
+    SDL_GameController *controller = NULL;
+    for (int i = 0; i < SDL_NumJoysticks(); ++i) {
+        if (SDL_IsGameController(i)) {
+            controller = SDL_GameControllerOpen(i);
+            if (controller) {
+                printf("Connected controller %i\n", i);
+                break;
+            } else {
+                fprintf(stderr, "Could not open gamecontroller %i: %s\n", i, SDL_GetError());
+            }
+        }
+    }
 
-    appPath = SDL_GetPrefPath("riko4", "app");
+    lua_State *configState = createConfigInstance("config.lua");
+    int narg = lua_resume(configState, 0);
+    printf("Got %d\n", narg);
+    
+    bool bundle = false;
+
+    if (lua_type(configState, 1) == LUA_TTABLE) {
+        lua_pushstring(configState, "usebundle");
+        lua_gettable(configState, -2);
+
+        if (lua_type(configState, -1) == LUA_TBOOLEAN) {
+            bundle = lua_toboolean(configState, -1);
+        }
+
+        lua_pushstring(configState, "scale");
+        lua_gettable(configState, -3);
+
+        if (lua_type(configState, -1) == LUA_TNUMBER) {
+            pixelSize = lua_tointeger(configState, -1);
+            afPixscale = lua_tointeger(configState, -1);
+        }
+    }
+
+    if (bundle) {
+        appPath = SDL_GetBasePath();
+    } else {
+        appPath = SDL_GetPrefPath("riko4", "app");
+    }
+
     if (appPath == NULL) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unable to open application directory, possibly out of free space?");
         return 2;
@@ -295,17 +352,17 @@ int main(int argc, char * argv[]) {
     if (stat(scriptsPath, &statbuf) != 0) {
         // Create standard directory as first time setup
 #ifdef __WINDOWS__
-		SHFILEOPSTRUCT s = { 0 };
-		s.wFunc = FO_COPY;
-		s.pTo = scriptsPath;
-		s.pFrom = ".\\scripts";
-		s.fFlags = FOF_SILENT | FOF_NOCONFIRMMKDIR | FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_NO_UI;
-		int res = SHFileOperation(&s);
+        SHFILEOPSTRUCT s = { 0 };
+        s.wFunc = FO_COPY;
+        s.pTo = scriptsPath;
+        s.pFrom = ".\\scripts";
+        s.fFlags = FOF_SILENT | FOF_NOCONFIRMMKDIR | FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_NO_UI;
+        int res = SHFileOperation(&s);
 
-		if (res != 0) {
-			SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Was unable to perform first-time scripts setup, quitting..");
-			return 4;
-		}
+        if (res != 0) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Was unable to perform first-time scripts setup, quitting..");
+            return 4;
+        }
 #else
         nftw("./scripts/", &fileCopyCallback, OPEN_FS_DESC, 0);
 #endif
@@ -363,9 +420,9 @@ int main(int argc, char * argv[]) {
     sprintf(bootLoc, "%s/boot.lua", scriptsPath);
     createLuaInstance(bootLoc);
 
-	if (fatalLoadError) {
-		return 7;
-	}
+    if (fatalLoadError) {
+        return 7;
+    }
 
     bool canRun = true;
     bool running = true;
@@ -390,7 +447,7 @@ int main(int argc, char * argv[]) {
         if (ctrlMod && holdR && clock() - holdL >= CLOCKS_PER_SEC) {
             closeAudio();
             lua_close(mainThread);
-            createLuaInstance("scripts/boot.lua");
+            createLuaInstance(bootLoc);
             int result = lua_resume(mainThread, 0);
 
             ctrlMod = false;
@@ -477,40 +534,40 @@ int main(int argc, char * argv[]) {
                     lua_pushnumber(mainThread, event.button.button);
                     pushedArgs = 4;
                     break;
-				case SDL_JOYAXISMOTION:
-					lua_pushstring(mainThread, "joyAxis");
-					lua_pushnumber(mainThread, event.caxis.axis);
-					lua_pushnumber(mainThread, event.caxis.value);
-					lua_pushnumber(mainThread, event.caxis.which);
-					pushedArgs = 4;
-					break;
-				case SDL_JOYBUTTONDOWN:
-					lua_pushstring(mainThread, "joyButtonDown");
-					lua_pushnumber(mainThread, event.cbutton.button);
-					lua_pushnumber(mainThread, event.caxis.which);
-					pushedArgs = 3;
-					break;
-				case SDL_JOYBUTTONUP:
-					lua_pushstring(mainThread, "joyButtonUp");
-					lua_pushnumber(mainThread, event.cbutton.button);
-					lua_pushnumber(mainThread, event.caxis.which);
-					pushedArgs = 3;
-					break;
-				case SDL_JOYHATMOTION:
-					lua_pushstring(mainThread, "joyHat");
-					lua_pushnumber(mainThread, event.jhat.value);
-					lua_pushnumber(mainThread, event.jhat.hat);
-					lua_pushnumber(mainThread, event.jhat.which);
-					pushedArgs = 4;
-					break;
-				case SDL_JOYBALLMOTION:
-					lua_pushstring(mainThread, "joyBall");
-					lua_pushnumber(mainThread, event.jball.xrel);
-					lua_pushnumber(mainThread, event.jball.yrel);
-					lua_pushnumber(mainThread, event.jball.ball);
-					lua_pushnumber(mainThread, event.jball.which);
-					pushedArgs = 4;
-					break;
+                case SDL_JOYAXISMOTION:
+                    lua_pushstring(mainThread, "joyAxis");
+                    lua_pushnumber(mainThread, event.caxis.axis);
+                    lua_pushnumber(mainThread, event.caxis.value);
+                    lua_pushnumber(mainThread, event.caxis.which);
+                    pushedArgs = 4;
+                    break;
+                case SDL_JOYBUTTONDOWN:
+                    lua_pushstring(mainThread, "joyButtonDown");
+                    lua_pushnumber(mainThread, event.cbutton.button);
+                    lua_pushnumber(mainThread, event.caxis.which);
+                    pushedArgs = 3;
+                    break;
+                case SDL_JOYBUTTONUP:
+                    lua_pushstring(mainThread, "joyButtonUp");
+                    lua_pushnumber(mainThread, event.cbutton.button);
+                    lua_pushnumber(mainThread, event.caxis.which);
+                    pushedArgs = 3;
+                    break;
+                case SDL_JOYHATMOTION:
+                    lua_pushstring(mainThread, "joyHat");
+                    lua_pushnumber(mainThread, event.jhat.value);
+                    lua_pushnumber(mainThread, event.jhat.hat);
+                    lua_pushnumber(mainThread, event.jhat.which);
+                    pushedArgs = 4;
+                    break;
+                case SDL_JOYBALLMOTION:
+                    lua_pushstring(mainThread, "joyBall");
+                    lua_pushnumber(mainThread, event.jball.xrel);
+                    lua_pushnumber(mainThread, event.jball.yrel);
+                    lua_pushnumber(mainThread, event.jball.ball);
+                    lua_pushnumber(mainThread, event.jball.which);
+                    pushedArgs = 4;
+                    break;
                 default:
                     readyForProp = false;
             }
