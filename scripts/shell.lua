@@ -51,8 +51,8 @@ function shell.pushOutput(msg, ...)
   insLine(msg, 16)
   lineHistory[#lineHistory + 1] = {{}, {}}
   historyPoint = #lineHistory + 1
-  if historyPoint - lineOffset >= 200 / 8 - 1 then
-    lineOffset = historyPoint - (200 / 8 - 2)
+  if historyPoint - lineOffset >= h / 8 - 1 then
+    lineOffset = historyPoint - (h / 8 - 2)
   end
   shell.redraw(true)
 end
@@ -67,8 +67,8 @@ function shell.writeOutputC(msg, c, rd)
     msg = msg:sub(pos + 1)
     lineHistory[#lineHistory + 1] = {{}, {}}
     historyPoint = #lineHistory + 1
-    if historyPoint - lineOffset >= 200 / 8 - 1 then
-      lineOffset = historyPoint - (200 / 8 - 2)
+    if historyPoint - lineOffset >= h / 8 - 1 then
+      lineOffset = historyPoint - (h / 8 - 2)
     end
   end
   insLine(msg, c or 16)
@@ -240,8 +240,8 @@ local function processEvent(e, ...)
         str = ""
       end
 
-      if historyPoint - lineOffset >= 200 / 8 - 1 then
-        lineOffset = historyPoint - (200 / 8 - 2)
+      if historyPoint - lineOffset >= h / 8 - 1 then
+        lineOffset = historyPoint - (h / 8 - 2)
       end
     end
   end
