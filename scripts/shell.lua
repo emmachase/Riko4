@@ -250,7 +250,7 @@ end
 local eventQueue = {}
 local last = os.clock()
 while true do
-  while os.clock() - last < (1 / 60) do
+  while os.clock() - last <= (1 / 60) do
     while true do
       local e, p1, p2, p3, p4 = coroutine.yield()
       if not e then break end

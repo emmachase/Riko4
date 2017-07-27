@@ -5,9 +5,10 @@
 #include <LuaJIT/lua.hpp>
 #include <LuaJIT/lauxlib.h>
 #include <SDL2/SDL.h>
+#include <SDL_gpu/SDL_gpu.h>
 
-extern SDL_Window *window;
-extern SDL_Renderer *renderer;
+// extern SDL_Window *window;
+extern GPU_Target *renderer;
 extern int pixelSize;
 extern int palette[16][3];
 extern int paletteNum;
@@ -85,7 +86,7 @@ static int newImage(lua_State *L) {
 
     // Init to black color
     SDL_FillRect(a->surface, NULL, SDL_MapRGBA(a->surface->format, 0, 0, 0, 0));
-    a->texture = SDL_CreateTextureFromSurface(renderer, a->surface);
+    // a->texture = SDL_CreateTextureFromSurface(renderer, a->surface);
 
     return 1;
 }
@@ -95,7 +96,7 @@ static int flushImage(lua_State *L) {
     if (!freeCheck(L, data)) return 0;
 
     SDL_DestroyTexture(data->texture);
-    data->texture = SDL_CreateTextureFromSurface(renderer, data->surface);
+    // data->texture = SDL_CreateTextureFromSurface(renderer, data->surface);
 
     return 0;
 }
@@ -112,7 +113,7 @@ static int renderImage(lua_State *L) {
             }
         }
         SDL_DestroyTexture(data->texture);
-        data->texture = SDL_CreateTextureFromSurface(renderer, data->surface);
+        // data->texture = SDL_CreateTextureFromSurface(renderer, data->surface);
 
         data->lastRenderNum = paletteNum;
     }
@@ -136,7 +137,7 @@ static int renderImage(lua_State *L) {
         rect.w = srcRect.w * pixelSize * scale;
         rect.h = srcRect.h * pixelSize * scale;
 
-        SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
+        // SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
     } else if (top > 6) {
         SDL_Rect srcRect = {
             luaL_checkint(L, 4),
@@ -148,19 +149,19 @@ static int renderImage(lua_State *L) {
         rect.w = srcRect.w * pixelSize;
         rect.h = srcRect.h * pixelSize;
 
-        SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
+        // SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
     } else if (top > 3) {
         SDL_Rect srcRect = { 0, 0, luaL_checkint(L, 4), luaL_checkint(L, 5) };
 
         rect.w = srcRect.w * pixelSize;
         rect.h = srcRect.h * pixelSize;
 
-        SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
+        // SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
     } else {
         rect.w = data->width * pixelSize;
         rect.h = data->height * pixelSize;
 
-        SDL_RenderCopy(renderer, data->texture, NULL, &rect);
+        // SDL_RenderCopy(renderer, data->texture, NULL, &rect);
     }
 
     return 0;

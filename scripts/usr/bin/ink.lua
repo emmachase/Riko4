@@ -1089,6 +1089,7 @@ local function processEvent(ev, p1, p2, p3, p4)
       for i = 1, clipboard.w do
         for j = 1, clipboard.h do
           workingImage[i + tx][j + ty] = clipboard.data[i][j]
+          dispImage:clear()
           dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage))
           dispImage:flush()
         end

@@ -35,6 +35,8 @@
 
 #include <SDL2/SDL.h>
 
+#include <SDL_gpu/SDL_gpu.h>
+
 #include <LuaJIT/lua.hpp>
 
 #include "rikoConsts.h"
@@ -44,8 +46,8 @@
 #include "rikoAudio.h"
 #include "rikoImage.h"
 
-SDL_Window *window;
-SDL_Renderer *renderer;
+// SDL_Window *window;
+GPU_Target *renderer;
 
 lua_State *mainThread;
 
@@ -386,33 +388,28 @@ int main(int argc, char * argv[]) {
         }
     }
 
-    window = SDL_CreateWindow(
-        "Riko4",
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
+    renderer = GPU_Init(
+        // "Riko4",
         SCRN_WIDTH  * pixelSize,
         SCRN_HEIGHT * pixelSize,
-        SDL_WINDOW_OPENGL
+        GPU_DEFAULT_INIT_FLAGS
     );
 
-    SDL_ShowCursor(SDL_DISABLE);
+    // SDL_ShowCursor(SDL_DISABLE);
 
-    if (window == NULL) {
+    if (renderer == NULL) {
         printf("Could not create window: %s\n", SDL_GetError());
         return 1;
     }
 
-    renderer = SDL_CreateRenderer(window, -1, 
-        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-
-    SDL_SetRenderDrawColor(renderer, 24, 24, 24, 255);
-    SDL_RenderClear(renderer);
-    SDL_RenderPresent(renderer);
+    // SDL_SetRenderDrawColor(renderer, 24, 24, 24, 255);
+    GPU_Clear(renderer);
+    GPU_Flip(renderer);
 
     SDL_Surface *surface;
     surface = SDL_LoadBMP("icon.ico");
 
-    SDL_SetWindowIcon(window, surface);
+    // SDL_SetWindowIcon(window, surface);
 
     SDL_Event event;
 
@@ -602,10 +599,12 @@ int main(int argc, char * argv[]) {
 
     closeAudio();
 
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
+    // SDL_DestroyRenderer(renderer);
+    // SDL_DestroyWindow(window);
 
-    SDL_Quit();
+    GPU_Quit();
+
+    // SDL_Quit();
 
     return exitCode;
 }
