@@ -28,6 +28,7 @@
 
 #ifndef __WINDOWS__
 #  include <ftw.h>
+#  include <vga.h>
 #endif
 
 #include <sys/types.h>
@@ -48,6 +49,7 @@
 
 // SDL_Window *window;
 GPU_Target *renderer;
+GPU_Image *buffer;
 
 lua_State *mainThread;
 
@@ -396,14 +398,24 @@ int main(int argc, char * argv[]) {
     );
 
     // SDL_ShowCursor(SDL_DISABLE);
+#ifdef __WINDOWS__
+	ShowCursor(false);
+#else
+	vga_showcursor(0);
+#endif
 
     if (renderer == NULL) {
         printf("Could not create window: %s\n", SDL_GetError());
         return 1;
     }
 
+	buffer = GPU_CreateImage(renderer->w, renderer->h, GPU_FORMAT_RGBA);
+
     // SDL_SetRenderDrawColor(renderer, 24, 24, 24, 255);
     GPU_Clear(renderer);
+
+	GPU_Blit(buffer, NULL, renderer, 0, 0);
+
     GPU_Flip(renderer);
 
     SDL_Surface *surface;
@@ -600,6 +612,8 @@ int main(int argc, char * argv[]) {
     closeAudio();
 
     // SDL_DestroyRenderer(renderer);
+	GPU_FreeImage(buffer);
+	GPU_FreeTarget(renderer);
     // SDL_DestroyWindow(window);
 
     GPU_Quit();

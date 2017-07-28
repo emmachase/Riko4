@@ -22,6 +22,7 @@
 
 // extern SDL_Window *window;
 extern GPU_Target *renderer;
+extern GPU_Image *buffer;
 extern int pixelSize;
 
 static int pWid = 1;
@@ -68,7 +69,7 @@ static int gpu_draw_pixel(lua_State *L) {
     // SDL_SetRenderDrawColor(renderer, );
     // SDL_RenderFillRect(renderer, &rect);
     SDL_Color colorS = {palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255};
-    GPU_RectangleFilled(renderer, x * pixelSize, y * pixelSize, (x + 1) * pixelSize, (y + 1) * pixelSize, colorS);
+    GPU_RectangleFilled(buffer->target, x * pixelSize, y * pixelSize, (x + 1) * pixelSize, (y + 1) * pixelSize, colorS);
 
     return 0;
 }
@@ -83,9 +84,20 @@ static int gpu_draw_rectangle(lua_State *L) {
     //     luaL_checkint(L, 4) * pixelSize
     // };
 
+	int x = luaL_checkint(L, 1);
+	int y = luaL_checkint(L, 2);
+
+	GPU_Rect rect = {
+		(x) * pixelSize,
+		(y) * pixelSize,
+		(luaL_checkint(L, 3)) * pixelSize,
+		(luaL_checkint(L, 4)) * pixelSize
+	};
+
     // SDL_SetRenderDrawColor(renderer, palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255);
     // SDL_RenderFillRect(renderer, &rect);
-
+	SDL_Color colorS = { palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255 };
+	GPU_RectangleFilled2(renderer, rect, colorS);
 
     return 0;
 }
@@ -268,7 +280,11 @@ static int gpu_clear(lua_State *L) {
 
 static int gpu_swap(lua_State *L) {
     // SDL_RenderPresent(renderer);
-    GPU_Flip(renderer);
+	GPU_Clear(renderer);
+
+	GPU_Blit(buffer, NULL, renderer, 0, 0);
+
+	GPU_Flip(renderer);
 
     return 0;
 }
