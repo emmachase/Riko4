@@ -8,6 +8,7 @@
 #include <SDL_gpu/SDL_gpu.h>
 
 // extern SDL_Window *window;
+extern GPU_Target *bufferTarget;
 extern GPU_Target *renderer;
 extern int pixelSize;
 extern int palette[16][3];
@@ -127,7 +128,7 @@ static int renderImage(lua_State *L) {
     int x = luaL_checkint(L, 2);
     int y = luaL_checkint(L, 3);
 
-    GPU_Rect rect = { x * pixelSize, y * pixelSize };
+    GPU_Rect rect = { x, y };
 
     int top = lua_gettop(L);
     if (top > 7) {
@@ -140,11 +141,11 @@ static int renderImage(lua_State *L) {
 
         int scale = luaL_checkint(L, 8);
 
-        rect.w = srcRect.w * pixelSize * scale;
-        rect.h = srcRect.h * pixelSize * scale;
+        rect.w = srcRect.w * scale;
+        rect.h = srcRect.h * scale;
 
         // SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
-		GPU_BlitRect(data->texture, &srcRect, renderer, &rect);
+		GPU_BlitRect(data->texture, &srcRect, bufferTarget, &rect);
     } else if (top > 6) {
         GPU_Rect srcRect = {
             luaL_checkint(L, 4),
@@ -153,25 +154,25 @@ static int renderImage(lua_State *L) {
             luaL_checkint(L, 7)
         };
 
-        rect.w = srcRect.w * pixelSize;
-        rect.h = srcRect.h * pixelSize;
+        rect.w = srcRect.w;
+        rect.h = srcRect.h;
 
         // SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
-		GPU_BlitRect(data->texture, &srcRect, renderer, &rect);
+		GPU_BlitRect(data->texture, &srcRect, bufferTarget, &rect);
     } else if (top > 3) {
         GPU_Rect srcRect = { 0, 0, luaL_checkint(L, 4), luaL_checkint(L, 5) };
 
-        rect.w = srcRect.w * pixelSize;
-        rect.h = srcRect.h * pixelSize;
+        rect.w = srcRect.w;
+        rect.h = srcRect.h;
 
         // SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
-		GPU_BlitRect(data->texture, &srcRect, renderer, &rect);
+		GPU_BlitRect(data->texture, &srcRect, bufferTarget, &rect);
     } else {
-		rect.w = data->width * pixelSize;
-		rect.h = data->height * pixelSize;
+		rect.w = data->width;
+		rect.h = data->height;
 		
         // SDL_RenderCopy(renderer, data->texture, NULL, &rect);
-		GPU_BlitRect(data->texture, NULL, renderer, &rect);
+		GPU_BlitRect(data->texture, NULL, bufferTarget, &rect);
     }
 
     return 0;

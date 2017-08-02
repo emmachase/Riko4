@@ -11,6 +11,7 @@
 #include "rikoConsts.h"
 
 #include "rikoGPU.h"
+#include "shader.h"
 
 #include <LuaJIT/lua.hpp>
 #include <LuaJIT/lauxlib.h>
@@ -22,6 +23,7 @@
 
 // extern SDL_Window *window;
 extern GPU_Target *renderer;
+extern GPU_Target *bufferTarget;
 extern GPU_Image *buffer;
 extern int pixelSize;
 
@@ -69,7 +71,9 @@ static int gpu_draw_pixel(lua_State *L) {
     // SDL_SetRenderDrawColor(renderer, );
     // SDL_RenderFillRect(renderer, &rect);
     SDL_Color colorS = {palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255};
-    GPU_RectangleFilled(buffer->target, x * pixelSize, y * pixelSize, (x + 1) * pixelSize, (y + 1) * pixelSize, colorS);
+
+	
+    GPU_RectangleFilled(bufferTarget, x, y, (x + 1), (y + 1), colorS);
 
     return 0;
 }
@@ -88,16 +92,15 @@ static int gpu_draw_rectangle(lua_State *L) {
 	int y = luaL_checkint(L, 2);
 
 	GPU_Rect rect = {
-		(x) * pixelSize,
-		(y) * pixelSize,
-		(luaL_checkint(L, 3)) * pixelSize,
-		(luaL_checkint(L, 4)) * pixelSize
+		x, y,
+		(luaL_checkint(L, 3)),
+		(luaL_checkint(L, 4))
 	};
 
     // SDL_SetRenderDrawColor(renderer, palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255);
     // SDL_RenderFillRect(renderer, &rect);
 	SDL_Color colorS = { palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255 };
-	GPU_RectangleFilled2(renderer, rect, colorS);
+	GPU_RectangleFilled2(bufferTarget, rect, colorS);
 
     return 0;
 }
@@ -139,6 +142,17 @@ static int gpu_blit_pixels(lua_State *L) {
 
         // SDL_SetRenderDrawColor(renderer, palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255);
         // SDL_RenderFillRect(renderer, &rect);
+
+		GPU_Rect rect = {
+			(x + xp),
+			(y + yp),
+			1, 1
+		};
+
+		// SDL_SetRenderDrawColor(renderer, palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255);
+		// SDL_RenderFillRect(renderer, &rect);
+		SDL_Color colorS = { palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255 };
+		GPU_RectangleFilled2(bufferTarget, rect, colorS);
 
         lua_pop(L, 1);
     }
@@ -183,6 +197,17 @@ static int gpu_blit_pixels_str(lua_State *L) {
 
         // SDL_SetRenderDrawColor(renderer, palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255);
         // SDL_RenderFillRect(renderer, &rect);
+
+		GPU_Rect rect = {
+			(x + xp),
+			(y + yp),
+			1, 1
+		};
+
+		// SDL_SetRenderDrawColor(renderer, palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255);
+		// SDL_RenderFillRect(renderer, &rect);
+		SDL_Color colorS = { palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255 };
+		GPU_RectangleFilled2(bufferTarget, rect, colorS);
     }
 
     return 0;
@@ -266,10 +291,10 @@ static int gpu_clear(lua_State *L) {
         int color = getColor(L, 1);
         // SDL_SetRenderDrawColor(renderer, );
         SDL_Color colorS = {palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255};
-        GPU_ClearColor(renderer, colorS);
+        GPU_ClearColor(bufferTarget, colorS);
     } else {
         // SDL_SetRenderDrawColor(renderer, palette[0][0], palette[0][1], palette[0][2], 255);
-        GPU_Clear(renderer);
+        GPU_Clear(bufferTarget);
     }
 
     // SDL_RenderClear(renderer);
@@ -280,11 +305,25 @@ static int gpu_clear(lua_State *L) {
 
 static int gpu_swap(lua_State *L) {
     // SDL_RenderPresent(renderer);
-	GPU_Clear(renderer);
+	//GPU_CopyImageFromTarget()
 
-	GPU_Blit(buffer, NULL, renderer, 0, 0);
+	GPU_Clear(renderer);
+	//GPU_TriFilled(bufferTarget, 0, 0, 200, 0, 100, 200, GPU_MakeColor(0, 0, 255, 255));
+
+	GPU_Image* img = GPU_CopyImageFromTarget(bufferTarget);
+
+	GPU_SetBlending(img, GPU_FALSE);
+	GPU_SetImageFilter(img, GPU_FILTER_NEAREST);
+
+	updateShader(img);
+
+	GPU_BlitRect(img, NULL, renderer, NULL);
+
+	GPU_FreeImage(img);
 
 	GPU_Flip(renderer);
+
+	GPU_DeactivateShaderProgram();
 
     return 0;
 }

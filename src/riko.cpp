@@ -46,10 +46,12 @@
 #include "rikoGPU.h"
 #include "rikoAudio.h"
 #include "rikoImage.h"
+#include "shader.h"
 
 // SDL_Window *window;
-GPU_Target *renderer;
 GPU_Image *buffer;
+GPU_Target *renderer;
+GPU_Target *bufferTarget;
 
 lua_State *mainThread;
 
@@ -409,14 +411,20 @@ int main(int argc, char * argv[]) {
         return 1;
     }
 
-	buffer = GPU_CreateImage(renderer->w, renderer->h, GPU_FORMAT_RGBA);
+	buffer = GPU_CreateImage(SCRN_WIDTH, SCRN_HEIGHT, GPU_FORMAT_RGBA);
+
+	GPU_SetImageFilter(buffer, GPU_FILTER_NEAREST);
+
+	bufferTarget = GPU_LoadTarget(buffer);
 
     // SDL_SetRenderDrawColor(renderer, 24, 24, 24, 255);
     GPU_Clear(renderer);
-
-	GPU_Blit(buffer, NULL, renderer, 0, 0);
+	
+	initShader();
 
     GPU_Flip(renderer);
+
+	GPU_SetFullscreen(true, true);
 
     SDL_Surface *surface;
     surface = SDL_LoadBMP("icon.ico");
@@ -612,7 +620,6 @@ int main(int argc, char * argv[]) {
     closeAudio();
 
     // SDL_DestroyRenderer(renderer);
-	GPU_FreeImage(buffer);
 	GPU_FreeTarget(renderer);
     // SDL_DestroyWindow(window);
 
