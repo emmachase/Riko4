@@ -12,6 +12,8 @@ local w, h = gpu.width, gpu.height
 
 local write = write
 
+local fl = math.floor
+
 local function round(n, p)
   return math.floor(n / p) * p
 end
@@ -51,8 +53,8 @@ function shell.pushOutput(msg, ...)
   insLine(msg, 16)
   lineHistory[#lineHistory + 1] = {{}, {}}
   historyPoint = #lineHistory + 1
-  if historyPoint - lineOffset >= 200 / 8 - 1 then
-    lineOffset = historyPoint - (200 / 8 - 2)
+  if historyPoint - lineOffset >= h / 8 - 1 then
+    lineOffset = fl(historyPoint - (h / 8 - 2))
   end
   shell.redraw(true)
 end
@@ -67,8 +69,8 @@ function shell.writeOutputC(msg, c, rd)
     msg = msg:sub(pos + 1)
     lineHistory[#lineHistory + 1] = {{}, {}}
     historyPoint = #lineHistory + 1
-    if historyPoint - lineOffset >= 200 / 8 - 1 then
-      lineOffset = historyPoint - (200 / 8 - 2)
+    if historyPoint - lineOffset >= h / 8 - 1 then
+      lineOffset = fl(historyPoint - (h / 8 - 2))
     end
   end
   insLine(msg, c or 16)
@@ -98,10 +100,12 @@ function shell.redraw(swap)
 
   for i = math.max(lineOffset, 1), #lineHistory do
     local cpos = 2
-    for j = 1, #lineHistory[i][1] do
-      write(tostring(lineHistory[i][1][j]), cpos, (i - 1 - lineOffset)*8 + 2, lineHistory[i][2][j])
-      cpos = cpos + #tostring(lineHistory[i][1][j])*7
-    end
+	if lineHistory[i] then
+      for j = 1, #lineHistory[i][1] do
+        write(tostring(lineHistory[i][1][j]), cpos, (i - 1 - lineOffset)*8 + 2, lineHistory[i][2][j])
+        cpos = cpos + #tostring(lineHistory[i][1][j])*7
+      end
+	end
   end
 
   gpu.drawRectangle(0, h - 10, w, 10, 6)
@@ -186,12 +190,12 @@ local function processEvent(e, ...)
 
         lineHistory[#lineHistory + 1] = {{}, {}}
         historyPoint = historyPoint + 1
-        local cfunc
+        local cfunc, oer
         lastRun = str
 
         local got = true
         for pref = 1, #config.path do
-          local s, er = pcall(function() cfunc = loadfile(config.path[pref] .. "/" .. str:match("%S+")..".lua") end)
+          local s, er = pcall(function() cfunc, oer = loadfile(config.path[pref] .. "/" .. str:match("%S+")..".lua") end)
           if not s then
             c = 7
             if er then
@@ -227,6 +231,8 @@ local function processEvent(e, ...)
 
               got = false
               break
+            elseif oer then
+              print("Wow " .. oer)
             end
           end
         end
@@ -240,8 +246,8 @@ local function processEvent(e, ...)
         str = ""
       end
 
-      if historyPoint - lineOffset >= 200 / 8 - 1 then
-        lineOffset = historyPoint - (200 / 8 - 2)
+      if historyPoint - lineOffset >= h / 8 - 1 then
+        lineOffset = fl(historyPoint - (h / 8 - 2))
       end
     end
   end
@@ -250,7 +256,7 @@ end
 local eventQueue = {}
 local last = os.clock()
 while true do
-  while os.clock() - last <= (1 / 60) do
+  while os.clock() - last < (1 / 60) do
     while true do
       local e, p1, p2, p3, p4 = coroutine.yield()
       if not e then break end

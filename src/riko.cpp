@@ -424,7 +424,7 @@ int main(int argc, char * argv[]) {
 
     GPU_Flip(renderer);
 
-	GPU_SetFullscreen(true, true);
+	//GPU_SetFullscreen(true, true);
 
     SDL_Surface *surface;
     surface = SDL_LoadBMP("icon.ico");

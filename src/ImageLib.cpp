@@ -7,6 +7,8 @@
 #include <SDL2/SDL.h>
 #include <SDL_gpu/SDL_gpu.h>
 
+#define clamp(v, min, max) (v < min ? min : (v > max ? max : v))
+
 // extern SDL_Window *window;
 extern GPU_Target *bufferTarget;
 extern GPU_Target *renderer;
@@ -88,8 +90,8 @@ static int newImage(lua_State *L) {
     // Init to black color
     SDL_FillRect(a->surface, NULL, SDL_MapRGBA(a->surface->format, 0, 0, 0, 0));
     // a->texture = SDL_CreateTextureFromSurface(renderer, a->surface);
-	a->texture = GPU_CopyImageFromSurface(a->surface);
-	GPU_SetImageFilter(a->texture, GPU_FILTER_NEAREST);
+    a->texture = GPU_CopyImageFromSurface(a->surface);
+    GPU_SetImageFilter(a->texture, GPU_FILTER_NEAREST);
 
     return 1;
 }
@@ -99,8 +101,8 @@ static int flushImage(lua_State *L) {
     if (!freeCheck(L, data)) return 0;
 
     //SDL_DestroyTexture(data->texture);
-	GPU_Rect rect = { 0, 0, data->width, data->height };
-	GPU_UpdateImage(data->texture, &rect, data->surface, &rect);
+    GPU_Rect rect = { 0, 0, data->width, data->height };
+    GPU_UpdateImage(data->texture, &rect, data->surface, &rect);
     // data->texture = SDL_CreateTextureFromSurface(renderer, data->surface);
 
     return 0;
@@ -118,9 +120,9 @@ static int renderImage(lua_State *L) {
             }
         }
         //SDL_DestroyTexture(data->texture);
-		GPU_Rect rect = { 0, 0, data->width, data->height };
-		GPU_UpdateImage(data->texture, &rect, data->surface, &rect);
-        // data->texture = SDL_CreateTextureFromSurface(renderer, data->surface);
+        GPU_Rect rect = { 0, 0, data->width, data->height };
+        GPU_UpdateImage(data->texture, &rect, data->surface, &rect);
+        // data->texture = SDL_CreateTexturegFromSurface(renderer, data->surface);
 
         data->lastRenderNum = paletteNum;
     }
@@ -135,8 +137,8 @@ static int renderImage(lua_State *L) {
         GPU_Rect srcRect = {
             luaL_checkint(L, 4),
             luaL_checkint(L, 5),
-            luaL_checkint(L, 6),
-            luaL_checkint(L, 7)
+            clamp(luaL_checkint(L, 6), 0, data->width),
+            clamp(luaL_checkint(L, 7), 0, data->height)
         };
 
         int scale = luaL_checkint(L, 8);
@@ -145,7 +147,8 @@ static int renderImage(lua_State *L) {
         rect.h = srcRect.h * scale;
 
         // SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
-		GPU_BlitRect(data->texture, &srcRect, bufferTarget, &rect);
+        
+        GPU_BlitRect(data->texture, &srcRect, bufferTarget, &rect);
     } else if (top > 6) {
         GPU_Rect srcRect = {
             luaL_checkint(L, 4),
@@ -158,7 +161,7 @@ static int renderImage(lua_State *L) {
         rect.h = srcRect.h;
 
         // SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
-		GPU_BlitRect(data->texture, &srcRect, bufferTarget, &rect);
+        GPU_BlitRect(data->texture, &srcRect, bufferTarget, &rect);
     } else if (top > 3) {
         GPU_Rect srcRect = { 0, 0, luaL_checkint(L, 4), luaL_checkint(L, 5) };
 
@@ -166,13 +169,13 @@ static int renderImage(lua_State *L) {
         rect.h = srcRect.h;
 
         // SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
-		GPU_BlitRect(data->texture, &srcRect, bufferTarget, &rect);
+        GPU_BlitRect(data->texture, &srcRect, bufferTarget, &rect);
     } else {
-		rect.w = data->width;
-		rect.h = data->height;
-		
+        rect.w = data->width;
+        rect.h = data->height;
+        
         // SDL_RenderCopy(renderer, data->texture, NULL, &rect);
-		GPU_BlitRect(data->texture, NULL, bufferTarget, &rect);
+        GPU_BlitRect(data->texture, NULL, bufferTarget, &rect);
     }
 
     return 0;
