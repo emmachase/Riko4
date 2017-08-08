@@ -1,3 +1,6 @@
+// Adapted from https://www.shadertoy.com/view/XdyGzR
+// Authored by @frutbunn, adapted by @Incinirate for usage in Riko4
+
 varying vec4 color;
 varying vec2 texCoord;
 
@@ -47,26 +50,16 @@ void main(void)
     float d = length(st*.5 * st*.5);
 
     vec2 cuv = st*d + st*.935;
-
-    // Fudge aspect ratio
-
-    // cuv.x *= 1280.0/720.0*.75;
-
     
     // CRT color blur
-
     vec3 color = gaussian(cuv);
 
     // Light
-
     float l = 1. - min(1., d*light);
     color *= l;
 
-
     // Scanlines
-
     float y = cuv.y;
-
 
     float showScanlines = 1.;
 
@@ -77,16 +70,12 @@ void main(void)
 
 
     // Border mask
-
-        float m = max(0.0, 1. - 2.*max(abs(cuv.x), abs(cuv.y) ) );
-        m = min(m*200., 1.);
-        color *= m;
-
+	float m = max(0.0, 1. - 2.*max(abs(cuv.x), abs(cuv.y) ) );
+	m = min(m*200., 1.);
+	color *= m;
 
     // Color correction
-
     color = postEffects(color, st);
-
 
 	gl_FragColor = vec4(max(vec3(.0), min(vec3(1.), color)), 1.);
 }
