@@ -90,7 +90,7 @@ static int newImage(lua_State *L) {
     // Init to black color
     SDL_FillRect(a->surface, NULL, SDL_MapRGBA(a->surface->format, 0, 0, 0, 0));
     // a->texture = SDL_CreateTextureFromSurface(renderer, a->surface);
-	int md = w > h ? w : h;
+
 	a->texture = GPU_CopyImageFromSurface(a->surface);
     GPU_SetImageFilter(a->texture, GPU_FILTER_NEAREST);
 
