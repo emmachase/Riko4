@@ -93,6 +93,7 @@ static int newImage(lua_State *L) {
 
 	a->texture = GPU_CopyImageFromSurface(a->surface);
     GPU_SetImageFilter(a->texture, GPU_FILTER_NEAREST);
+	GPU_SetSnapMode(a->texture, GPU_SNAP_NONE);
 
     return 1;
 }
@@ -148,14 +149,6 @@ static int renderImage(lua_State *L) {
         rect.h = srcRect.h * scale;
 
         // SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
-        
-		if (data->width % 2 == 1) {
-			rect.x -= scale / 2;
-		}
-
-		if (data->height % 2 == 1) {
-			rect.y -= scale / 2;
-		}
 
         GPU_BlitRect(data->texture, &srcRect, bufferTarget, &rect);
     } else if (top > 6) {
