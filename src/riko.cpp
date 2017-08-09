@@ -48,7 +48,6 @@
 #include "rikoImage.h"
 #include "shader.h"
 
-// SDL_Window *window;
 GPU_Image *buffer;
 GPU_Target *renderer;
 GPU_Target *bufferTarget;
@@ -409,7 +408,6 @@ int main(int argc, char * argv[]) {
         GPU_DEFAULT_INIT_FLAGS
     );
 
-    // SDL_ShowCursor(SDL_DISABLE);
 #ifdef __WINDOWS__
     ShowCursor(false);
 #else
@@ -423,11 +421,11 @@ int main(int argc, char * argv[]) {
 
     buffer = GPU_CreateImage(SCRN_WIDTH, SCRN_HEIGHT, GPU_FORMAT_RGBA);
 
+    GPU_SetBlending(buffer, GPU_FALSE);
     GPU_SetImageFilter(buffer, GPU_FILTER_NEAREST);
 
     bufferTarget = GPU_LoadTarget(buffer);
 
-    // SDL_SetRenderDrawColor(renderer, 24, 24, 24, 255);
     GPU_Clear(renderer);
     
     initShader();
@@ -440,6 +438,7 @@ int main(int argc, char * argv[]) {
     surface = SDL_LoadBMP("icon.ico");
 
     // SDL_SetWindowIcon(window, surface);
+    
 
     SDL_Event event;
 
@@ -629,13 +628,10 @@ int main(int argc, char * argv[]) {
 
     closeAudio();
 
-    // SDL_DestroyRenderer(renderer);
     GPU_FreeTarget(renderer);
-    // SDL_DestroyWindow(window);
 
     GPU_Quit();
-
-    // SDL_Quit();
+    SDL_Quit();
 
     return exitCode;
 }
