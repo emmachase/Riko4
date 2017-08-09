@@ -90,7 +90,8 @@ static int newImage(lua_State *L) {
     // Init to black color
     SDL_FillRect(a->surface, NULL, SDL_MapRGBA(a->surface->format, 0, 0, 0, 0));
     // a->texture = SDL_CreateTextureFromSurface(renderer, a->surface);
-    a->texture = GPU_CopyImageFromSurface(a->surface);
+	int md = w > h ? w : h;
+	a->texture = GPU_CopyImageFromSurface(a->surface);
     GPU_SetImageFilter(a->texture, GPU_FILTER_NEAREST);
 
     return 1;
@@ -148,6 +149,14 @@ static int renderImage(lua_State *L) {
 
         // SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
         
+		if (data->width % 2 == 1) {
+			rect.x -= scale / 2;
+		}
+
+		if (data->height % 2 == 1) {
+			rect.y -= scale / 2;
+		}
+
         GPU_BlitRect(data->texture, &srcRect, bufferTarget, &rect);
     } else if (top > 6) {
         GPU_Rect srcRect = {
@@ -173,7 +182,7 @@ static int renderImage(lua_State *L) {
     } else {
         rect.w = data->width;
         rect.h = data->height;
-        
+
         // SDL_RenderCopy(renderer, data->texture, NULL, &rect);
         GPU_BlitRect(data->texture, NULL, bufferTarget, &rect);
     }
