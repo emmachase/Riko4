@@ -6,6 +6,8 @@
 #include <string.h>
 #include <math.h>
 
+extern GPU_Target *renderer;
+extern bool shaderOn;
 
 // Loads a shader and prepends version/compatibility info before compiling it.
 // Normally, you can just use GPU_LoadShader() for shader source files or GPU_CompileShader() for strings.
@@ -105,7 +107,9 @@ Uint32 screen_shader;
 GPU_ShaderBlock screen_block;
 void initShader() {
 	screen_block = load_shader_program(&screen_shader, "data/shaders/common.vert", "data/shaders/common.frag");
-	
+	float res[] = { renderer->base_w, renderer->base_h };
+	GPU_SetUniformfv(GPU_GetUniformLocation(screen_shader, "resolution"), 2, 1, &res[0]);
+	GPU_SetUniformi(GPU_GetUniformLocation(screen_shader, "crteffect"), shaderOn);
 }
 
 //void applyShader(GPU_Target *target) {

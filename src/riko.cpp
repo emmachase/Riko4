@@ -62,6 +62,7 @@ int pixelSize = 5;
 int afPixscale = 5;
 
 bool audEnabled = true;
+bool shaderOn = true;
 
 void printLuaError(int result) {
     if (result != 0) {
@@ -328,13 +329,22 @@ int main(int argc, char * argv[]) {
         if (lua_type(configState, -1) == LUA_TBOOLEAN) {
             bundle = lua_toboolean(configState, -1);
         }
+        lua_pop(configState, 1);
 
         lua_pushstring(configState, "scale");
-        lua_gettable(configState, -3);
+        lua_gettable(configState, -2);
 
         if (lua_type(configState, -1) == LUA_TNUMBER) {
             pixelSize = lua_tointeger(configState, -1);
             afPixscale = lua_tointeger(configState, -1);
+        }
+        lua_pop(configState, 1);
+
+        lua_pushstring(configState, "screenshader");
+        lua_gettable(configState, -2);
+
+        if (lua_type(configState, -1) == LUA_TBOOLEAN) {
+            shaderOn = lua_toboolean(configState, -1);
         }
     }
 
@@ -401,9 +411,9 @@ int main(int argc, char * argv[]) {
 
     // SDL_ShowCursor(SDL_DISABLE);
 #ifdef __WINDOWS__
-	ShowCursor(false);
+    ShowCursor(false);
 #else
-	vga_showcursor(0);
+    vga_showcursor(0);
 #endif
 
     if (renderer == NULL) {
@@ -411,20 +421,20 @@ int main(int argc, char * argv[]) {
         return 1;
     }
 
-	buffer = GPU_CreateImage(SCRN_WIDTH, SCRN_HEIGHT, GPU_FORMAT_RGBA);
+    buffer = GPU_CreateImage(SCRN_WIDTH, SCRN_HEIGHT, GPU_FORMAT_RGBA);
 
-	GPU_SetImageFilter(buffer, GPU_FILTER_NEAREST);
+    GPU_SetImageFilter(buffer, GPU_FILTER_NEAREST);
 
-	bufferTarget = GPU_LoadTarget(buffer);
+    bufferTarget = GPU_LoadTarget(buffer);
 
     // SDL_SetRenderDrawColor(renderer, 24, 24, 24, 255);
     GPU_Clear(renderer);
-	
-	initShader();
+    
+    initShader();
 
     GPU_Flip(renderer);
 
-	//GPU_SetFullscreen(true, true);
+    //GPU_SetFullscreen(true, true);
 
     SDL_Surface *surface;
     surface = SDL_LoadBMP("icon.ico");
@@ -620,7 +630,7 @@ int main(int argc, char * argv[]) {
     closeAudio();
 
     // SDL_DestroyRenderer(renderer);
-	GPU_FreeTarget(renderer);
+    GPU_FreeTarget(renderer);
     // SDL_DestroyWindow(window);
 
     GPU_Quit();
