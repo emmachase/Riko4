@@ -28,7 +28,6 @@
 
 #ifndef __WINDOWS__
 #  include <ftw.h>
-#  include <vga.h>
 #endif
 
 #include <sys/types.h>
@@ -408,11 +407,7 @@ int main(int argc, char * argv[]) {
         GPU_DEFAULT_INIT_FLAGS
     );
 
-#ifdef __WINDOWS__
-    ShowCursor(false);
-#else
-    vga_showcursor(0);
-#endif
+    SDL_ShowCursor(SDL_DISABLE);
 
     if (renderer == NULL) {
         printf("Could not create window: %s\n", SDL_GetError());
@@ -437,8 +432,9 @@ int main(int argc, char * argv[]) {
     SDL_Surface *surface;
     surface = SDL_LoadBMP("icon.ico");
 
-    // SDL_SetWindowIcon(window, surface);
-    
+    SDL_Window* window;
+    window = SDL_GetWindowFromID(renderer->renderer->current_context_target->context->windowID);
+    SDL_SetWindowIcon(window, surface);
 
     SDL_Event event;
 

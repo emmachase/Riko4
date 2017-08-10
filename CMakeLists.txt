@@ -26,4 +26,11 @@ if(LUAJIT_FOUND)
     target_link_libraries(riko4 ${LUAJIT_LIBRARIES})
 endif()
 
+find_package(SDL2_gpu REQUIRED)
+
+if(SDL2_gpu_FOUND)
+    include_directories(${SDL2_gpu_INCLUDE_DIR})
+    target_link_libraries(riko4 ${SDL2_gpu_LIBRARY})
+endif()
+
 include_directories(${CMAKE_SOURCE_DIR}/libs/include)

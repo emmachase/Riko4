@@ -17,6 +17,7 @@ addons:
       - luajit
       - libluajit-5.1-2
       - libluajit-5.1-dev
+      - git
 
 install: true
 
@@ -29,5 +30,12 @@ script:
   - export CXX=/usr/bin/g++-6
   # Check versions of gcc, g++ and cmake
   - gcc -v && g++ -v && cmake --version
+  # Get and build SDL_gpu
+  - git clone https://github.com/grimfang4/sdl-gpu.git sdlgpu
+  - cd sdlgpu
   - cmake .
+  - make
+  - cd ..
+  # Build Riko4
+  - cmake -D SDL2_gpu_LIBRARY=sdlgpu/lib/libSDL2_gpu.so .
   - make
