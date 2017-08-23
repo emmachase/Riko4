@@ -105,6 +105,7 @@ static int gpu_blit_pixels(lua_State *L) {
         }
         int color = (int)lua_tointeger(L, -1) - 1;
         if (color == -1) {
+			lua_pop(L, 1);
             continue;
         }
 
