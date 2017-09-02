@@ -31,7 +31,7 @@ local tabInsert = table.insert
 local tabRemove = table.remove
 
 local function exists(filename)
-  local handle = fs.open(filename, "r")
+  local handle = fs.open(filename, "rb")
   if handle then
     handle:close()
     return true
@@ -44,12 +44,14 @@ local filename = args[1]
 local content = {}
 
 local function fsLines(filename)
-  local handle = fs.open(filename, "r")
+  local handle = fs.open(filename, "rb")
   local i = 1
 
   return function()
     local c = handle:read("*l")
     i = i + 1
+
+    print(c)
 
     if c then
       return c
@@ -58,6 +60,18 @@ local function fsLines(filename)
       return nil
     end
   end
+end
+
+local function ccat(tbl, sep)
+  local estr = ""
+  for i = 1, #tbl do
+    estr = estr .. tbl[i]
+    if i ~= #tbl then
+      estr = estr .. sep
+    end
+  end
+
+  return estr
 end
 
 if exists(filename) then
@@ -86,7 +100,7 @@ local menuItems = { "Save", "Exit" }
 local menuFunctions = {
   function() -- SAVE
     local handle = fs.open(filename, "w")
-    handle:write(table.concat(content, "\n"))
+    handle:write(ccat(content, "\n"))
     handle:close()
   end,
   function() -- EXIT

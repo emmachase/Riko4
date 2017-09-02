@@ -266,7 +266,7 @@ static int fsObjWrite(lua_State *L) {
 
 int lineStrlen(char* s, int max) {
     for (int i = 0; i < max; i++) {
-        if (s[i] == '\n') {
+        if (s[i] == '\n' || s[i] == '\r') {
             return i + 1;
         }
     }
@@ -301,7 +301,7 @@ static int fsObjRead(lua_State *L) {
         fgets(dataBuf, FS_LINE_INCR, data->fileStream);
 
         size_t dataBufLen = lineStrlen(dataBuf, FS_LINE_INCR);
-        if (dataBuf[dataBufLen - 1] == '\n') {
+        if (dataBuf[dataBufLen - 1] == '\n' || dataBuf[dataBufLen - 1] == '\r') {
             lua_pushlstring(L, dataBuf, dataBufLen - 1);
             free(dataBuf);
             return 1;
@@ -321,7 +321,11 @@ static int fsObjRead(lua_State *L) {
 
             st = ftell(data->fileStream);
 
-            fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->fileStream);
+			if (fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->fileStream) == NULL) {
+				lua_pushnil(L);
+				free(dataBuf);
+				return 1;
+			}
 
             size_t dataBufLen = lineStrlen(dataBuf, bufLen / sizeof(char));
             if (dataBuf[dataBufLen - 1] == '\n') {
@@ -375,7 +379,7 @@ static int fsObjRead(lua_State *L) {
                 fgets(dataBuf, FS_LINE_INCR, data->fileStream);
 
                 size_t dataBufLen = lineStrlen(dataBuf, FS_LINE_INCR);
-                if (dataBuf[dataBufLen - 1] == '\n') {
+                if (dataBuf[dataBufLen - 1] == '\n' || dataBuf[dataBufLen - 1] == '\r') {
                     lua_pushlstring(L, dataBuf, dataBufLen - 1);
                     free(dataBuf);
                     return 1;
@@ -395,10 +399,14 @@ static int fsObjRead(lua_State *L) {
                     
                     st = ftell(data->fileStream);
 
-                    fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->fileStream);
+                    if (fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->fileStream) == NULL) {
+						lua_pushnil(L);
+						free(dataBuf);
+						return 1;
+					}
 
                     size_t dataBufLen = lineStrlen(dataBuf, bufLen / sizeof(char));
-                    if (dataBuf[dataBufLen - 1] == '\n') {
+                    if (dataBuf[dataBufLen - 1] == '\n' || dataBuf[dataBufLen - 1] == '\r') {
                         lua_pushlstring(L, dataBuf, dataBufLen - 1);
                         free(dataBuf);
                         return 1;
