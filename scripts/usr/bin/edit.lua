@@ -51,8 +51,6 @@ local function fsLines(filename)
     local c = handle:read("*l")
     i = i + 1
 
-    print(c)
-
     if c then
       return c
     else
