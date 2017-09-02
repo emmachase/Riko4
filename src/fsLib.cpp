@@ -319,6 +319,8 @@ static int fsObjRead(lua_State *L) {
             dataBuf = (char*)realloc(dataBuf, bufLen);
             if (dataBuf == NULL) return luaL_error(L, "unable to allocate enough memory for read operation");
 
+            st = ftell(data->fileStream);
+
             fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->fileStream);
 
             size_t dataBufLen = lineStrlen(dataBuf, bufLen / sizeof(char));
@@ -390,6 +392,8 @@ static int fsObjRead(lua_State *L) {
                     bufLen += sizeof(char) * FS_LINE_INCR;
                     dataBuf = (char*)realloc(dataBuf, bufLen);
                     if (dataBuf == NULL) return luaL_error(L, "unable to allocate enough memory for read operation");
+                    
+                    st = ftell(data->fileStream);
 
                     fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->fileStream);
 
