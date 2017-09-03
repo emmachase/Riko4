@@ -89,6 +89,7 @@ typedef struct {
     FILE *fileStream;
     bool open;
     bool canWrite;
+    bool eof;
 } fileHandleType;
 
 static fileHandleType *checkFsObj(lua_State *L) {
@@ -237,9 +238,10 @@ static int fsOpenFile(lua_State *L) {
     lua_setmetatable(L, -2);
 
     *outObj = {
-        fileHandle_o, 
+        fileHandle_o,
         true,
-        mode[0] != 'r'
+        mode[0] != 'r',
+        false
     };
 
     return 1;
@@ -283,7 +285,13 @@ static int fsObjRead(lua_State *L) {
     if (data->canWrite)
         return luaL_error(L, "file is open for writing");
     
+    if (data->eof) {
+        lua_pushnil(L);
+        return 1;
+    }
+
     if (feof(data->fileStream)) {
+        data->eof = true;
         lua_pushnil(L);
         return 1;
     }
@@ -298,7 +306,11 @@ static int fsObjRead(lua_State *L) {
 
         int st = ftell(data->fileStream);
 
-        fgets(dataBuf, FS_LINE_INCR, data->fileStream);
+        if (fgets(dataBuf, FS_LINE_INCR, data->fileStream) == NULL) {
+            lua_pushstring(L, "");
+            free(dataBuf);
+            return 1;
+        }
 
         size_t dataBufLen = lineStrlen(dataBuf, FS_LINE_INCR);
         if (dataBuf[dataBufLen - 1] == '\n' || dataBuf[dataBufLen - 1] == '\r') {
@@ -306,6 +318,7 @@ static int fsObjRead(lua_State *L) {
             free(dataBuf);
             return 1;
         } else if (feof(data->fileStream)) {
+            data->eof = true;
             dataBufLen = ftell(data->fileStream);
             lua_pushlstring(L, dataBuf, dataBufLen - st);
             free(dataBuf);
@@ -321,11 +334,11 @@ static int fsObjRead(lua_State *L) {
 
             st = ftell(data->fileStream);
 
-			if (fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->fileStream) == NULL) {
-				lua_pushnil(L);
-				free(dataBuf);
-				return 1;
-			}
+            if (fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->fileStream) == NULL) {
+                lua_pushstring(L, "");
+                free(dataBuf);
+                return 1;
+            }
 
             size_t dataBufLen = lineStrlen(dataBuf, bufLen / sizeof(char));
             if (dataBuf[dataBufLen - 1] == '\n') {
@@ -333,6 +346,7 @@ static int fsObjRead(lua_State *L) {
                 free(dataBuf);
                 return 1;
             } else if (feof(data->fileStream)) {
+                data->eof = true;
                 dataBufLen = ftell(data->fileStream);
                 lua_pushlstring(L, dataBuf, dataBufLen - st);
                 free(dataBuf);
@@ -364,6 +378,8 @@ static int fsObjRead(lua_State *L) {
 
                 lua_pushlstring(L, dataBuf, result);
 
+                data->eof = true;
+
                 free(dataBuf);
 
                 return 1;
@@ -376,7 +392,11 @@ static int fsObjRead(lua_State *L) {
 
                 int st = ftell(data->fileStream);
 
-                fgets(dataBuf, FS_LINE_INCR, data->fileStream);
+                if (fgets(dataBuf, FS_LINE_INCR, data->fileStream) == NULL) {
+                    lua_pushstring(L, "");
+                    free(dataBuf);
+                    return 1;
+                }
 
                 size_t dataBufLen = lineStrlen(dataBuf, FS_LINE_INCR);
                 if (dataBuf[dataBufLen - 1] == '\n' || dataBuf[dataBufLen - 1] == '\r') {
@@ -384,6 +404,7 @@ static int fsObjRead(lua_State *L) {
                     free(dataBuf);
                     return 1;
                 } else if (feof(data->fileStream)) {
+                    data->eof = true;
                     dataBufLen = ftell(data->fileStream);
                     lua_pushlstring(L, dataBuf, dataBufLen - st);
                     free(dataBuf);
@@ -400,10 +421,10 @@ static int fsObjRead(lua_State *L) {
                     st = ftell(data->fileStream);
 
                     if (fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->fileStream) == NULL) {
-						lua_pushnil(L);
-						free(dataBuf);
-						return 1;
-					}
+                        lua_pushstring(L, "");
+                        free(dataBuf);
+                        return 1;
+                    }
 
                     size_t dataBufLen = lineStrlen(dataBuf, bufLen / sizeof(char));
                     if (dataBuf[dataBufLen - 1] == '\n' || dataBuf[dataBufLen - 1] == '\r') {
@@ -411,6 +432,7 @@ static int fsObjRead(lua_State *L) {
                         free(dataBuf);
                         return 1;
                     } else if (feof(data->fileStream)) {
+                        data->eof = true;
                         dataBufLen = ftell(data->fileStream);
                         lua_pushlstring(L, dataBuf, dataBufLen - st);
                         free(dataBuf);

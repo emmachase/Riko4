@@ -210,6 +210,13 @@ static int gpu_clear(lua_State *L) {
     return 0;
 }
 
+static int gpu_set_fullscreen(lua_State *L) {
+	bool fsc = lua_toboolean(L, 1);
+	GPU_SetFullscreen(fsc, true);
+
+	return 0;
+}
+
 static int gpu_swap(lua_State *L) {
     GPU_Clear(renderer);
 
@@ -231,6 +238,7 @@ static const luaL_Reg gpuLib[] = {
     { "drawPixel", gpu_draw_pixel },
     { "drawRectangle", gpu_draw_rectangle },
     { "blitPixels", gpu_blit_pixels },
+	{ "setFullscreen", gpu_set_fullscreen },
     { "clear", gpu_clear },
     { "swap", gpu_swap },
     {NULL, NULL}
