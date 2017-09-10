@@ -15,6 +15,8 @@ local syntaxTheme = {
   catch = 16       -- everything else is white
 }
 
+local rif = dofile("/lib/rif.lua")
+
 local width, height = gpu.width, gpu.height
 
 local args = {...}
@@ -25,6 +27,17 @@ if #args < 1 then
   else
     error("Syntax: edit <filename>", 2)
   end
+end
+
+local mposx, mposy = -5, -5
+
+local cur
+do
+  local curRIF = "\82\73\86\2\0\6\0\7\1\0\0\0\0\0\0\0\0\0\0\1\0\0\31\16\0\31\241\0\31\255\16\31\255\241\31\241\16\1\31\16\61\14\131\0\24\2"
+  local rifout, cw, ch = rif.decode1D(curRIF)
+  cur = image.newImage(cw, ch)
+  cur:blitPixels(0, 0, cw, ch, rifout)
+  cur:flush()
 end
 
 local tabInsert = table.insert
@@ -344,6 +357,8 @@ local function drawContent()
   end
 
   drawCursor()
+
+  cur:render(mposx, mposy)
 end
 
 local function checkDrawBounds()
@@ -477,6 +492,8 @@ local function processEvent(e, p1, p2)
         end
       end
     end
+  elseif e == "mouseMoved" then
+    mposx, mposy = p1, p2
   elseif e == "mousePressed" or (e == "mouseMoved" and mouseDown) then
     mouseDown = true
     local x, y = p1, p2

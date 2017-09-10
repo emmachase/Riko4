@@ -4,8 +4,8 @@
 
 #define OPEN_FS_DESC 128
 
-#define SCRN_WIDTH 320
-#define SCRN_HEIGHT 180
+#define SCRN_WIDTH 280
+#define SCRN_HEIGHT 160
 
 #define sane_NUM_SCANCODES 512
 

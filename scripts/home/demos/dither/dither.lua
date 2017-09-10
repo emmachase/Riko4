@@ -6,6 +6,7 @@
 --  (1/32)
 
 local bitmap = dofile("/lib/bitmap.lua")
+local rif = dofile("/lib/rif.lua")
 
 local file = ({...})[1] or "land.bmp"
 
@@ -90,6 +91,10 @@ for i=1, ditherImage.height do
     addToFA(t, j + 2, i + 1, pa*2, pb*2, pc*2)
   end
 end
+
+local handle = fs.open(file .. ".rif", "w")
+handle:write(rif.encode(dithered, ditherImage.width, ditherImage.height))
+handle:close()
 
 while true do
   gpu.clear()

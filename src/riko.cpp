@@ -608,6 +608,8 @@ int main(int argc, char * argv[]) {
                     canRun = false;
                 } else if (result != LUA_YIELD) {
                     printLuaError(result);
+                    puts(lua_tostring(mainThread, -1));
+
                     canRun = false;
                     exitCode = 1;
                 }
