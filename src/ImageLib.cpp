@@ -1,5 +1,7 @@
 #define LUA_LIB
 
+#include <cstdlib>
+
 #include "rikoImage.h"
 
 #include <LuaJIT/lua.hpp>
@@ -14,6 +16,11 @@ extern GPU_Target *renderer;
 extern int pixelSize;
 extern int palette[16][3];
 extern int paletteNum;
+
+extern int drawOffX;
+extern int drawOffY;
+
+#define off(o, t) o - drawOffX, t - drawOffY
 
 typedef struct {
     int width;
@@ -127,7 +134,7 @@ static int renderImage(lua_State *L) {
     int x = luaL_checkint(L, 2);
     int y = luaL_checkint(L, 3);
 
-    GPU_Rect rect = { x, y };
+    GPU_Rect rect = { off(x, y) };
 
     int top = lua_gettop(L);
     if (top > 7) {
@@ -336,6 +343,14 @@ static int imageCopy(lua_State *L) {
     return 0;
 }
 
+static int imageGetPixel(lua_State *L) {
+    imageType *data = checkImage(L);
+    int x = luaL_checkint(L, 3);
+    int y = luaL_checkint(L, 4);
+    lua_pushinteger(L, data->internalRep[x][y] + 1);
+    return 1;
+}
+
 static int imageToString(lua_State *L) {
     imageType *data = checkImage(L);
     if (data->free) {
@@ -360,6 +375,7 @@ static const luaL_Reg imageLib_m[] = {
     { "drawPixel", imageDrawPixel },
     { "drawRectangle", imageDrawRectangle },
     { "blitPixels", imageBlitPixels },
+    { "getPixel", imageGetPixel },
     { "copy", imageCopy },
     { NULL, NULL }
 };

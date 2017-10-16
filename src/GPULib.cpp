@@ -47,6 +47,11 @@ int palette[16][3] = {
 
 int paletteNum = 0;
 
+int drawOffX = 0;
+int drawOffY = 0;
+
+#define off(o, t) o - drawOffX, t - drawOffY
+
 static int getColor(lua_State *L, int arg) {
     int color = luaL_checkint(L, arg) - 1;
     return color < 0 ? 0 : (color > 15 ? 15 : color);
@@ -60,8 +65,7 @@ static int gpu_draw_pixel(lua_State *L) {
 
     SDL_Color colorS = {palette[(int)color][0], palette[(int)color][1], palette[(int)color][2], 255};
 
-    
-    GPU_RectangleFilled(bufferTarget, x, y, (x + 1), (y + 1), colorS);
+    GPU_RectangleFilled(bufferTarget, off(x, y), off(x + 1, y + 1), colorS);
 
     return 0;
 }
@@ -73,7 +77,7 @@ static int gpu_draw_rectangle(lua_State *L) {
     int y = luaL_checkint(L, 2);
 
     GPU_Rect rect = {
-        x, y,
+        off(x, y),
         (luaL_checkint(L, 3)),
         (luaL_checkint(L, 4))
     };
@@ -105,7 +109,7 @@ static int gpu_blit_pixels(lua_State *L) {
         }
         int color = (int)lua_tointeger(L, -1) - 1;
         if (color == -1) {
-			lua_pop(L, 1);
+            lua_pop(L, 1);
             continue;
         }
 
@@ -115,8 +119,8 @@ static int gpu_blit_pixels(lua_State *L) {
         int yp = (int)((i - 1) / (int) w);
         
         GPU_Rect rect = {
-            (x + xp),
-            (y + yp),
+            off(x + xp,
+                y + yp),
             1, 1
         };
 
@@ -210,11 +214,51 @@ static int gpu_clear(lua_State *L) {
     return 0;
 }
 
-static int gpu_set_fullscreen(lua_State *L) {
-	bool fsc = lua_toboolean(L, 1);
-	GPU_SetFullscreen(fsc, true);
+int* translateStack;
+int tStackUsed = 0;
+int tStackSize = 32;
 
-	return 0;
+static int gpu_translate(lua_State *L) {
+    drawOffX -= luaL_checkint(L, -2);
+    drawOffY -= luaL_checkint(L, -1);
+
+    return 0;
+}
+
+static int gpu_push(lua_State *L) {
+    if (tStackUsed == tStackSize) {
+        tStackSize *= 2;
+        translateStack = (int *)realloc(translateStack, tStackSize * sizeof(int));
+    }
+
+    translateStack[tStackUsed]     = drawOffX;
+    translateStack[tStackUsed + 1] = drawOffY;
+
+    tStackUsed += 2;
+
+    return 0;
+}
+
+static int gpu_pop(lua_State *L) {
+    if (tStackUsed > 0) {
+        tStackUsed -= 2;
+
+        drawOffX = translateStack[tStackUsed];
+        drawOffY = translateStack[tStackUsed + 1];
+
+        lua_pushboolean(L, true);
+        return 1;
+    } else {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+}
+
+static int gpu_set_fullscreen(lua_State *L) {
+    bool fsc = lua_toboolean(L, 1);
+    GPU_SetFullscreen(fsc, true);
+
+    return 0;
 }
 
 static int gpu_swap(lua_State *L) {
@@ -238,13 +282,18 @@ static const luaL_Reg gpuLib[] = {
     { "drawPixel", gpu_draw_pixel },
     { "drawRectangle", gpu_draw_rectangle },
     { "blitPixels", gpu_blit_pixels },
-	{ "setFullscreen", gpu_set_fullscreen },
+    { "translate", gpu_translate },
+    { "push", gpu_push },
+    { "pop", gpu_pop },
+    { "setFullscreen", gpu_set_fullscreen },
     { "clear", gpu_clear },
     { "swap", gpu_swap },
     {NULL, NULL}
 };
 
 LUALIB_API int luaopen_gpu(lua_State *L) {
+    translateStack = (int *)malloc(32 * sizeof(int));
+
     luaL_openlib(L, RIKO_GPU_NAME, gpuLib, 0);
     lua_pushnumber(L, SCRN_WIDTH);
     lua_setfield(L, -2, "width");

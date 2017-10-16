@@ -370,8 +370,8 @@ int main(int argc, char * argv[]) {
         s.wFunc = FO_COPY;
         s.pTo = scriptsPath;
         s.pFrom = ".\\scripts";
-        s.fFlags = FOF_SILENT | FOF_NOCONFIRMMKDIR | FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_NO_UI;
-        int res = SHFileOperation(&s);
+        s.fFlags = FOF_SILENT | FOF_NOCONFIRMMKDIR | FOF_NOCONFIRMATION | FOF_NOERRORUI;
+        int res = SHFileOperationA(&s);
 
         if (res != 0) {
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Was unable to perform first-time scripts setup, quitting..");
@@ -435,6 +435,8 @@ int main(int argc, char * argv[]) {
     SDL_Window* window;
     window = SDL_GetWindowFromID(renderer->renderer->current_context_target->context->windowID);
     SDL_SetWindowIcon(window, surface);
+
+    SDL_SetWindowTitle(window, "Riko4");
 
     SDL_Event event;
 
