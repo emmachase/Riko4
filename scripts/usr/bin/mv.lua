@@ -1,3 +1,6 @@
+--HELP: \b6Usage: \b16mv \b7[\b16src\b7] [\b16dest\b7] \n
+-- \b6Description: \b7Moves \b16src \b7to \b17dest
+
 local args = {...}
 local from = args[1]
 local to = args[2]

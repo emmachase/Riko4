@@ -60,16 +60,18 @@ local coreFont = font.new(data)
 gpu.font = coreFont
 
 function write(t, x, y, col, target)
+  local fnt = gpu.font.data
+
   t = tostring(t)
   col = col or 16
   local xoff = 0
   for i=1, #t do
     local text = t:sub(i, i)
     local c = string.byte(text)
-    if gpu.font.data[c] then
+    if fnt[c] then
       for j=1, 7 do
         for k=1, 7 do
-          if gpu.font.data[c][j][k] then
+          if fnt[c][j][k] then
             local dx = x + xoff + k
             local dy = y + j
             if target then

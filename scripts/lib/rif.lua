@@ -37,10 +37,10 @@ function rif.encode(pixels, w, h)
         sp = 1
       end
 
-      transmap[#transmap + 1] = fp < 0
-      transmap[#transmap + 1] = sp < 0
-      fp = fp < 0 and 0 or fp - 1
-      sp = sp < 0 and 0 or sp - 1
+      transmap[#transmap + 1] = fp <= 0
+      transmap[#transmap + 1] = sp <= 0
+      fp = fp <= 0 and 0 or fp - 1
+      sp = sp <= 0 and 0 or sp - 1
 
       local cstr = bit.bor(bit.lshift(fp, 4), sp)
       output = output .. string.char(cstr)
@@ -63,7 +63,7 @@ function rif.encode(pixels, w, h)
       if not sp then
         -- We have enough pixels, but we've an odd number of pixels so
         -- add a padding buffer, doesn't really matter what color it is.
-        sp = 1
+        sp = 6
         if pad then
           error("More than one padding occurred!", 2)
         end
@@ -91,6 +91,9 @@ function rif.encode(pixels, w, h)
     end
 
     bytes[#bytes + 1] = string.char(byte)
+    if not string.char(byte) then
+      error("SOMEOTHJISHEITHENF SEJFOISEJF")
+    end
   end
 
   return output .. table.concat(bytes, "")
@@ -162,7 +165,7 @@ function rif.createImage(filenameOrRifData, wa, ha)
   image:blitPixels(0, 0, w, h, rifData)
   image:flush()
 
-  return image
+  return image, w, h
 end
 
 return rif

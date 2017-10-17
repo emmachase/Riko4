@@ -1,19 +1,19 @@
 local running = true
 
-local rif = dofile("../lib/rif.lua")
+local rif = dofile("/lib/rif.lua")
 
 local width, height = gpu.width, gpu.height
 
--- local curRIF = "\82\73\86\2\0\5\0\5\1\0\0\0\0\0\0\0\0\0\0\0\0\0\240\0\0\240\0\0\240\0\0\0\24\130\48\0"
--- local cur = image.newImage(5, 5)
--- cur:blitPixels(0, 0, 5, 5, rif.decode1D(curRIF))
+local curRIF = "\82\73\86\2\0\6\0\7\1\0\0\0\0\0\0\0\0\0\0\1\0\0\31\16\0\31\241\0\31\255\16\31\255\241\31\241\16\1\31\16\61\14\131\0\24\2"
+local rifout, cw, ch = rif.decode1D(curRIF)
+local cur = image.newImage(cw, ch)
+cur:blitPixels(0, 0, cw, ch, rifout)
+cur:flush()
 
-local cur = rif.createImage("curs.rif")
-
-local sheet = rif.createImage("pactex.rif")
+local sheet = rif.createImage("/home/games/mine/flag.rif")
 local shw = 8
 local shh = 5
-local pxs = 24
+local pxs = 8
 
 local barW = 4
 
@@ -50,16 +50,16 @@ local function processEvent(e, ...)
       mstate = (mstate % 2) + 1
     elseif x >= off then
       local transX = x - off
-      local indexX = math.ceil(transX / 24)
-      local indexY = math.ceil((y - winScroll) / 24)
+      local indexX = math.ceil(transX / pxs)
+      local indexY = math.ceil((y - winScroll) / pxs)
       sel = {indexX, indexY}
     else
       if b == 1 then
         local p, p2 = transformSSC()
-        board[#board + 1] = {x = math.floor(x / 24), y = math.floor(y / 24), spx = p, spy = p2}
+        board[#board + 1] = {x = math.floor(x / pxs), y = math.floor(y / pxs), spx = p, spy = p2}
       elseif b == 3 then
         for i = 1, #board do
-          if board[i].x == math.floor(x / 24) and board[i].y == math.floor(y / 24) then
+          if board[i].x == math.floor(x / pxs) and board[i].y == math.floor(y / pxs) then
             table.remove(board, i)
             break
           end
@@ -85,11 +85,11 @@ end
 
 local function draw()
   for i = 1, #board do
-    sheet:render(board[i].x * 24, board[i].y * 24, board[i].spx, board[i].spy, pxs, pxs)
+    sheet:render(board[i].x * pxs, board[i].y * pxs, board[i].spx, board[i].spy, pxs, pxs)
   end
 
   local p, p2 = transformSSC()
-  sheet:render(math.floor(mouse[1] / 24) * 24, math.floor(mouse[2] / 24) * 24, p, p2, pxs, pxs)
+  sheet:render(math.floor(mouse[1] / pxs) * pxs, math.floor(mouse[2] / pxs) * pxs, p, p2, pxs, pxs)
 
   gpu.drawRectangle(off, 0, pxs * barW, height, 7)
   gpu.drawRectangle(off - 5, 0, 5, height, 6)

@@ -35,6 +35,8 @@
 
 #include <SDL2/SDL.h>
 
+#include <SDL_gpu/SDL_gpu.h>
+
 #include <LuaJIT/lua.hpp>
 
 #include "rikoConsts.h"
@@ -43,9 +45,11 @@
 #include "rikoGPU.h"
 #include "rikoAudio.h"
 #include "rikoImage.h"
+#include "shader.h"
 
-SDL_Window *window;
-SDL_Renderer *renderer;
+GPU_Image *buffer;
+GPU_Target *renderer;
+GPU_Target *bufferTarget;
 
 lua_State *mainThread;
 
@@ -56,6 +60,7 @@ int pixelSize = 5;
 int afPixscale = 5;
 
 bool audEnabled = true;
+bool shaderOn = true;
 
 void printLuaError(int result) {
     if (result != 0) {
@@ -322,13 +327,22 @@ int main(int argc, char * argv[]) {
         if (lua_type(configState, -1) == LUA_TBOOLEAN) {
             bundle = lua_toboolean(configState, -1);
         }
+        lua_pop(configState, 1);
 
         lua_pushstring(configState, "scale");
-        lua_gettable(configState, -3);
+        lua_gettable(configState, -2);
 
         if (lua_type(configState, -1) == LUA_TNUMBER) {
             pixelSize = lua_tointeger(configState, -1);
             afPixscale = lua_tointeger(configState, -1);
+        }
+        lua_pop(configState, 1);
+
+        lua_pushstring(configState, "screenshader");
+        lua_gettable(configState, -2);
+
+        if (lua_type(configState, -1) == LUA_TBOOLEAN) {
+            shaderOn = lua_toboolean(configState, -1);
         }
     }
 
@@ -356,8 +370,8 @@ int main(int argc, char * argv[]) {
         s.wFunc = FO_COPY;
         s.pTo = scriptsPath;
         s.pFrom = ".\\scripts";
-        s.fFlags = FOF_SILENT | FOF_NOCONFIRMMKDIR | FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_NO_UI;
-        int res = SHFileOperation(&s);
+        s.fFlags = FOF_SILENT | FOF_NOCONFIRMMKDIR | FOF_NOCONFIRMATION | FOF_NOERRORUI;
+        int res = SHFileOperationA(&s);
 
         if (res != 0) {
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Was unable to perform first-time scripts setup, quitting..");
@@ -386,33 +400,43 @@ int main(int argc, char * argv[]) {
         }
     }
 
-    window = SDL_CreateWindow(
-        "Riko4",
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
+    renderer = GPU_Init(
+        // "Riko4",
         SCRN_WIDTH  * pixelSize,
         SCRN_HEIGHT * pixelSize,
-        SDL_WINDOW_OPENGL
+        GPU_DEFAULT_INIT_FLAGS
     );
 
     SDL_ShowCursor(SDL_DISABLE);
 
-    if (window == NULL) {
+    if (renderer == NULL) {
         printf("Could not create window: %s\n", SDL_GetError());
         return 1;
     }
 
-    renderer = SDL_CreateRenderer(window, -1, 
-        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    buffer = GPU_CreateImage(SCRN_WIDTH, SCRN_HEIGHT, GPU_FORMAT_RGBA);
 
-    SDL_SetRenderDrawColor(renderer, 24, 24, 24, 255);
-    SDL_RenderClear(renderer);
-    SDL_RenderPresent(renderer);
+    GPU_SetBlending(buffer, GPU_FALSE);
+    GPU_SetImageFilter(buffer, GPU_FILTER_NEAREST);
+
+    bufferTarget = GPU_LoadTarget(buffer);
+
+    GPU_Clear(renderer);
+    
+    initShader();
+
+    GPU_Flip(renderer);
+
+    //GPU_SetFullscreen(true, true);
 
     SDL_Surface *surface;
     surface = SDL_LoadBMP("icon.ico");
 
+    SDL_Window* window;
+    window = SDL_GetWindowFromID(renderer->renderer->current_context_target->context->windowID);
     SDL_SetWindowIcon(window, surface);
+
+    SDL_SetWindowTitle(window, "Riko4");
 
     SDL_Event event;
 
@@ -586,6 +610,8 @@ int main(int argc, char * argv[]) {
                     canRun = false;
                 } else if (result != LUA_YIELD) {
                     printLuaError(result);
+                    puts(lua_tostring(mainThread, -1));
+
                     canRun = false;
                     exitCode = 1;
                 }
@@ -602,9 +628,9 @@ int main(int argc, char * argv[]) {
 
     closeAudio();
 
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
+    GPU_FreeTarget(renderer);
 
+    GPU_Quit();
     SDL_Quit();
 
     return exitCode;

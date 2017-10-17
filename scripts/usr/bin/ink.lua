@@ -1,3 +1,6 @@
+--HELP: \b6Usage: \b16ink \n
+-- \b6Description: \b7Image / Spritesheet editor
+
 local RIF = dofile("/lib/rif.lua")
 
 local scrnWidth, scrnHeight = gpu.width, gpu.height
@@ -41,7 +44,8 @@ local locale = {
     select = "Select",
     copied = "Copied",
     pasted = "Pasted",
-    noclip = "No clipboard data"
+    noclip = "No clipboard data",
+    resize = "Resize"
   }
 }
 
@@ -68,15 +72,15 @@ do
   transMatte:blitPixels(0, 0, scrnWidth + 11, scrnHeight + 11, transBuffer)
   transMatte:flush()
 
-  checkMatte = image.newImage(scrnWidth + 1, scrnHeight + 1)
-  local checkBuffer = {}
-  for i = 1, scrnWidth + 1 do
-    for j = 1, scrnHeight + 1 do
-      checkBuffer[(j - 1)*(scrnWidth + 1) + i] = ((i + j) % 2 == 1) and 16 or 1
-    end
-  end
-  checkMatte:blitPixels(0, 0, scrnWidth + 1, scrnHeight + 1, checkBuffer)
-  checkMatte:flush()
+  -- checkMatte = image.newImage(scrnWidth + 1, scrnHeight + 1)
+  -- local checkBuffer = {}
+  -- for i = 1, scrnWidth + 1 do
+  --   for j = 1, scrnHeight + 1 do
+  --     checkBuffer[(j - 1)*(scrnWidth + 1) + i] = ((i + j) % 2 == 1) and 16 or 1
+  --   end
+  -- end
+  -- checkMatte:blitPixels(0, 0, scrnWidth + 1, scrnHeight + 1, checkBuffer)
+  -- checkMatte:flush()
 end
 
 local canvArea = image.newImage(scrnWidth, scrnHeight - 20)
@@ -201,10 +205,10 @@ local clipboard = {w = 0, h = 0, full = false, prev = false, data = {}}
 
 local mouseDown = {false, false, false}
 
-local toolPalette = window.new(locale[lang].tools, 60, 80, 340 - 65, 60)
+local toolPalette = window.new(locale[lang].tools, 60, 80, scrnWidth - 65, 60)
 local colorPalette = window.new(locale[lang].colors, 6*4 + 20, 6*4, 4, 60)
-local pathDialog = window.new(locale[lang].save, 100, 20, 6, 200 - 46)
-local newDialog = window.new(locale[lang].new, 99, 24, 6, 200 - 50)
+local pathDialog = window.new(locale[lang].save, 100, 20, 6, scrnHeight - 46)
+local newDialog = window.new(locale[lang].new, 99, 24, 6, scrnHeight - 50)
 
 local pathVars = {
   str = "",
@@ -220,6 +224,7 @@ local newVars = {
   hnum = "",
   cposw = 0,
   cposh = 0,
+  which = 1,
   visible = false,
   time = os.clock(),
   focus = false,
@@ -245,14 +250,27 @@ local secColor = 9
 local workingImage = {}
 local dispImage
 
-local function constructImage()
-  workingImage = {}
+local function constructImage(over)
+  -- workingImage = {}
   for i = 1, imgWidth do
     workingImage[i] = {}
     for j = 1, imgHeight do
-      workingImage[i][j] = 0
+      if (over and not workingImage[i][j]) or (not over) then
+        workingImage[i][j] = 0
+      end
     end
   end
+
+  for i = imgWidth + 1, #workingImage do
+    if i > imgWidth then
+      workingImage[i] = nil
+    else
+      for j = 1, imgHeight do
+        workingImage[i][j] = nil
+      end
+    end
+  end
+
   dispImage = image.newImage(imgWidth, imgHeight)
 end
 constructImage()
@@ -281,7 +299,7 @@ local function saveImage(name)
   end
 
   local oData = RIF.encode(workingImage, imgWidth, imgHeight)
-  local handle = fs.open(name, "w")
+  local handle = fs.open(name, "wb")
   if not handle then
     status = locale[lang].failSave
     statusPos = statusRest
@@ -443,6 +461,16 @@ local function propSel()
   toolVars.select.endy = math.max(toolVars.select.isy, toolVars.select.iey)
 end
 
+local function count(t)
+  local n = 0
+
+  for _ in pairs(t) do
+    n = n + 1
+  end
+
+  return n
+end
+
 local toolList = {
   {
     name = locale[lang].pencil,
@@ -452,7 +480,6 @@ local toolList = {
     end,
     mouseUp = function(x, y, b)
       toolVars.pencil.mouseDown[b] = false
-      drawQ(x, y, b)
     end,
     mouseMoved = function(x, y)
       toolVars.pencil.mposx = x
@@ -480,13 +507,6 @@ local toolList = {
     end,
     mouseUp = function(x, y, b)
       toolVars.eraser.mouseDown[b] = false
-      local tx, ty = convertScrn2I(x, y)
-      if tx >= 0 and ty >= 0 and tx < imgWidth and ty < imgHeight and b == 1 then
-        workingImage[tx + 1][ty + 1] = 0
-        dispImage:clear()
-        dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage))
-        dispImage:flush()
-      end
     end,
     mouseMoved = function(x, y)
       toolVars.eraser.mposx = x
@@ -566,6 +586,11 @@ local toolList = {
         propSel()
 
         toolVars.select.mouseDown = false
+
+        if toolVars.select.isx == toolVars.select.iex and
+           toolVars.select.isy == toolVars.select.iey then
+          toolVars.select.exists = false
+        end
       end
     end,
     mouseMoved = function(x, y)
@@ -590,7 +615,7 @@ local toolList = {
 
       gpu.drawRectangle((transX * zoomFactor) + drawOffX - 1, (transY * zoomFactor) + drawOffY + 10 + (zoomFactor / 2 - 0.5),
         1, ((zoomFactor + 1) % 2) + 1, primColor)
-      gpu.drawRectangle(((transX + 1) * zoomFactor) + drawOffX - 1, (transY * zoomFactor) + drawOffY + 10 + (zoomFactor / 2 - 0.5),
+      gpu.drawRectangle(((transX + 1) * zoomFactor) + drawOffX, (transY * zoomFactor) + drawOffY + 10 + (zoomFactor / 2 - 0.5),
         1, ((zoomFactor + 1) % 2) + 1, primColor)
     end
   }
@@ -691,12 +716,14 @@ local function openPath(mode, str)
   newVars.focus = false
 end
 
-local function openNew()
+local function openNew(which, str)
   newVars.visible = true
   newVars.focus = true
   newVars.mode = 1
+  newVars.which = which
   newVars.str = csaved or ""
   newVars.cpos = #newVars.str
+  newDialog.title = locale[lang][str]
 
   pathVars.visible = false
   pathVars.focus = false
@@ -708,7 +735,7 @@ local toolbar = {
   {
     name = locale[lang].file,
     actions = {
-      {locale[lang].new, function() openNew() end},
+      {locale[lang].new, function() openNew(1, "new") end},
       {locale[lang].save, function() if csaved then saveImage(csaved) else openPath(1, "save") end end},
       {locale[lang].saveas, function() openPath(1, "save") end},
       {locale[lang].load, function() openPath(2, "load") end},
@@ -718,6 +745,7 @@ local toolbar = {
   {
     name = locale[lang].edit,
     actions = {
+      {locale[lang].resize, function() openNew(2, "resize") end},
       {locale[lang].undo},
       {locale[lang].redo},
       {locale[lang].cut},
@@ -754,6 +782,28 @@ do
   end
 end
 
+local rectT = 0
+local function outRect(x, y, w, h)
+  rectT = (rectT + 1) % 16
+  if w > 0 and h > 0 then
+    gpu.drawRectangle(x, y, w, 1, 16)
+    gpu.drawRectangle(x, y + h - 1, w, 1, 16)
+    
+    for i = math.floor(rectT / 4), w - 1, 4 do
+      gpu.drawPixel(x + i, y, 1)
+      gpu.drawPixel(x + w - i, y + h - 1, 1)
+    end
+
+    gpu.drawRectangle(x, y, 1, h, 16)
+    gpu.drawRectangle(x + w - 1, y, 1, h, 16)
+
+    for i = math.floor(rectT / 4), h - 1, 4 do
+      gpu.drawPixel(x, y + h - i, 1)
+      gpu.drawPixel(x + w - 1, y + i, 1)
+    end
+  end
+end
+
 local function repaintCanv()
   canvArea:clear()
 
@@ -787,30 +837,34 @@ local function drawContent()
   end
 
   TEMPFRIGGINI = TEMPFRIGGINI % 8 + 1
-  if toolVars.select.exists then
-    checkMatte:render(
-      (toolVars.select.locx) * zoomFactor + drawOffX,
-      (toolVars.select.locy) * zoomFactor + drawOffY + 10,
-      TEMPFRIGGINI / 4, 0,
-      (toolVars.select.endx - toolVars.select.locx + 1) * zoomFactor, 1)
+  if toolVars.select.exists and toolList[selectedTool].name == locale[lang].select then
+    -- checkMatte:render(
+    --   (toolVars.select.locx) * zoomFactor + drawOffX,
+    --   (toolVars.select.locy) * zoomFactor + drawOffY + 10,
+    --   TEMPFRIGGINI / 4, 0,
+    --   (toolVars.select.endx - toolVars.select.locx + 1) * zoomFactor, 1)
 
-    checkMatte:render(
-      (toolVars.select.locx) * zoomFactor + drawOffX,
-      (toolVars.select.endy + 1) * zoomFactor + drawOffY + 9,
-      TEMPFRIGGINI / 4, 1,
-      (toolVars.select.endx - toolVars.select.locx + 1) * zoomFactor, 1)
+    -- checkMatte:render(
+    --   (toolVars.select.locx) * zoomFactor + drawOffX,
+    --   (toolVars.select.endy + 1) * zoomFactor + drawOffY + 9,
+    --   TEMPFRIGGINI / 4, 1,
+    --   (toolVars.select.endx - toolVars.select.locx + 1) * zoomFactor, 1)
 
-    checkMatte:render(
-      (toolVars.select.locx) * zoomFactor + drawOffX,
-      (toolVars.select.locy) * zoomFactor + drawOffY + 10,
-      TEMPFRIGGINI / 4, 0,
-      1, (toolVars.select.endy - toolVars.select.locy + 1) * zoomFactor)
+    -- checkMatte:render(
+    --   (toolVars.select.locx) * zoomFactor + drawOffX,
+    --   (toolVars.select.locy) * zoomFactor + drawOffY + 10,
+    --   TEMPFRIGGINI / 4, 0,
+    --   1, (toolVars.select.endy - toolVars.select.locy + 1) * zoomFactor)
 
-    checkMatte:render(
-      (toolVars.select.endx + 1) * zoomFactor + drawOffX - 1,
-      (toolVars.select.locy) * zoomFactor + drawOffY + 10,
-      TEMPFRIGGINI / 4, 0,
-      1, (toolVars.select.endy - toolVars.select.locy + 1) * zoomFactor)
+    -- checkMatte:render(
+    --   (toolVars.select.endx + 1) * zoomFactor + drawOffX - 1,
+    --   (toolVars.select.locy) * zoomFactor + drawOffY + 10,
+    --   TEMPFRIGGINI / 4, 0,
+    --   1, (toolVars.select.endy - toolVars.select.locy + 1) * zoomFactor)
+    outRect((toolVars.select.locx) * zoomFactor + drawOffX,
+            (toolVars.select.locy) * zoomFactor + drawOffY + 10,
+            (toolVars.select.endx - toolVars.select.locx + 1) * zoomFactor,
+            (toolVars.select.endy - toolVars.select.locy + 1) * zoomFactor)
   end
 
   if not toolList[selectedTool] then
@@ -994,7 +1048,7 @@ local function processEvent(ev, p1, p2, p3, p4)
       end
     elseif p1 == "n" then
       if keyMods.ctrl then
-        openNew()
+        openNew(1, "new")
       end
     elseif p1 == "o" then
       if keyMods.ctrl then
@@ -1024,7 +1078,7 @@ local function processEvent(ev, p1, p2, p3, p4)
         if tonumber(newVars.wnum) and tonumber(newVars.hnum) then
           imgWidth  = tonumber(newVars.wnum)
           imgHeight = tonumber(newVars.hnum)
-          constructImage()
+          constructImage(newVars.which > 1)
         end
         newVars.visible = false
         newVars.focus = false
@@ -1089,6 +1143,7 @@ local function processEvent(ev, p1, p2, p3, p4)
       for i = 1, clipboard.w do
         for j = 1, clipboard.h do
           workingImage[i + tx][j + ty] = clipboard.data[i][j]
+          dispImage:clear()
           dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage))
           dispImage:flush()
         end
@@ -1162,11 +1217,26 @@ local function processEvent(ev, p1, p2, p3, p4)
     mousePosX = p1
     mousePosY = p2
   elseif ev == "mouseWheel" then
-    local px, py = convertScrn2I(mousePosX, mousePosY)
-    zoomFactor = clamp(zoomFactor + p1, 1)
-    drawOffX = mousePosX - px * zoomFactor
-    drawOffY = (mousePosY - 10) - py * zoomFactor
-    repaintCanv()
+    if keyMods.ctrl then
+      local px, py = convertScrn2I(mousePosX, mousePosY)
+      zoomFactor = clamp(zoomFactor + p1, 1)
+      drawOffX = mousePosX - px * zoomFactor
+      drawOffY = (mousePosY - 10) - py * zoomFactor
+      repaintCanv()
+    else
+      toolList[selectedTool].mouseUp(mousePosX, mousePosY, 1)
+      toolList[selectedTool].mouseUp(mousePosX, mousePosY, 2)
+      toolList[selectedTool].mouseUp(mousePosX, mousePosY, 3)
+
+      if p1 < 0 then
+        selectedTool = (selectedTool % count(toolList)) + 1
+      else
+        selectedTool = ((selectedTool - 2) % count(toolList)) + 1
+      end
+      toolList[selectedTool].mouseMoved(mousePosX, mousePosY, 0, 0)
+
+      toolPalette.repaint()
+    end
   end
 end
 

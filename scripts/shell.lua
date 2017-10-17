@@ -12,6 +12,8 @@ local w, h = gpu.width, gpu.height
 
 local write = write
 
+local fl = math.floor
+
 local function round(n, p)
   return math.floor(n / p) * p
 end
@@ -31,6 +33,7 @@ local pureHistoryPoint = 1
 
 shell = {}
 local shell = shell
+shell.config = config
 
 local lineHistory = {{{"rikoOS 1.0"}, {13}}}
 
@@ -41,6 +44,7 @@ end
 
 local historyPoint = 2
 local lineOffset = 0
+local drawOffset = 0
 local c = 4
 function shell.pushOutput(msg, ...)
   msg = tostring(msg)
@@ -52,9 +56,16 @@ function shell.pushOutput(msg, ...)
   lineHistory[#lineHistory + 1] = {{}, {}}
   historyPoint = #lineHistory + 1
   if historyPoint - lineOffset >= h / 8 - 1 then
-    lineOffset = historyPoint - (h / 8 - 2)
+    lineOffset = fl(historyPoint - (h / 8 - 2))
   end
   shell.redraw(true)
+end
+
+print = function(...)
+  local dat = table.concat({...}, " ")
+  for i = 1, #dat, w / 7 do
+    shell.writeOutputC(dat:sub(i, i + (w / 7)) .. "\n", 16, false)
+  end
 end
 
 function shell.writeOutputC(msg, c, rd)
@@ -68,26 +79,78 @@ function shell.writeOutputC(msg, c, rd)
     lineHistory[#lineHistory + 1] = {{}, {}}
     historyPoint = #lineHistory + 1
     if historyPoint - lineOffset >= h / 8 - 1 then
-      lineOffset = historyPoint - (h / 8 - 2)
+      lineOffset = fl(historyPoint - (h / 8 - 2))
     end
   end
   insLine(msg, c or 16)
   _ = rd and shell.redraw(true) or 1
 end
 
+
+function shell.tabulate(...)
+  local tAll = {...}
+
+  local w = (gpu.width - 4) / 7
+  local nMaxLen = w / 7
+  for n, t in ipairs(tAll) do
+    if type(t) == "table" then
+      for n, sItem in pairs(t) do
+        nMaxLen = math.max(string.len( sItem ) + 1, nMaxLen)
+      end
+    end
+  end
+  local nCols = math.floor(w / nMaxLen)
+  local nLines = 0
+
+  local cx = 0
+
+  local function newLine()
+    shell.writeOutputC("\n", nil, false)
+    cx = 0
+    nLines = nLines + 1
+  end
+
+  local cc = nil
+  local function drawCols(_t)
+    local nCol = 1
+    for n, s in ipairs(_t) do
+      if nCol > nCols then
+        nCol = 1
+        newLine()
+      end
+
+      shell.writeOutputC((" "):rep(((nCol - 1) * nMaxLen) - cx) .. s, cc, false)
+      cx = ((nCol - 1) * nMaxLen) + #s
+
+      nCol = nCol + 1
+    end
+  end
+  for n, t in ipairs(tAll) do
+    if type(t) == "table" then
+      if #t > 0 then
+        drawCols(t)
+        if n < #tAll then
+          shell.writeOutputC("\n", nil, false)
+        end
+      end
+    elseif type(t) == "number" then
+      cc = t
+    end
+  end
+end
+
 local prefix = "> "
 local str = ""
 
--- local e, p1, p2
 local lastP = 0
 
 local lastf = 0
 local fps = 60
 
-local mouseX, mouseY = 0, 0
+local mouseX, mouseY = -5, -5
 
 function shell.redraw(swap)
-  swap = (swap == nil) and swap or true -- just to be explicit
+  swap = (swap == nil) and swap or true -- explicitness is necessary
 
   gpu.clear()
 
@@ -96,16 +159,18 @@ function shell.redraw(swap)
   lastf = ctime
   fps = fps + (1 / delta - fps)*0.01
 
-  for i = math.max(lineOffset, 1), #lineHistory do
+  for i = math.max((lineOffset + drawOffset), 1), #lineHistory do
     local cpos = 2
-    for j = 1, #lineHistory[i][1] do
-      write(tostring(lineHistory[i][1][j]), cpos, (i - 1 - lineOffset)*8 + 2, lineHistory[i][2][j])
-      cpos = cpos + #tostring(lineHistory[i][1][j])*7
-    end
+	if lineHistory[i] then
+      for j = 1, #lineHistory[i][1] do
+        write(tostring(lineHistory[i][1][j]), cpos, (i - 1 - (lineOffset + drawOffset))*8 + 2, lineHistory[i][2][j])
+        cpos = cpos + #tostring(lineHistory[i][1][j])*7
+      end
+	end
   end
 
   gpu.drawRectangle(0, h - 10, w, 10, 6)
-  write("FPS: " .. tostring(round(fps, 0.01)), 2, 189)
+  write("FPS: " .. tostring(round(fps, 0.01)), 2, h - 9)
 
   gpu.drawRectangle(mouseX, mouseY, 2, 1, 7)
   gpu.drawRectangle(mouseX, mouseY, 1, 2, 7)
@@ -118,6 +183,13 @@ end
 local lastRun = ""
 function shell.getRunningProgram()
   return lastRun:match("(.+)%.lua")
+end
+
+function shell.clear()
+  lineHistory = {}
+
+  historyPoint = 1
+  lineOffset = 0
 end
 
 local function getprefix()
@@ -145,18 +217,32 @@ local function update()
   shell.redraw()
 end
 
+local fullscreen = false
 local function processEvent(e, ...)
   local args = {...}
   local p1, p2 = args[1], args[2]
   if e == "char" then
     str = str .. p1
     lastP = os.clock() * 2
+    drawOffset = 0
   elseif e == "mouseMoved" then
     mouseX, mouseY = p1, p2
+  elseif e == "mouseWheel" then
+    local sy = ...
+    drawOffset = drawOffset - sy
+    if drawOffset > 0 then
+      drawOffset = 0
+    elseif drawOffset <= -#lineHistory - 2 + h / 8 then
+      drawOffset = math.min(-#lineHistory - 2 + h / 8, 0)
+    end
   elseif e == "key" then
-    if p1 == "backspace" then
+    if p1 == "f11" then
+      fullscreen = not fullscreen
+      gpu.setFullscreen(fullscreen)
+    elseif p1 == "backspace" then
       str = str:sub(1, #str - 1)
       lastP = os.clock() * 2
+      drawOffset = 0
     elseif p1 == "up" then
       pureHistoryPoint = pureHistoryPoint - 1
       if pureHistoryPoint < 1 then
@@ -164,6 +250,7 @@ local function processEvent(e, ...)
       else
         str = pureHistory[pureHistoryPoint]
       end
+      drawOffset = 0
     elseif p1 == "down" then
       pureHistoryPoint = pureHistoryPoint + 1
       if pureHistoryPoint > #pureHistory then
@@ -172,7 +259,9 @@ local function processEvent(e, ...)
       else
         str = pureHistory[pureHistoryPoint]
       end
+      drawOffset = 0
     elseif p1 == "return" then
+      drawOffset = 0
       if not str:match("%S+") then
         lineHistory[historyPoint][1][4] = "" -- Remove the "_" if it is there
         historyPoint = historyPoint + 1
@@ -186,12 +275,12 @@ local function processEvent(e, ...)
 
         lineHistory[#lineHistory + 1] = {{}, {}}
         historyPoint = historyPoint + 1
-        local cfunc
+        local cfunc, oer
         lastRun = str
 
         local got = true
         for pref = 1, #config.path do
-          local s, er = pcall(function() cfunc = loadfile(config.path[pref] .. "/" .. str:match("%S+")..".lua") end)
+          local s, er = pcall(function() cfunc, oer = loadfile(config.path[pref] .. "/" .. str:match("%S+")..".lua") end)
           if not s then
             c = 7
             if er then
@@ -221,19 +310,21 @@ local function processEvent(e, ...)
               --cc = nil
               collectgarbage("collect")
 
-              print = oldPrint
+              -- print = oldPrint
 
               historyPoint = #lineHistory + 1
 
               got = false
               break
+            elseif oer then
+              print("Wow " .. oer)
             end
           end
         end
 
         if got then
           c = 7
-          shell.writeOutputC("Unknown program `" .. str:match("%S+") .. "'", 8)
+          shell.writeOutputC("Unknown program `" .. str:match("%S+") .. "'\n", 8)
           historyPoint = #lineHistory + 1
         end
 
@@ -241,7 +332,7 @@ local function processEvent(e, ...)
       end
 
       if historyPoint - lineOffset >= h / 8 - 1 then
-        lineOffset = historyPoint - (h / 8 - 2)
+        lineOffset = fl(historyPoint - (h / 8 - 2))
       end
     end
   end

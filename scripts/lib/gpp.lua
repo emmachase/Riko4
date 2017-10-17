@@ -1,5 +1,19 @@
 local gpp = {}
 
+local gpuDrawPixel = gpu.drawPixel
+local gpuDrawRectangle = gpu.drawRectangle
+
+local gpuWidth = gpu.width
+local gpuHeight = gpu.height
+
+local function round(n)
+  if n % 1 >= 0.5 then
+    return math.ceil(n)
+  else
+    return math.floor(n)
+  end
+end
+
 function gpp.fillEllipse(x0, y0, rx, ry, c)
   local twoASquare = 2 * rx * rx
   local twoBSquare = 2 * ry * ry
@@ -12,8 +26,8 @@ function gpp.fillEllipse(x0, y0, rx, ry, c)
   local stopY = 0
 
   while stopX >= stopY do
-    gpu.drawRectangle(x0 - x, y0 + y, 2 * x + 1, 1, c)
-    gpu.drawRectangle(x0 - x, y0 - y, 2 * x + 1, 1, c)
+    gpuDrawRectangle(x0 - x, y0 + y, 2 * x + 1, 1, c)
+    gpuDrawRectangle(x0 - x, y0 - y, 2 * x + 1, 1, c)
 
     y = y + 1
     stopY = stopY + twoASquare
@@ -37,8 +51,8 @@ function gpp.fillEllipse(x0, y0, rx, ry, c)
   stopY = twoASquare * ry
 
   while stopX <= stopY do
-    gpu.drawRectangle(x0 - x, y0 + y, 2 * x + 1, 1, c)
-    gpu.drawRectangle(x0 - x, y0 - y, 2 * x + 1, 1, c)
+    gpuDrawRectangle(x0 - x, y0 + y, 2 * x + 1, 1, c)
+    gpuDrawRectangle(x0 - x, y0 - y, 2 * x + 1, 1, c)
 
     x = x + 1
     stopX = stopX + twoBSquare
@@ -66,10 +80,10 @@ function gpp.drawEllipse(x0, y0, rx, ry, c)
   local stopY = 0
 
   while stopX >= stopY do
-    gpu.drawPixel(x0 + x, y0 + y, c)
-    gpu.drawPixel(x0 - x, y0 + y, c)
-    gpu.drawPixel(x0 - x, y0 - y, c)
-    gpu.drawPixel(x0 + x, y0 - y, c)
+    gpuDrawPixel(x0 + x, y0 + y, c)
+    gpuDrawPixel(x0 - x, y0 + y, c)
+    gpuDrawPixel(x0 - x, y0 - y, c)
+    gpuDrawPixel(x0 + x, y0 - y, c)
 
     y = y + 1
     stopY = stopY + twoASquare
@@ -93,10 +107,10 @@ function gpp.drawEllipse(x0, y0, rx, ry, c)
   stopY = twoASquare * ry
 
   while stopX <= stopY do
-    gpu.drawPixel(x0 + x, y0 + y, c)
-    gpu.drawPixel(x0 - x, y0 + y, c)
-    gpu.drawPixel(x0 - x, y0 - y, c)
-    gpu.drawPixel(x0 + x, y0 - y, c)
+    gpuDrawPixel(x0 + x, y0 + y, c)
+    gpuDrawPixel(x0 - x, y0 + y, c)
+    gpuDrawPixel(x0 - x, y0 - y, c)
+    gpuDrawPixel(x0 + x, y0 - y, c)
 
     x = x + 1
     stopX = stopX + twoBSquare
@@ -118,11 +132,11 @@ function gpp.fillCircle(x0, y0, r, c)
   local err = 0
 
   while x >= y do
-    gpu.drawRectangle(x0 - x, y0 + y, 2 * x + 1, 1, c)
-    gpu.drawRectangle(x0 - y, y0 + x, 2 * y + 1, 1, c)
+    gpuDrawRectangle(x0 - x, y0 + y, 2 * x + 1, 1, c)
+    gpuDrawRectangle(x0 - y, y0 + x, 2 * y + 1, 1, c)
 
-    gpu.drawRectangle(x0 - x, y0 - y, 2 * x + 1, 1, c)
-    gpu.drawRectangle(x0 - y, y0 - x, 2 * y + 1, 1, c)
+    gpuDrawRectangle(x0 - x, y0 - y, 2 * x + 1, 1, c)
+    gpuDrawRectangle(x0 - y, y0 - x, 2 * y + 1, 1, c)
 
     y = y + 1
     if err <= 0 then
@@ -159,14 +173,14 @@ function gpp.drawLine(x1, y1, x2, y2, c)
       min = x < min and x or min
 
       if deltaErr > 0 then
-        gpu.drawRectangle(min, y, x - min + 1, 1, c)
+        gpuDrawRectangle(min, y, x - min + 1, 1, c)
         min = math.huge
         y = y + ddY
         deltaErr = deltaErr - deltaX
       end
       deltaErr = deltaErr + deltaY * ddY
     end
-    gpu.drawRectangle(min, y, x2 - min + 1, 1, c)
+    gpuDrawRectangle(min, y, x2 - min + 1, 1, c)
   else
     if y1 > y2 then
       local tx, ty = x1, y1
@@ -188,14 +202,71 @@ function gpp.drawLine(x1, y1, x2, y2, c)
       min = y < min and y or min
 
       if deltaErr > 0 then
-        gpu.drawRectangle(x, min, 1, y - min + 1, c)
+        gpuDrawRectangle(x, min, 1, y - min + 1, c)
         min = math.huge
         x = x + ddX
         deltaErr = deltaErr - deltaY
       end
       deltaErr = deltaErr + deltaX * ddX
     end
-    gpu.drawRectangle(x, min, 1, y2 - min + 1, c)
+    gpuDrawRectangle(x, min, 1, y2 - min + 1, c)
+  end
+end
+
+function gpp.fillPolygon(poly, c)
+  local pixelX, pixelY, i, j, swap
+  local nodes, nodeX = 0, {}
+
+  local imgTop, imgBot = gpuHeight, 0
+  for i = 1, #poly do
+    local pp = poly[i]
+    if pp[2] < imgTop then
+      imgTop = pp[2]
+    end
+    
+    if pp[2] > imgBot then
+      imgBot = pp[2]
+    end
+  end
+
+  for pixelY = imgTop, imgBot do
+    -- Build a list of nodes
+    nodes = 0; j = #poly
+    for i = 1, #poly do
+      local pp = poly[i]
+      local pn = poly[j]
+
+      if (pp[2] < pixelY and pn[2] >= pixelY
+       or pn[2] < pixelY and pp[2] >= pixelY) then
+        nodes = nodes + 1
+        nodeX[nodes] = round((pp[1] + (pixelY - pp[2]) / (pn[2] - pp[2]) * (pn[1] - pp[1])))
+      end
+
+      j = i
+    end
+
+    -- Bubble Sort the nodes
+    i = 1;
+    while (i < nodes) do
+      if (nodeX[i] > nodeX[i+1]) then
+        swap = nodeX[i]; 
+        nodeX[i] = nodeX[i+1]; 
+        nodeX[i+1] = swap; 
+        if i > 1 then i = i - 1 end
+      else 
+        i = i + 1
+      end
+    end
+
+    --  Fill the pixels between node pairs.
+    for i = 1, nodes - 1, 2 do
+      if   (nodeX[i    ] >= gpuWidth) then break end
+      if   (nodeX[i + 1] >  0 ) then
+        if (nodeX[i    ] <  0 ) then nodeX[i] = 0 end
+        if (nodeX[i + 1] >  gpuWidth) then nodeX[i + 1] = gpuWidth end
+        gpuDrawRectangle(nodeX[i], pixelY, round(nodeX[i + 1] - nodeX[i] + 1), 1, c)
+      end
+    end
   end
 end
 

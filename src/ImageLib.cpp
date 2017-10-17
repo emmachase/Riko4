@@ -1,16 +1,26 @@
 #define LUA_LIB
 
+#include <cstdlib>
+
 #include "rikoImage.h"
 
 #include <LuaJIT/lua.hpp>
 #include <LuaJIT/lauxlib.h>
 #include <SDL2/SDL.h>
+#include <SDL_gpu/SDL_gpu.h>
 
-extern SDL_Window *window;
-extern SDL_Renderer *renderer;
+#define clamp(v, min, max) (v < min ? min : (v > max ? max : v))
+
+extern GPU_Target *bufferTarget;
+extern GPU_Target *renderer;
 extern int pixelSize;
 extern int palette[16][3];
 extern int paletteNum;
+
+extern int drawOffX;
+extern int drawOffY;
+
+#define off(o, t) o - drawOffX, t - drawOffY
 
 typedef struct {
     int width;
@@ -20,7 +30,7 @@ typedef struct {
     int lastRenderNum;
     char **internalRep;
     SDL_Surface *surface;
-    SDL_Texture *texture;
+    GPU_Image *texture;
 } imageType;
 
 static float pWid = 1;
@@ -85,7 +95,10 @@ static int newImage(lua_State *L) {
 
     // Init to black color
     SDL_FillRect(a->surface, NULL, SDL_MapRGBA(a->surface->format, 0, 0, 0, 0));
-    a->texture = SDL_CreateTextureFromSurface(renderer, a->surface);
+
+    a->texture = GPU_CopyImageFromSurface(a->surface);
+    GPU_SetImageFilter(a->texture, GPU_FILTER_NEAREST);
+    GPU_SetSnapMode(a->texture, GPU_SNAP_NONE);
 
     return 1;
 }
@@ -94,8 +107,8 @@ static int flushImage(lua_State *L) {
     imageType *data = checkImage(L);
     if (!freeCheck(L, data)) return 0;
 
-    SDL_DestroyTexture(data->texture);
-    data->texture = SDL_CreateTextureFromSurface(renderer, data->surface);
+    GPU_Rect rect = { 0, 0, data->width, data->height };
+    GPU_UpdateImage(data->texture, &rect, data->surface, &rect);
 
     return 0;
 }
@@ -111,8 +124,9 @@ static int renderImage(lua_State *L) {
                 SDL_FillRect(data->surface, &rect, getRectC(data, data->internalRep[x][y]));
             }
         }
-        SDL_DestroyTexture(data->texture);
-        data->texture = SDL_CreateTextureFromSurface(renderer, data->surface);
+
+        GPU_Rect rect = { 0, 0, data->width, data->height };
+        GPU_UpdateImage(data->texture, &rect, data->surface, &rect);
 
         data->lastRenderNum = paletteNum;
     }
@@ -120,47 +134,47 @@ static int renderImage(lua_State *L) {
     int x = luaL_checkint(L, 2);
     int y = luaL_checkint(L, 3);
 
-    SDL_Rect rect = { x * pixelSize, y * pixelSize };
+    GPU_Rect rect = { off(x, y) };
 
     int top = lua_gettop(L);
     if (top > 7) {
-        SDL_Rect srcRect = {
+        GPU_Rect srcRect = {
             luaL_checkint(L, 4),
             luaL_checkint(L, 5),
-            luaL_checkint(L, 6),
-            luaL_checkint(L, 7)
+            clamp(luaL_checkint(L, 6), 0, data->width),
+            clamp(luaL_checkint(L, 7), 0, data->height)
         };
 
         int scale = luaL_checkint(L, 8);
 
-        rect.w = srcRect.w * pixelSize * scale;
-        rect.h = srcRect.h * pixelSize * scale;
+        rect.w = srcRect.w * scale;
+        rect.h = srcRect.h * scale;
 
-        SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
+        GPU_BlitRect(data->texture, &srcRect, bufferTarget, &rect);
     } else if (top > 6) {
-        SDL_Rect srcRect = {
+        GPU_Rect srcRect = {
             luaL_checkint(L, 4),
             luaL_checkint(L, 5),
             luaL_checkint(L, 6),
             luaL_checkint(L, 7)
         };
 
-        rect.w = srcRect.w * pixelSize;
-        rect.h = srcRect.h * pixelSize;
+        rect.w = srcRect.w;
+        rect.h = srcRect.h;
 
-        SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
+        GPU_BlitRect(data->texture, &srcRect, bufferTarget, &rect);
     } else if (top > 3) {
-        SDL_Rect srcRect = { 0, 0, luaL_checkint(L, 4), luaL_checkint(L, 5) };
+        GPU_Rect srcRect = { 0, 0, luaL_checkint(L, 4), luaL_checkint(L, 5) };
 
-        rect.w = srcRect.w * pixelSize;
-        rect.h = srcRect.h * pixelSize;
+        rect.w = srcRect.w;
+        rect.h = srcRect.h;
 
-        SDL_RenderCopy(renderer, data->texture, &srcRect, &rect);
+        GPU_BlitRect(data->texture, &srcRect, bufferTarget, &rect);
     } else {
-        rect.w = data->width * pixelSize;
-        rect.h = data->height * pixelSize;
+        rect.w = data->width;
+        rect.h = data->height;
 
-        SDL_RenderCopy(renderer, data->texture, NULL, &rect);
+        GPU_BlitRect(data->texture, NULL, bufferTarget, &rect);
     }
 
     return 0;
@@ -176,7 +190,7 @@ static int freeImage(lua_State *L) {
     free(data->internalRep);
 
     SDL_FreeSurface(data->surface);
-    SDL_DestroyTexture(data->texture);
+    GPU_FreeImage(data->texture);
     data->free = true;
 
     return 0;
@@ -320,7 +334,6 @@ static int imageCopy(lua_State *L) {
     for (int xp = srcRect.x; xp < srcRect.x + srcRect.w; xp++) {
         for (int yp = srcRect.y; yp < srcRect.y + srcRect.h; yp++) {
             if (xp >= src->width || xp < 0 || yp >= src->height || yp < 0) {
-                //printf("%d : %d => %d\n", xp, yp, src->internalRep[xp][yp]);
                 continue;
             }
             internalDrawPixel(dst, xp, yp, src->internalRep[xp][yp]);
@@ -328,6 +341,14 @@ static int imageCopy(lua_State *L) {
     }
 
     return 0;
+}
+
+static int imageGetPixel(lua_State *L) {
+    imageType *data = checkImage(L);
+    int x = luaL_checkint(L, 3);
+    int y = luaL_checkint(L, 4);
+    lua_pushinteger(L, data->internalRep[x][y] + 1);
+    return 1;
 }
 
 static int imageToString(lua_State *L) {
@@ -354,6 +375,7 @@ static const luaL_Reg imageLib_m[] = {
     { "drawPixel", imageDrawPixel },
     { "drawRectangle", imageDrawRectangle },
     { "blitPixels", imageBlitPixels },
+    { "getPixel", imageGetPixel },
     { "copy", imageCopy },
     { NULL, NULL }
 };

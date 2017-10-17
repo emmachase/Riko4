@@ -5,6 +5,8 @@ if(APPLE)
   set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-pagezero_size 10000 -image_base 100000000")
 endif()
 
+set($SDL2_gpu_PATH "${SDL2_gpu_PATH}" CACHE INTERNAL "SDL2_gpu" FORCE)
+
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp src/*.c)
@@ -26,6 +28,13 @@ find_package(LuaJIT REQUIRED)
 if(LUAJIT_FOUND)
     include_directories(${LUAJIT_INCLUDE_DIR})
     target_link_libraries(riko4 ${LUAJIT_LIBRARIES})
+endif()
+
+find_package(SDL2_gpu REQUIRED)
+
+if(SDL2_GPU_FOUND)
+    include_directories(${SDL2_gpu_INCLUDE_DIR})
+    target_link_libraries(riko4 ${SDL2_gpu_LIBRARY})
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/libs/include)
