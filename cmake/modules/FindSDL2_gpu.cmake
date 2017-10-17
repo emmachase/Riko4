@@ -102,14 +102,6 @@ FIND_LIBRARY(SDL2_gpu_LIBRARY_TEMP
     PATHS ${SDL2_gpu_SEARCH_PATHS}
 )
 
-# SDL2_gpu may require threads on your system.
-# The Apple build may not need an explicit flag because one of the
-# frameworks may already provide it.
-# But for non-OSX systems, I will use the CMake Threads package.
-IF(NOT APPLE)
-    FIND_PACKAGE(Threads)
-ENDIF(NOT APPLE)
-
 # MinGW needs an additional link flag, -mwindows
 # It's total link flags should look like -lmingw32 -lSDL2main -lSDL2 -mwindows
 IF(MINGW)
@@ -126,13 +118,6 @@ IF(SDL2_gpu_LIBRARY_TEMP)
     IF(APPLE)
         SET(SDL2_gpu_LIBRARY_TEMP ${SDL2_gpu_LIBRARY_TEMP} "-framework Cocoa")
     ENDIF(APPLE)
-
-    # For threads, as mentioned Apple doesn't need this.
-    # In fact, there seems to be a problem if I used the Threads package
-    # and try using this line, so I'm just skipping it entirely for OS X.
-    IF(NOT APPLE)
-        SET(SDL2_gpu_LIBRARY_TEMP ${SDL2_gpu_LIBRARY_TEMP} ${CMAKE_THREAD_LIBS_INIT})
-    ENDIF(NOT APPLE)
 
     # For MinGW library
     IF(MINGW)
