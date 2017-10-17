@@ -313,14 +313,14 @@ static int fsObjRead(lua_State *L) {
         }
 
         size_t dataBufLen = lineStrlen(dataBuf, FS_LINE_INCR);
-        if (dataBuf[dataBufLen - 1] == '\n' || dataBuf[dataBufLen - 1] == '\r') {
-            lua_pushlstring(L, dataBuf, dataBufLen - 1);
-            free(dataBuf);
-            return 1;
-        } else if (feof(data->fileStream)) {
+        if (feof(data->fileStream)) {
             data->eof = true;
             dataBufLen = ftell(data->fileStream);
             lua_pushlstring(L, dataBuf, dataBufLen - st);
+            free(dataBuf);
+            return 1;
+        } else if (dataBuf[dataBufLen - 1] == '\n' || dataBuf[dataBufLen - 1] == '\r') {
+            lua_pushlstring(L, dataBuf, dataBufLen - 1);
             free(dataBuf);
             return 1;
         }
@@ -341,14 +341,14 @@ static int fsObjRead(lua_State *L) {
             }
 
             size_t dataBufLen = lineStrlen(dataBuf, bufLen / sizeof(char));
-            if (dataBuf[dataBufLen - 1] == '\n') {
-                lua_pushlstring(L, dataBuf, dataBufLen - 1);
-                free(dataBuf);
-                return 1;
-            } else if (feof(data->fileStream)) {
+            if (feof(data->fileStream)) {
                 data->eof = true;
                 dataBufLen = ftell(data->fileStream);
                 lua_pushlstring(L, dataBuf, dataBufLen - st);
+                free(dataBuf);
+                return 1;
+            } else if (dataBuf[dataBufLen - 1] == '\n') {
+                lua_pushlstring(L, dataBuf, dataBufLen - 1);
                 free(dataBuf);
                 return 1;
             }
@@ -399,14 +399,14 @@ static int fsObjRead(lua_State *L) {
                 }
 
                 size_t dataBufLen = lineStrlen(dataBuf, FS_LINE_INCR);
-                if (dataBuf[dataBufLen - 1] == '\n' || dataBuf[dataBufLen - 1] == '\r') {
-                    lua_pushlstring(L, dataBuf, dataBufLen - 1);
-                    free(dataBuf);
-                    return 1;
-                } else if (feof(data->fileStream)) {
+                if (feof(data->fileStream)) {
                     data->eof = true;
                     dataBufLen = ftell(data->fileStream);
                     lua_pushlstring(L, dataBuf, dataBufLen - st);
+                    free(dataBuf);
+                    return 1;
+                } else if (dataBuf[dataBufLen - 1] == '\n' || dataBuf[dataBufLen - 1] == '\r') {
+                    lua_pushlstring(L, dataBuf, dataBufLen - 1);
                     free(dataBuf);
                     return 1;
                 }
@@ -427,14 +427,14 @@ static int fsObjRead(lua_State *L) {
                     }
 
                     size_t dataBufLen = lineStrlen(dataBuf, bufLen / sizeof(char));
-                    if (dataBuf[dataBufLen - 1] == '\n' || dataBuf[dataBufLen - 1] == '\r') {
-                        lua_pushlstring(L, dataBuf, dataBufLen - 1);
-                        free(dataBuf);
-                        return 1;
-                    } else if (feof(data->fileStream)) {
+                    if (feof(data->fileStream)) {
                         data->eof = true;
                         dataBufLen = ftell(data->fileStream);
                         lua_pushlstring(L, dataBuf, dataBufLen - st);
+                        free(dataBuf);
+                        return 1;
+                    } else if (dataBuf[dataBufLen - 1] == '\n' || dataBuf[dataBufLen - 1] == '\r') {
+                        lua_pushlstring(L, dataBuf, dataBufLen - 1);
                         free(dataBuf);
                         return 1;
                     }
@@ -593,7 +593,7 @@ LUALIB_API int luaopen_fs(lua_State *L) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unable to initialize cwd");
         return 2;
     }
-
+    
     free(fpath);
 
     luaL_newmetatable(L, "Riko4.fsObj");
