@@ -1,8 +1,5 @@
---[[
-USAGE: pproc <inputFile> [outputFile]
-If outputFile is not specified, pproc will write output to this path: inputFile .. ".lua"
-]]
-
+--HELP: \b6Usage: \b16pproc \b7<\b16input\b7> [\b16outfile\b7] \n
+-- \b6Description: \b7Preprocesses \b16input\b7, writing \b7to \b17outfile \b7or \b16input \b7plus \b16.lua
 
 local args = {...}
 
