@@ -79,8 +79,6 @@ SET(SDL2_gpu_SEARCH_PATHS
     ${SDL2_gpu_PATH}
 )
 
-message("Specified Path: ${SDL2_gpu_PATH}")
-
 FIND_PATH(SDL2_gpu_INCLUDE_DIR SDL_gpu.h
     HINTS
     $ENV{SDL2GPUDIR}
