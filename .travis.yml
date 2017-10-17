@@ -37,5 +37,5 @@ script:
   - make
   - cd ..
   # Build Riko4
-  - cmake -D SDL2_gpu_LIBRARY="sdlgpu/lib/libSDL2_gpu.a;sdlgpu/lib/libSDL2_gpu.so" -D SDL2_gpu_INCLUDE_DIR=sdlgpu/lib/include .
+  - cmake -DSDL2_gpu_PATH="$PWD/sdlgpu/lib" ..
   - make
