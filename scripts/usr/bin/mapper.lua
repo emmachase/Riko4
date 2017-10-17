@@ -126,8 +126,13 @@ local function draw()
       gpu.drawRectangle(0, i + 8, w, 1, 6)
     end
 
-    gpu.drawRectangle(0, (moffy + 8) % (h + 1), w, 1, 8)
-    gpu.drawRectangle(moffx % (w + 1), 8, 1, h - 8, 8)
+    if (moffy + 8) % h ~= h - 1 then
+      gpu.drawRectangle(0, (moffy + 8) % h, w, 1, 8)
+    end
+    
+    if moffx % w ~= w - 1 then
+      gpu.drawRectangle(moffx % w, 8, 1, h - 8, 8)
+    end
 
     gpu.drawRectangle(0, moffy + 8, w, 1, 11)
     gpu.drawRectangle(moffx, 8, 1, h - 8, 11)

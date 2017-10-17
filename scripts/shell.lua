@@ -44,6 +44,7 @@ end
 
 local historyPoint = 2
 local lineOffset = 0
+local drawOffset = 0
 local c = 4
 function shell.pushOutput(msg, ...)
   msg = tostring(msg)
@@ -58,6 +59,13 @@ function shell.pushOutput(msg, ...)
     lineOffset = fl(historyPoint - (h / 8 - 2))
   end
   shell.redraw(true)
+end
+
+print = function(...)
+  local dat = table.concat({...}, " ")
+  for i = 1, #dat, w / 7 do
+    shell.writeOutputC(dat:sub(i, i + (w / 7)) .. "\n", 16, false)
+  end
 end
 
 function shell.writeOutputC(msg, c, rd)
@@ -151,11 +159,11 @@ function shell.redraw(swap)
   lastf = ctime
   fps = fps + (1 / delta - fps)*0.01
 
-  for i = math.max(lineOffset, 1), #lineHistory do
+  for i = math.max((lineOffset + drawOffset), 1), #lineHistory do
     local cpos = 2
 	if lineHistory[i] then
       for j = 1, #lineHistory[i][1] do
-        write(tostring(lineHistory[i][1][j]), cpos, (i - 1 - lineOffset)*8 + 2, lineHistory[i][2][j])
+        write(tostring(lineHistory[i][1][j]), cpos, (i - 1 - (lineOffset + drawOffset))*8 + 2, lineHistory[i][2][j])
         cpos = cpos + #tostring(lineHistory[i][1][j])*7
       end
 	end
@@ -216,8 +224,17 @@ local function processEvent(e, ...)
   if e == "char" then
     str = str .. p1
     lastP = os.clock() * 2
+    drawOffset = 0
   elseif e == "mouseMoved" then
     mouseX, mouseY = p1, p2
+  elseif e == "mouseWheel" then
+    local sy = ...
+    drawOffset = drawOffset - sy
+    if drawOffset > 0 then
+      drawOffset = 0
+    elseif drawOffset <= -#lineHistory - 2 + h / 8 then
+      drawOffset = math.min(-#lineHistory - 2 + h / 8, 0)
+    end
   elseif e == "key" then
     if p1 == "f11" then
       fullscreen = not fullscreen
@@ -225,6 +242,7 @@ local function processEvent(e, ...)
     elseif p1 == "backspace" then
       str = str:sub(1, #str - 1)
       lastP = os.clock() * 2
+      drawOffset = 0
     elseif p1 == "up" then
       pureHistoryPoint = pureHistoryPoint - 1
       if pureHistoryPoint < 1 then
@@ -232,6 +250,7 @@ local function processEvent(e, ...)
       else
         str = pureHistory[pureHistoryPoint]
       end
+      drawOffset = 0
     elseif p1 == "down" then
       pureHistoryPoint = pureHistoryPoint + 1
       if pureHistoryPoint > #pureHistory then
@@ -240,7 +259,9 @@ local function processEvent(e, ...)
       else
         str = pureHistory[pureHistoryPoint]
       end
+      drawOffset = 0
     elseif p1 == "return" then
+      drawOffset = 0
       if not str:match("%S+") then
         lineHistory[historyPoint][1][4] = "" -- Remove the "_" if it is there
         historyPoint = historyPoint + 1
@@ -289,7 +310,7 @@ local function processEvent(e, ...)
               --cc = nil
               collectgarbage("collect")
 
-              print = oldPrint
+              -- print = oldPrint
 
               historyPoint = #lineHistory + 1
 

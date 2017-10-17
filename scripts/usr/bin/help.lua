@@ -3,7 +3,7 @@
 
 local args = {...}
 
-local w, h = gpu.width, gpu.height
+local w, h = gpu.width - 12, gpu.height
 
 local function writeICWrap(str, preserveWordsQ, strLitQ, start)
   local color = 16
@@ -26,10 +26,10 @@ local function writeICWrap(str, preserveWordsQ, strLitQ, start)
       part = part:sub(3)
     end
 
-    local endP = function() return math.floor((w - start - 3) / 7) end
+    local endP = function() return math.ceil((w - start - 3) / 7) end
 
     if #part > endP() then
-      local max = math.floor(w / 7)
+      local max = math.ceil(w / 7)
 
       if pw then
         while #part > 0 do
