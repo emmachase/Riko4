@@ -99,7 +99,7 @@
     <Link>
       <AdditionalLibraryDirectories>$(ProjectDir)..\libs\LFS;$(ProjectDir)..\libs\LuaJIT;$(ProjectDir)..\libs\SDL2;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>lua51.lib;SDL2main.lib;SDL2.lib;SDL2_gpu.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

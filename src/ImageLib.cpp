@@ -1,6 +1,7 @@
 #define LUA_LIB
 
 #include <cstdlib>
+#include <string.h>
 
 #include "rikoImage.h"
 
@@ -28,6 +29,8 @@ typedef struct {
     bool free;
     int clr;
     int lastRenderNum;
+    int remap[16];
+    bool remapped;
     char **internalRep;
     SDL_Surface *surface;
     GPU_Image *texture;
@@ -53,7 +56,8 @@ static int getColor(lua_State *L, int arg) {
     return color == -2 ? -1 : (color < 0 ? 0 : (color > 15 ? 15 : color));
 }
 
-static Uint32 getRectC(imageType *data, int color) {
+static Uint32 getRectC(imageType *data, int colorGiven) {
+    int color = data->remap[colorGiven]; // Palette remapping
     return SDL_MapRGBA(data->surface->format, palette[color][0], palette[color][1], palette[color][2], 255);
 }
 
@@ -85,10 +89,14 @@ static int newImage(lua_State *L) {
     a->free = false;
     a->clr = 0;
     a->lastRenderNum = paletteNum;
+    for (int i = 0; i < 16; i++) {
+        a->remap[i] = i;
+    }
 
     a->internalRep = (char **) malloc(sizeof (char *) * w);
     for (int i = 0; i < w; i++) {
         a->internalRep[i] = (char *) malloc(sizeof (char) * h);
+        memset(a->internalRep[i], -1, h);
     }
 
     a->surface = SDL_CreateRGBSurface(0, w, h, 32, rmask, gmask, bmask, amask);
@@ -117,11 +125,16 @@ static int renderImage(lua_State *L) {
     imageType *data = checkImage(L);
     if (!freeCheck(L, data)) return 0;
 
-    if (data->lastRenderNum != paletteNum) {
+    if (data->lastRenderNum != paletteNum || data->remapped) {
+        int rectcolor = SDL_MapRGBA(data->surface->format, 0, 0, 0, 0);
+        SDL_FillRect(data->surface, NULL, rectcolor);
+
         for (int x = 0; x < data->width; x++) {
             for (int y = 0; y < data->height; y++) {
                 SDL_Rect rect = { x, y, 1, 1 };
-                SDL_FillRect(data->surface, &rect, getRectC(data, data->internalRep[x][y]));
+                int c = data->internalRep[x][y];
+                if (c >= 0)
+                    SDL_FillRect(data->surface, &rect, getRectC(data, c));
             }
         }
 
@@ -129,6 +142,7 @@ static int renderImage(lua_State *L) {
         GPU_UpdateImage(data->texture, &rect, data->surface, &rect);
 
         data->lastRenderNum = paletteNum;
+        data->remapped = false;
     }
 
     int x = luaL_checkint(L, 2);
@@ -200,6 +214,35 @@ static void internalDrawPixel(imageType *data, int x, int y, char c) {
     if (x >= 0 && y >= 0 && x < data->width && y < data->height) {
         data->internalRep[x][y] = c;
     }
+}
+
+static int imageGetPixel(lua_State *L) {
+    imageType *data = checkImage(L);
+
+    int x = luaL_checkint(L, 2);
+    int y = luaL_checkint(L, 3);
+
+    if (x < data->width && x >= 0
+        && y < data->height && y >= 0) {
+
+        lua_pushinteger(L, data->internalRep[x][y] + 1);
+    } else {
+        lua_pushinteger(L, 0);
+    }
+
+    return 1;
+}
+
+static int imageRemap(lua_State *L) {
+    imageType *data = checkImage(L);
+
+    int oldColor = getColor(L, 2);
+    int newColor = getColor(L, 3);
+
+    data->remap[oldColor] = newColor;
+    data->remapped = true;
+
+    return 1;
 }
 
 static int imageDrawPixel(lua_State *L) {
@@ -343,14 +386,6 @@ static int imageCopy(lua_State *L) {
     return 0;
 }
 
-static int imageGetPixel(lua_State *L) {
-    imageType *data = checkImage(L);
-    int x = luaL_checkint(L, 3);
-    int y = luaL_checkint(L, 4);
-    lua_pushinteger(L, data->internalRep[x][y] + 1);
-    return 1;
-}
-
 static int imageToString(lua_State *L) {
     imageType *data = checkImage(L);
     if (data->free) {
@@ -376,6 +411,7 @@ static const luaL_Reg imageLib_m[] = {
     { "drawRectangle", imageDrawRectangle },
     { "blitPixels", imageBlitPixels },
     { "getPixel", imageGetPixel },
+    { "remap", imageRemap },
     { "copy", imageCopy },
     { NULL, NULL }
 };

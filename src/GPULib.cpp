@@ -201,6 +201,22 @@ static int gpu_get_palette(lua_State *L) {
     return 1;
 }
 
+static int gpu_get_pixel(lua_State *L) {
+    int x = luaL_checkint(L, 1);
+    int y = luaL_checkint(L, 2);
+    SDL_Color col = GPU_GetPixel(buffer->target, x, y);
+    for (int i = 0; i < 16; i++) {
+        int* pcol = palette[i];
+        if (col.r == pcol[0] && col.g == pcol[1] && col.b == pcol[2]) {
+            lua_pushinteger(L, i + 1);
+            return 1;
+        }
+    }
+
+    lua_pushinteger(L, 1); // Should never happen
+    return 1;
+}
+
 static int gpu_clear(lua_State *L) {
     if (lua_gettop(L) > 0) {
         int color = getColor(L, 1);
@@ -286,6 +302,7 @@ static const luaL_Reg gpuLib[] = {
     { "push", gpu_push },
     { "pop", gpu_pop },
     { "setFullscreen", gpu_set_fullscreen },
+    { "getPixel", gpu_get_pixel },
     { "clear", gpu_clear },
     { "swap", gpu_swap },
     {NULL, NULL}
