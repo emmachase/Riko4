@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" tiledversion="1.0.3" orientation="orthogonal" renderorder="right-down" width="5" height="4" tilewidth="16" tileheight="16" nextobjectid="1">
+ <properties>
+  <property name="AutomappingRadius" type="int" value="4"/>
+  <property name="NoOverlappingRules" type="bool" value="true"/>
+ </properties>
+ <tileset firstgid="1" source="jam.tsx"/>
+ <layer name="regions" width="5" height="4">
+  <data encoding="csv">
+0,0,0,0,0,
+0,64,0,0,0,
+0,64,0,0,0,
+0,0,0,0,0
+</data>
+ </layer>
+ <layer name="output_Walls" width="5" height="4" opacity="0.55">
+  <data encoding="csv">
+0,0,0,0,0,
+0,33,0,0,0,
+0,1,0,0,0,
+0,0,0,0,0
+</data>
+ </layer>
+ <layer name="input_Walls" width="5" height="4" opacity="0.5">
+  <data encoding="csv">
+0,0,0,0,0,
+0,3,0,0,0,
+0,1,0,0,0,
+0,0,0,0,0
+</data>
+ </layer>
+</map>

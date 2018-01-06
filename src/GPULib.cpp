@@ -13,10 +13,9 @@
 #include "rikoGPU.h"
 #include "shader.h"
 
-#include <LuaJIT/lua.hpp>
-#include <LuaJIT/lauxlib.h>
+#include "luaIncludes.h"
 #include <SDL2/SDL.h>
-#include <SDL_gpu/SDL_gpu.h>
+#include "SDL_gpu/SDL_gpu.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -129,6 +128,22 @@ static int gpu_blit_pixels(lua_State *L) {
 
         lua_pop(L, 1);
     }
+
+    return 0;
+}
+
+static int gpu_set_clipping(lua_State *L) {
+    if (lua_gettop(L) == 0) {
+        GPU_SetClip(buffer->target, 0, 0, buffer->w, buffer->h);
+        return 0;
+    }
+
+    int x = luaL_checkint(L, 1);
+    int y = luaL_checkint(L, 2);
+    int w = luaL_checkint(L, 3);
+    int h = luaL_checkint(L, 4);
+
+    GPU_SetClip(buffer->target, x, y, w, h);
 
     return 0;
 }
@@ -305,6 +320,7 @@ static const luaL_Reg gpuLib[] = {
     { "getPixel", gpu_get_pixel },
     { "clear", gpu_clear },
     { "swap", gpu_swap },
+    { "clip", gpu_set_clipping },
     {NULL, NULL}
 };
 

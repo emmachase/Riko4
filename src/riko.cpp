@@ -17,6 +17,10 @@
 #  endif
 #endif
 
+#ifdef __EMSCRIPTEN__
+#include "emscripten.h"
+#endif
+
 #include <climits>
 #include <string.h>
 
@@ -35,9 +39,9 @@
 
 #include <SDL2/SDL.h>
 
-#include <SDL_gpu/SDL_gpu.h>
+#include "SDL_gpu/SDL_gpu.h"
 
-#include <LuaJIT/lua.hpp>
+#include "luaIncludes.h"
 
 #include "rikoConsts.h"
 
@@ -83,6 +87,7 @@ void printLuaError(int result) {
     }
 }
 
+
 static const luaL_Reg lj_lib_load[] = {
     { "",              luaopen_base },
     { LUA_LOADLIBNAME, luaopen_package },
@@ -92,14 +97,19 @@ static const luaL_Reg lj_lib_load[] = {
     { LUA_MATHLIBNAME, luaopen_math },
     { LUA_DBLIBNAME,   luaopen_debug },
     { LUA_BITLIBNAME,  luaopen_bit },
+#ifndef __EMSCRIPTEN__
     { LUA_JITLIBNAME,  luaopen_jit },
+#endif
     { NULL,  NULL }
 };
 
+#ifndef __EMSCRIPTEN__
 static const luaL_Reg lj_lib_preload[] = {
     { LUA_FFILIBNAME,  luaopen_ffi },
     { NULL,  NULL }
 };
+#endif
+
 
 bool fatalLoadError = false;
 
@@ -113,6 +123,8 @@ void createLuaInstance(const char* filename) {
         lua_pushstring(state, lib->name);
         lua_call(state, 1, 0);
     }
+
+#ifndef __EMSCRIPTEN__
     luaL_findtable(state, LUA_REGISTRYINDEX, "_PRELOAD",
             sizeof(lj_lib_preload) / sizeof(lj_lib_preload[0]) - 1);
     for (lib = lj_lib_preload; lib->func; lib++) {
@@ -120,6 +132,7 @@ void createLuaInstance(const char* filename) {
         lua_setfield(state, -2, lib->name);
     }
     lua_pop(state, 1);
+#endif
 
     if (luaopen_fs(state) == 2) {
         fatalLoadError = true;
@@ -146,20 +159,9 @@ void createLuaInstance(const char* filename) {
 lua_State* createConfigInstance(const char* filename) {
     lua_State *state = luaL_newstate();
 
-    // Make standard libraries available in the Lua object
-    const luaL_Reg *lib;
-    for (lib = lj_lib_load; lib->func; lib++) {
-        lua_pushcfunction(state, lib->func);
-        lua_pushstring(state, lib->name);
-        lua_call(state, 1, 0);
-    }
-    luaL_findtable(state, LUA_REGISTRYINDEX, "_PRELOAD",
-        sizeof(lj_lib_preload) / sizeof(lj_lib_preload[0]) - 1);
-    for (lib = lj_lib_preload; lib->func; lib++) {
-        lua_pushcfunction(state, lib->func);
-        lua_setfield(state, -2, lib->name);
-    }
-    lua_pop(state, 1);
+    // Meh, io is probs safe
+    luaL_openlibs(state);
+    
 
     lua_State *L = lua_newthread(state);
 
@@ -291,6 +293,209 @@ int fileCopyCallback(const char *fpath, const struct stat *sb, int typeflag, str
 }
 #endif
 
+SDL_Event event;
+
+bool canRun = true;
+bool running = true;
+int pushedArgs = 0;
+
+int lastMoveX = 0;
+int lastMoveY = 0;
+
+int cx;
+int cy;
+int mult;
+
+int exitCode = 0;
+
+bool readyForProp = true;
+
+bool ctrlMod = false;
+bool holdR = false;
+clock_t holdL = 0;
+
+void loop() {
+    if (ctrlMod && holdR && clock() - holdL >= CLOCKS_PER_SEC) {
+        closeAudio();
+        lua_close(mainThread);
+        //createLuaInstance(bootLoc);
+        int result = lua_resume(mainThread, 0);
+
+        ctrlMod = false;
+        holdR = false;
+        holdL = 0;
+    }
+
+    while (1) {
+        if (SDL_PollEvent(&event)) {
+            readyForProp = true;
+
+            switch (event.type) {
+            case SDL_QUIT:
+                break;
+            case SDL_TEXTINPUT:
+                lua_pushstring(mainThread, "char");
+                lua_pushstring(mainThread, event.text.text);
+                pushedArgs = 2;
+                break;
+            case SDL_KEYDOWN:
+                lua_pushstring(mainThread, "key");
+                lua_pushstring(mainThread, cleanKeyName(event.key.keysym.sym));
+                pushedArgs = 2;
+
+                if (event.key.keysym.scancode == SDL_SCANCODE_LCTRL) {
+                    ctrlMod = true;
+                }
+                else if (event.key.keysym.scancode == SDL_SCANCODE_R) {
+                    holdR = true;
+                }
+                if (holdL == 0 && ctrlMod && holdR) {
+                    holdL = clock();
+                }
+                break;
+            case SDL_KEYUP:
+                lua_pushstring(mainThread, "keyUp");
+                lua_pushstring(mainThread, cleanKeyName(event.key.keysym.sym));
+                pushedArgs = 2;
+
+                if (event.key.keysym.scancode == SDL_SCANCODE_LCTRL) {
+                    ctrlMod = false;
+                    holdL = 0;
+                }
+                else if (event.key.keysym.scancode == SDL_SCANCODE_R) {
+                    holdR = false;
+                    holdL = 0;
+                }
+                break;
+            case SDL_MOUSEWHEEL:
+                lua_pushstring(mainThread, "mouseWheel");
+                mult = (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) ? -1 : 1;
+
+                lua_pushnumber(mainThread, event.wheel.y * mult);
+                lua_pushnumber(mainThread, event.wheel.x * mult);
+                lua_pushnumber(mainThread, lastMoveX);
+                lua_pushnumber(mainThread, lastMoveY);
+                pushedArgs = 5;
+                break;
+            case SDL_MOUSEMOTION:
+                cx = event.motion.x / afPixscale;
+                cy = event.motion.y / afPixscale;
+                if (cx != lastMoveX || cy != lastMoveY) {
+                    lua_pushstring(mainThread, "mouseMoved");
+                    lua_pushnumber(mainThread, cx);
+                    lua_pushnumber(mainThread, cy);
+                    lua_pushnumber(mainThread, cx - lastMoveX);
+                    lua_pushnumber(mainThread, cy - lastMoveY);
+                    lastMoveX = cx;
+                    lastMoveY = cy;
+                    readyForProp = true;
+                    pushedArgs = 5;
+                }
+                else {
+                    readyForProp = false;
+                }
+                break;
+            case SDL_MOUSEBUTTONDOWN:
+                lua_pushstring(mainThread, "mousePressed");
+                lua_pushnumber(mainThread, (int)event.button.x / afPixscale);
+                lua_pushnumber(mainThread, (int)event.button.y / afPixscale);
+                lua_pushnumber(mainThread, event.button.button);
+                pushedArgs = 4;
+                break;
+            case SDL_MOUSEBUTTONUP:
+                lua_pushstring(mainThread, "mouseReleased");
+                lua_pushnumber(mainThread, (int)event.button.x / afPixscale);
+                lua_pushnumber(mainThread, (int)event.button.y / afPixscale);
+                lua_pushnumber(mainThread, event.button.button);
+                pushedArgs = 4;
+                break;
+            case SDL_JOYAXISMOTION:
+                lua_pushstring(mainThread, "joyAxis");
+                lua_pushnumber(mainThread, event.caxis.axis);
+                lua_pushnumber(mainThread, event.caxis.value);
+                lua_pushnumber(mainThread, event.caxis.which);
+                pushedArgs = 4;
+                break;
+            case SDL_JOYBUTTONDOWN:
+                lua_pushstring(mainThread, "joyButtonDown");
+                lua_pushnumber(mainThread, event.cbutton.button);
+                lua_pushnumber(mainThread, event.caxis.which);
+                pushedArgs = 3;
+                break;
+            case SDL_JOYBUTTONUP:
+                lua_pushstring(mainThread, "joyButtonUp");
+                lua_pushnumber(mainThread, event.cbutton.button);
+                lua_pushnumber(mainThread, event.caxis.which);
+                pushedArgs = 3;
+                break;
+            case SDL_JOYHATMOTION:
+                lua_pushstring(mainThread, "joyHat");
+                lua_pushnumber(mainThread, event.jhat.value);
+                lua_pushnumber(mainThread, event.jhat.hat);
+                lua_pushnumber(mainThread, event.jhat.which);
+                pushedArgs = 4;
+                break;
+            case SDL_JOYBALLMOTION:
+                lua_pushstring(mainThread, "joyBall");
+                lua_pushnumber(mainThread, event.jball.xrel);
+                lua_pushnumber(mainThread, event.jball.yrel);
+                lua_pushnumber(mainThread, event.jball.ball);
+                lua_pushnumber(mainThread, event.jball.which);
+                pushedArgs = 4;
+                break;
+            default:
+                readyForProp = false;
+            }
+        } else {
+            if (canRun) {
+                int result = lua_resume(mainThread, 0);
+
+                if (result == 0) {
+                    printf("Script finished!\n");
+                    canRun = false;
+                }
+                else if (result != LUA_YIELD) {
+                    printLuaError(result);
+                    puts(lua_tostring(mainThread, -1));
+
+                    canRun = false;
+                    exitCode = 1;
+                }
+            }
+            break;
+        }
+
+        if (event.type == SDL_QUIT) {
+            running = false;
+        }
+
+        if (readyForProp) {
+            if (canRun) {
+                int result = lua_resume(mainThread, pushedArgs);
+
+                if (result == 0) {
+                    printf("Script finished!\n");
+                    canRun = false;
+                }
+                else if (result != LUA_YIELD) {
+                    printLuaError(result);
+                    puts(lua_tostring(mainThread, -1));
+
+                    canRun = false;
+                    exitCode = 1;
+                }
+            }
+
+#ifndef __EMSCRIPTEN__
+            SDL_Delay(1);
+#endif // !__EMSCRIPTEN__
+        }
+
+        readyForProp = true;
+        pushedArgs = 0;
+    }
+}
+
 int main(int argc, char * argv[]) {
     if (argc > 1) {
         if (!strcmp("--noaud", argv[1])) {
@@ -346,11 +551,15 @@ int main(int argc, char * argv[]) {
         }
     }
 
+#ifdef __EMSCRIPTEN__
+    appPath = "/";
+#else
     if (bundle) {
         appPath = SDL_GetBasePath();
     } else {
         appPath = SDL_GetPrefPath("riko4", "app");
     }
+#endif
 
     if (appPath == NULL) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unable to open application directory, possibly out of free space?");
@@ -427,8 +636,6 @@ int main(int argc, char * argv[]) {
 
     GPU_Flip(renderer);
 
-    //GPU_SetFullscreen(true, true);
-
     SDL_Surface *surface;
     surface = SDL_LoadBMP("icon.ico");
 
@@ -438,8 +645,6 @@ int main(int argc, char * argv[]) {
 
     SDL_SetWindowTitle(window, "Riko4");
 
-    SDL_Event event;
-
     char *bootLoc = (char*)malloc(sizeof(char)*(strlen(scriptsPath) + 10));
     sprintf(bootLoc, "%s/boot.lua", scriptsPath);
     createLuaInstance(bootLoc);
@@ -448,181 +653,14 @@ int main(int argc, char * argv[]) {
         return 7;
     }
 
-    bool canRun = true;
-    bool running = true;
-    int pushedArgs = 0;
-
-    int lastMoveX = 0;
-    int lastMoveY = 0;
-
-    int cx;
-    int cy;
-    int mult;
-
-    int exitCode = 0;
-
-    bool readyForProp = true;
-
-    bool ctrlMod = false;
-    bool holdR = false;
-    clock_t holdL = 0;
-
+    
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(loop, 0, 1);
+#else
     while (running) {
-        if (ctrlMod && holdR && clock() - holdL >= CLOCKS_PER_SEC) {
-            closeAudio();
-            lua_close(mainThread);
-            createLuaInstance(bootLoc);
-            int result = lua_resume(mainThread, 0);
-
-            ctrlMod = false;
-            holdR = false;
-            holdL = 0;
-        }
-
-        if (SDL_PollEvent(&event)) {
-            readyForProp = true;
-
-            switch (event.type) {
-                case SDL_QUIT:
-                    break;
-                case SDL_TEXTINPUT:
-                    lua_pushstring(mainThread, "char");
-                    lua_pushstring(mainThread, event.text.text);
-                    pushedArgs = 2;
-                    break;
-                case SDL_KEYDOWN:
-                    lua_pushstring(mainThread, "key");
-                    lua_pushstring(mainThread, cleanKeyName(event.key.keysym.sym));
-                    pushedArgs = 2;
-
-                    if (event.key.keysym.scancode == SDL_SCANCODE_LCTRL) {
-                        ctrlMod = true;
-                    } else if (event.key.keysym.scancode == SDL_SCANCODE_R) {
-                        holdR = true;
-                    }
-                    if (holdL == 0 && ctrlMod && holdR) {
-                        holdL = clock();
-                    }
-                    break;
-                case SDL_KEYUP:
-                    lua_pushstring(mainThread, "keyUp");
-                    lua_pushstring(mainThread, cleanKeyName(event.key.keysym.sym));
-                    pushedArgs = 2;
-
-                    if (event.key.keysym.scancode == SDL_SCANCODE_LCTRL) {
-                        ctrlMod = false;
-                        holdL = 0;
-                    } else if (event.key.keysym.scancode == SDL_SCANCODE_R) {
-                        holdR = false;
-                        holdL = 0;
-                    }
-                    break;
-                case SDL_MOUSEWHEEL:
-                    lua_pushstring(mainThread, "mouseWheel");
-                    mult = (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) ? -1 : 1;
-                    
-                    lua_pushnumber(mainThread, event.wheel.y * mult);
-                    lua_pushnumber(mainThread, event.wheel.x * mult);
-                    lua_pushnumber(mainThread, lastMoveX);
-                    lua_pushnumber(mainThread, lastMoveY);
-                    pushedArgs = 5;
-                    break;
-                case SDL_MOUSEMOTION:
-                    cx = event.motion.x / afPixscale;
-                    cy = event.motion.y / afPixscale;
-                    if (cx != lastMoveX || cy != lastMoveY) {
-                        lua_pushstring(mainThread, "mouseMoved");
-                        lua_pushnumber(mainThread, cx);
-                        lua_pushnumber(mainThread, cy);
-                        lua_pushnumber(mainThread, cx - lastMoveX);
-                        lua_pushnumber(mainThread, cy - lastMoveY);
-                        lastMoveX = cx;
-                        lastMoveY = cy;
-                        readyForProp = true;
-                        pushedArgs = 5;
-                    } else {
-                        readyForProp = false;
-                    }
-                    break;
-                case SDL_MOUSEBUTTONDOWN:
-                    lua_pushstring(mainThread, "mousePressed");
-                    lua_pushnumber(mainThread, (int) event.button.x / afPixscale);
-                    lua_pushnumber(mainThread, (int) event.button.y / afPixscale);
-                    lua_pushnumber(mainThread, event.button.button);
-                    pushedArgs = 4;
-                    break;
-                case SDL_MOUSEBUTTONUP:
-                    lua_pushstring(mainThread, "mouseReleased");
-                    lua_pushnumber(mainThread, (int)event.button.x / afPixscale);
-                    lua_pushnumber(mainThread, (int)event.button.y / afPixscale);
-                    lua_pushnumber(mainThread, event.button.button);
-                    pushedArgs = 4;
-                    break;
-                case SDL_JOYAXISMOTION:
-                    lua_pushstring(mainThread, "joyAxis");
-                    lua_pushnumber(mainThread, event.caxis.axis);
-                    lua_pushnumber(mainThread, event.caxis.value);
-                    lua_pushnumber(mainThread, event.caxis.which);
-                    pushedArgs = 4;
-                    break;
-                case SDL_JOYBUTTONDOWN:
-                    lua_pushstring(mainThread, "joyButtonDown");
-                    lua_pushnumber(mainThread, event.cbutton.button);
-                    lua_pushnumber(mainThread, event.caxis.which);
-                    pushedArgs = 3;
-                    break;
-                case SDL_JOYBUTTONUP:
-                    lua_pushstring(mainThread, "joyButtonUp");
-                    lua_pushnumber(mainThread, event.cbutton.button);
-                    lua_pushnumber(mainThread, event.caxis.which);
-                    pushedArgs = 3;
-                    break;
-                case SDL_JOYHATMOTION:
-                    lua_pushstring(mainThread, "joyHat");
-                    lua_pushnumber(mainThread, event.jhat.value);
-                    lua_pushnumber(mainThread, event.jhat.hat);
-                    lua_pushnumber(mainThread, event.jhat.which);
-                    pushedArgs = 4;
-                    break;
-                case SDL_JOYBALLMOTION:
-                    lua_pushstring(mainThread, "joyBall");
-                    lua_pushnumber(mainThread, event.jball.xrel);
-                    lua_pushnumber(mainThread, event.jball.yrel);
-                    lua_pushnumber(mainThread, event.jball.ball);
-                    lua_pushnumber(mainThread, event.jball.which);
-                    pushedArgs = 4;
-                    break;
-                default:
-                    readyForProp = false;
-            }
-        }
-
-        if (event.type == SDL_QUIT) {
-            break;
-        }
-
-        if (readyForProp) {
-            if (canRun) {
-                int result = lua_resume(mainThread, pushedArgs);
-
-                if (result == 0) {
-                    printf("Script finished!\n");
-                    canRun = false;
-                } else if (result != LUA_YIELD) {
-                    printLuaError(result);
-                    puts(lua_tostring(mainThread, -1));
-
-                    canRun = false;
-                    exitCode = 1;
-                }
-            }
-
-            SDL_Delay(1);
-        }
-
-        readyForProp = true;
-        pushedArgs = 0;
+        loop();
     }
+#endif // __EMSCRIPTEN__
 
     SDL_free(appPath);
 

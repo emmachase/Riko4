@@ -1,3 +1,5 @@
+--HELP: Under construction.. does \b8nothing \b16atm
+
 local running = true
 
 local eventQueue = {}
@@ -7,7 +9,7 @@ local function processEvent(e, ...)
   if e == "key" then
     local key = data[1]
     
-    if key == "Return" then
+    if key == "return" then
       shell.pushOutput("Waddup")
     elseif key == "escape" then
       running = false

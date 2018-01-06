@@ -27,6 +27,7 @@ local function split(str)
 end
 
 local oldPrint = print
+debugTrace = oldPrint
 
 local pureHistory = {}
 local pureHistoryPoint = 1
@@ -63,8 +64,8 @@ end
 
 print = function(...)
   local dat = table.concat({...}, " ")
-  for i = 1, #dat, w / 7 do
-    shell.writeOutputC(dat:sub(i, i + (w / 7)) .. "\n", 16, false)
+  for i = 1, #dat, w / (gpu.font.data.w + 1) do
+    shell.writeOutputC(dat:sub(i, i + (w / (gpu.font.data.w + 1))) .. "\n", 16, false)
   end
 end
 
@@ -90,7 +91,7 @@ end
 function shell.tabulate(...)
   local tAll = {...}
 
-  local w = (gpu.width - 4) / 7
+  local w = (gpu.width - 4) / (gpu.font.data.w + 1)
   local nMaxLen = w / 7
   for n, t in ipairs(tAll) do
     if type(t) == "table" then
@@ -164,7 +165,7 @@ function shell.redraw(swap)
 	if lineHistory[i] then
       for j = 1, #lineHistory[i][1] do
         write(tostring(lineHistory[i][1][j]), cpos, (i - 1 - (lineOffset + drawOffset))*8 + 2, lineHistory[i][2][j])
-        cpos = cpos + #tostring(lineHistory[i][1][j])*7
+        cpos = cpos + #tostring(lineHistory[i][1][j])*(gpu.font.data.w + 1 or 7)
       end
 	end
   end
@@ -280,44 +281,59 @@ local function processEvent(e, ...)
 
         local got = true
         for pref = 1, #config.path do
-          local s, er = pcall(function() cfunc, oer = loadfile(config.path[pref] .. "/" .. str:match("%S+")..".lua") end)
-          if not s then
-            c = 7
-            if er then
-              er = er:sub(er:find("%:") + 1)
-              er = er:sub(er:find("%:") + 2)
-              shell.pushOutput("Error: " .. tostring(er))
-            else
-              shell.pushOutput("Error: Unknown error")
-            end
+          local firstExists = fs.getAttr(config.path[pref] .. "/" .. str:match("%S+")..".lua") ~= 255
+          local secondExists = fs.getAttr(config.path[pref] .. "/" .. str:match("%S+")..".rlua") ~= 255
+          local path = config.path[pref] .. "/" .. str:match("%S+")..".lua"
 
-            got = false
-            break
-          else
-            if cfunc then
-              local cc = coroutine.create(cfunc)
-              local splitStr = split(str)
-              table.remove(splitStr, 1)
-              local ev = splitStr or {}
-              local upfunc = table.unpack and table.unpack or unpack
-              while coroutine.status(cc) ~= "dead" do
-                local su, eru = coroutine.resume(cc, upfunc(ev))
-                if not su then
-                  print(eru)
-                end
-                ev = {coroutine.yield()}
+          local s, er
+          if not firstExists and secondExists then
+            path = config.path[pref] .. "/" .. str:match("%S+")..".rlua"
+
+            local retFile = loadfile("/usr/bin/pproc.lua")(path, "--sout")
+            s, er = pcall(function() cfunc, oer = loadstring(retFile) end)
+          elseif firstExists then
+            s, er = pcall(function() cfunc, oer = loadfile(path) end)
+          end
+
+          if firstExists or secondExists then
+            if not s then
+              c = 7
+              if er then
+                er = er:sub(er:find("%:") + 1)
+                er = er:sub(er:find("%:") + 2)
+                shell.pushOutput("Error: " .. tostring(er))
+              else
+                shell.pushOutput("Error: Unknown error")
               end
-              --cc = nil
-              collectgarbage("collect")
-
-              -- print = oldPrint
-
-              historyPoint = #lineHistory + 1
 
               got = false
               break
-            elseif oer then
-              print("Wow " .. oer)
+            else
+              if cfunc then
+                local cc = coroutine.create(cfunc)
+                local splitStr = split(str)
+                table.remove(splitStr, 1)
+                local ev = splitStr or {}
+                local upfunc = table.unpack and table.unpack or unpack
+                while coroutine.status(cc) ~= "dead" do
+                  local su, eru = coroutine.resume(cc, upfunc(ev))
+                  if not su then
+                    print(eru)
+                  end
+                  ev = {coroutine.yield()}
+                end
+                --cc = nil
+                collectgarbage("collect")
+
+                -- print = oldPrint
+
+                historyPoint = #lineHistory + 1
+
+                got = false
+                break
+              elseif oer then
+                print(oer)
+              end
             end
           end
         end
@@ -341,7 +357,7 @@ end
 local eventQueue = {}
 local last = os.clock()
 while true do
-  while os.clock() - last < (1 / 60) do
+  -- while os.clock() - last < (1 / 60) do
     while true do
       local e, p1, p2, p3, p4 = coroutine.yield()
       if not e then break end
@@ -352,7 +368,7 @@ while true do
       processEvent(unpack(eventQueue[1]))
       table.remove(eventQueue, 1)
     end
-  end
-  last = os.clock()
+  -- end
   update()
+  last = os.clock()
 end

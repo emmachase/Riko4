@@ -1,0 +1,66 @@
+#include "/lib/header.lua"
+#include "/lib/extras.lua"
+
+cls()
+
+local scale = 50 * 50
+local offX = 0
+local offY = 0
+
+local mx, my = -5, -5
+
+local function circ(x, y, c)
+  pix(x-1, y  , c)
+  pix(x+1, y  , c)
+  pix(x  , y-1, c)
+  pix(x  , y+1, c)
+end
+
+function _draw()
+  --cls()
+  
+  for i = 1, 750 do
+    local x, y = rnd(-_w/2, _w/2), rnd(-_h/2, _h/2)
+    local yy = (2*math.abs(y) + 2*scale/10)^2
+    if (x/2)^2 + (math.abs(y) + 2*math.sqrt(scale)/6)^2 <= scale then
+      local c = rnd(0, 1) == 1 and 16 or 7
+      if (x + offX)^2 + (y + offY)^2 <= scale then
+        if (x + offX*0.99 - 12)^2 + (y + offY*0.92 + 12)^2 <= scale / 70 then
+          c = rnd(0, 1) == 1 and 16 or 7
+        elseif (x + offX)^2 + (y + offY)^2 <= scale / 3 then
+          c = 1
+        else
+          c = rnd(0, 1) == 1 and 2 or 12
+        end
+      end
+      circ(x + _w/2, y + _h/2, c)
+    else
+      circ(x + _w/2, y + _h/2, 1)
+    end
+  end
+  
+  circ(mx, my, 8)
+  
+  swap()
+end
+
+local timer = 0
+function _update(dt)
+  timer = timer + dt
+  
+  if mx >= 0 then
+    offX = -(mx - _w/2)/(_w/2) * 40
+    offY = -(my - _h/2)/(_h/2) * 10
+  else
+    offX = math.sin(timer) * 40
+    offY = math.sin(timer / 4) * 10
+  end
+end
+
+function _event(e, ...)
+  if e == "mouseMoved" then
+    mx, my = ...
+  end
+end
+
+#include "/lib/loops.lua"

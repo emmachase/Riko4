@@ -1,5 +1,5 @@
 --HELP: \b6Usage: \b16ls \b7[\b16dir\b7]\b16\n
--- \b6Description: \b7List the contents of \b16dir\b7 or if not specified, the current directory
+-- \b6Description: \b7Lists the contents of \b16dir\b7 or if not specified, the current directory
 
 local args = {...}
 

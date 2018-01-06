@@ -52,14 +52,15 @@ end
 
 local font = dofile("font.lua")
 
-local dataH = fs.open("coreFont", "rb")
+local dataH = fs.open("smol.rff", "rb")
 local data = dataH:read("*a")
 dataH:close()
 
 local coreFont = font.new(data)
 gpu.font = coreFont
 
-function write(t, x, y, col, target)
+
+write = function(t, x, y, col, target)
   local fnt = gpu.font.data
 
   t = tostring(t)
@@ -69,11 +70,11 @@ function write(t, x, y, col, target)
     local text = t:sub(i, i)
     local c = string.byte(text)
     if fnt[c] then
-      for j=1, 7 do
-        for k=1, 7 do
+      for j=1, fnt.w do
+        for k=1, fnt.h do
           if fnt[c][j][k] then
-            local dx = x + xoff + k
-            local dy = y + j
+            local dx = x + xoff + j
+            local dy = y + k
             if target then
               target:drawPixel(dx, dy, col)
             else
@@ -83,7 +84,7 @@ function write(t, x, y, col, target)
         end
       end
     end
-    xoff = xoff + 7
+    xoff = xoff + fnt.w + 1
   end
 end
 

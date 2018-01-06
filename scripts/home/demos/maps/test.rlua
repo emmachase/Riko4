@@ -1,0 +1,59 @@
+#include "/lib/header.lua"
+
+local opl = pal()
+
+local palette = {}
+
+local palStr = [[
+  8   8   8 255	Untitled
+ 15  15  15 255	Untitled
+ 18  18  18 255	Untitled
+ 24  24  24 255	Untitled
+ 36  36  36 255	Untitled
+ 86  86  86 255	Untitled
+157 157 157 255	Untitled
+236 236 236 255	Untitled
+ 14  20  15 255	Untitled
+ 35  43  17 255	Untitled
+ 45  54  23 255	Untitled
+ 33  11  33 255	Untitled
+]]
+
+local i = 0
+for n in palStr:gmatch("%d+%s+%d+%s+%d+") do
+  local ri = 1
+  palette[i] = {}
+  for j in n:gmatch("%d+") do
+    palette[i][ri] = tonumber(j)
+    ri = ri + 1
+  end
+
+--  print("Pal[" .. i .."] = {" .. table.concat(palette[i], ", ") .. "}")
+
+  i = i + 1
+end
+
+pal(palette)
+
+
+
+
+
+local rif = dofile("/lib/rif.lua")
+local maps = dofile("/lib/map.lua")
+
+local sheet = rif.createImage("jam.rif")
+
+local map = maps.parse("jam.tmx", {sheet})
+
+function _draw()
+  cls()
+
+  maps.render(map)
+
+  swap()
+end
+
+#include "/lib/loops.lua"
+
+pal(opl)

@@ -1,5 +1,5 @@
 --HELP: \b6Usage: \b16ink \n
--- \b6Description: \b7Image / Spritesheet editor
+-- \b6Description: \b7Opens an Image / Spritesheet editor
 
 local RIF = dofile("/lib/rif.lua")
 

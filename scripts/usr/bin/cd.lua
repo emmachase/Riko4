@@ -1,5 +1,5 @@
 --HELP: \b6Usage: \b16cd \b7<\b16dir\b7> \n
--- \b6Description: \b7Change directory to \b16dir
+-- \b6Description: \b7Changes directory to \b16dir
 
 local args = ({...})[1]
 

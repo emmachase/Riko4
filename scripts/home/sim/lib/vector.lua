@@ -48,7 +48,11 @@ function Vector:mult(other)
 end
 
 function Vector:over(other)
-  return Vector(self.x / other.x, self.y / other.y, self.z / other.z)
+  if type(other) == "number" then
+    return Vector(self.x / other, self.y / other, self.z / other)
+  else
+    return Vector(self.x / other.x, self.y / other.y, self.z / other.z)
+  end
 end
 
 function Vector:div(other)
@@ -76,6 +80,10 @@ end
 
 function Vector:norm()
   return math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
+end
+
+function Vector:normalize()
+  return self:over(self:norm())
 end
 
 setmetatable(Vector, {__call = function(c, ...) return Vector.new(...) end})

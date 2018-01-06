@@ -5,10 +5,9 @@
 
 #include "rikoImage.h"
 
-#include <LuaJIT/lua.hpp>
-#include <LuaJIT/lauxlib.h>
+#include "luaIncludes.h"
 #include <SDL2/SDL.h>
-#include <SDL_gpu/SDL_gpu.h>
+#include "SDL_gpu/SDL_gpu.h"
 
 #define clamp(v, min, max) (v < min ? min : (v > max ? max : v))
 
@@ -365,9 +364,17 @@ static int imageCopy(lua_State *L) {
     if (lua_gettop(L) > 4) {
         wi = luaL_checkint(L, 5);
         he = luaL_checkint(L, 6);
-        srcRect = { luaL_checkint(L, 7), luaL_checkint(L, 8), wi, he };
+        //srcRect = { luaL_checkint(L, 7), luaL_checkint(L, 8), wi, he };
+        srcRect.x = luaL_checkint(L, 7);
+        srcRect.y = luaL_checkint(L, 8);
+        srcRect.w = wi;
+        srcRect.h = he;
     } else {
-        srcRect = { 0, 0, src->width, src->height };
+        //srcRect = { 0, 0, src->width, src->height };
+        srcRect.x = 0;
+        srcRect.y = 0;
+        srcRect.w = src->width;
+        srcRect.h = src->height;
         wi = src->width;
         he = src->height;
     }
@@ -396,6 +403,20 @@ static int imageToString(lua_State *L) {
     return 1;
 }
 
+static int imageGetWidth(lua_State *L) {
+    imageType *data = checkImage(L);
+
+    lua_pushinteger(L, data->width);
+    return 1;
+}
+
+static int imageGetHeight(lua_State *L) {
+    imageType *data = checkImage(L);
+
+    lua_pushinteger(L, data->height);
+    return 1;
+}
+
 static const luaL_Reg imageLib[] = {
     { "newImage", newImage },
     { NULL, NULL }
@@ -413,6 +434,8 @@ static const luaL_Reg imageLib_m[] = {
     { "getPixel", imageGetPixel },
     { "remap", imageRemap },
     { "copy", imageCopy },
+    { "getWidth", imageGetWidth },
+    { "getHeight", imageGetHeight },
     { NULL, NULL }
 };
 

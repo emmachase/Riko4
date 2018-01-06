@@ -1,5 +1,6 @@
---HELP: \b6Usage: \b16pproc \b7<\b16input\b7> [\b16outfile\b7] \n
--- \b6Description: \b7Preprocesses \b16input\b7, writing \b7to \b17outfile \b7or \b16input \b7plus \b16.lua
+--HELP: \b6Usage: \b16pproc \b7<\b16inputFile\b7> [\b16outputFile\b7] \n
+-- \b6Description: \b7Runs \b16inputFile \b7through the \b12Riko4 \b7preprocessor. It will output to \b16outputFile \b7if given, or \b16inputFile .. ".lua"\b7 otherwise.
+
 
 local args = {...}
 
@@ -24,7 +25,7 @@ else
   end
 end
 
-local outAPI = io or fs
+local outAPI = fs or io
 
 if not args[1] then
   if shell then
@@ -312,7 +313,7 @@ while #lines > 0 do
               local Ilines = {}
 
               for Iline in Idata:gmatch("([^\n]*)\n") do
-                Ilines[#Ilines + 1] = Iline
+                Ilines[#Ilines + 1] = Iline:gsub("[\r\n]", "")
               end
 
               for r = 1, #lines do
@@ -439,9 +440,13 @@ while #lines > 0 do
   
 end
 
-local outFN = args[2] or (args[1] .. ".lua")
-local outHandle = outAPI.open(outFN, "w")
-if outHandle then
-  outHandle:write(final)
-  outHandle:close()
+if args[2] == "--sout" then
+  return final
+else
+  local outFN = args[2] or (args[1] .. ".lua")
+  local outHandle = outAPI.open(outFN, "w")
+  if outHandle then
+    outHandle:write(final)
+    outHandle:close()
+  end
 end

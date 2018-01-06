@@ -3,11 +3,12 @@
 
 local args = {...}
 
-local w, h = gpu.width - 12, gpu.height
+local w, h = gpu.width, gpu.height
 
-local function writeICWrap(str, preserveWordsQ, strLitQ, start)
+local function writeICWrap(str, preserveWordsQ, strLitQ, start, hang)
   local color = 16
   start = start or 0
+  hang = hang or 1
 
   local pw = preserveWordsQ
   if strLitQ then
@@ -15,65 +16,47 @@ local function writeICWrap(str, preserveWordsQ, strLitQ, start)
     str = str:gsub("\\b", "\b")
   end
 
-  str = "\b16" .. str
+  local maxW = function() return math.floor(w / (gpu.font.data.w + 1) - start) - 1 end
 
-  for part in str:gmatch("\b?[^\b]+") do
-    if tonumber(part:sub(3, 3)) then
-      color = tonumber(part:sub(2, 3))
-      part = part:sub(4)
+  while #str > 0 do
+    local nextB, bEnd, nCol = str:find("\b([%d]+)")
+
+    local sect
+    local newL = false
+
+    if nextB and nextB <= maxW() then
+      sect = str:sub(1, nextB - 1)
+      str = str:sub(bEnd + 1)
+
+      newL = nextB - 1 >= maxW()
     else
-      color = tonumber(part:sub(2, 2))
-      part = part:sub(3)
-    end
+      nCol = color
 
-    local endP = function() return math.ceil((w - start - 3) / 7) end
+      local len = math.min(#str, maxW())
 
-    if #part > endP() then
-      local max = math.ceil(w / 7)
-
+      local nnl = false
       if pw then
-        while #part > 0 do
-          local sec = part:sub(1, endP() + 1) .. (" "):rep(endP() - #part)
-          local wp = sec:sub(endP(), endP() + 1)
-          if wp:match("%S%S") then
-            local rev = sec:reverse()
-            local fpw = #sec - (rev:find("%s") or #rev)
-            local left = part:sub(fpw + 1):match("%s*(.+)")
-            part = part:sub(1, fpw)
-
-            shell.writeOutputC(part .. "\n ", color)
-            start = 7
-
-            part = left
-          else
-            shell.writeOutputC(part:sub(1, endP()), color)
-            local ep = #part:sub(1, endP())
-            part = part:sub(ep + 1)
-            start = start + ep * 7
-            if start >= (max - 1) * 7 then
-              shell.writeOutputC("\n ")
-              part = part:match("%s*(.+)") or ""
-              start = 7
-            end
-          end
-        end
-      else
-        shell.writeOutputC(part:sub(1, endP()), color)
-        
-        part = part:sub(endP() + 1)
-        start = 7
-
-        while #part > 0 do
-          shell.writeOutputC("\n " .. part:sub(1, endP()), color)
-
-          part = part:sub(endP() + 1)
-          start = 7
+        if str:sub(len, len + 1):match("%S%S") then
+          len = len - (str:sub(1, len):reverse():find("%s") - 1) or 0
+          nnl = true
         end
       end
-    else
-      shell.writeOutputC(part, color)
-      start = start + #part * 8
+
+      sect = str:sub(1, len)
+      str = str:sub(len + 1)
+
+      newL = (len >= maxW()) or nnl
     end
+
+    shell.writeOutputC(sect .. (newL and "\n" or ""), color)
+    if newL then
+      shell.writeOutputC((" "):rep(hang))
+      start = hang * (gpu.font.data.w + 1)
+    else
+      start = start + #sect
+    end
+
+    color = tonumber(nCol)
   end
 end
 
@@ -81,10 +64,10 @@ if #args == 0 then
   writeICWrap("\b8System: \b7Riko4\n")
   writeICWrap("\b8Version: \b12v0.0.1\n\n")
 
-  writeICWrap([[\b7For a list of readily accessible programs, type \b16programs\b7 into the shell.]], true, true)
+  writeICWrap([[\b7For a list of programs, type \b16programs\b7 into the shell.]], true, true)
 
-  writeICWrap("\n\n")
-  writeICWrap([[\b7For help with a specific program, type \b16help <<program>>\b7 into the shell.]], true, true)
+  writeICWrap("\n")
+  writeICWrap([[\b7For help with a specific program, type \b16help <<program>>\b7.]], true, true)
   writeICWrap("\n")
 else
   local handleName = ""
@@ -99,8 +82,13 @@ else
         if ctp then fnm = name:sub(1, ctp - 1) end
         if fnm == args[1] then
           handleName = shell.config.path[i] .. "/" .. name
-          DONE = true
-          break
+          if bit.band(fs.getAttr(handleName), 2) == 2 then
+            -- Is a directory
+            handleName = ""
+          else
+            DONE = true
+            break
+          end
         end
       end
     end

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" tiledversion="1.0.3" orientation="orthogonal" renderorder="right-down" width="8" height="8" tilewidth="16" tileheight="16" nextobjectid="1">
+ <properties>
+  <property name="NoOverlappingRules" type="bool" value="true"/>
+ </properties>
+ <tileset firstgid="1" source="jam.tsx"/>
+ <layer name="regions" width="8" height="8">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,
+0,64,0,64,0,64,0,0,
+0,0,0,64,0,64,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <layer name="input_Walls" width="8" height="8">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,
+0,1,0,0,0,0,0,0,
+0,0,0,1,0,2,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <layer name="input_Walls" width="8" height="8">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,
+0,2,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <layer name="output_Walls" width="8" height="8">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,
+0,1,0,33,0,34,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <layer name="output2_Walls" width="8" height="8">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,
+0,2,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0
+</data>
+ </layer>
+</map>

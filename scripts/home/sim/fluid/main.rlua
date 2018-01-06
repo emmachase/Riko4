@@ -1,0 +1,295 @@
+#include "/lib/header.lua"
+
+local op = gpu.getPalette()
+local pal = {{0, 0, 0}}
+for i = 2, 15 do
+  local v = i / 15
+  pal[i] = {0 * v, 246 * v, 255 * v}
+end
+pal[16] = {255, 255, 255}
+
+gpu.blitPalette(pal)
+
+push()
+
+local PI = math.pi
+
+--== Simulation Parameters ==--
+
+local npframe = 1 -- Steps per frame
+local h = 5e-2    -- Particle size
+local dt = 1e-4   -- Time step
+local rho0 = 1000 -- Reference density
+local k = 1e3     -- Bulk modulus
+local mu = 0.1    -- Viscosity
+local g = 9.8     -- Gravity strength
+
+local DAMP = 0.75 -- Coefficient of restitution
+
+-- Boundaries of the computational domain
+local XMIN = 0
+local XMAX = 1
+local YMIN = 0
+local YMAX = 1
+
+--== Simulation State ==--
+
+local n        -- Number of particles
+local mass     -- Particle mass
+local rho = {} -- Densities
+local _x = {}  -- Positions
+local _vh = {} -- Velocities (half step)
+local _v = {}  -- Velocities (full step)
+local _a = {}  -- Acceleration
+
+local md, mx, my = false, 0, 0
+
+
+local function computeDensity()
+  local h2 = h * h
+  local h8 = (h2*h2) * (h2*h2)
+  local C = 4 * mass / PI / h8
+
+  for i = 1, n do
+    rho[i] = (rho[i] or 0) + 4 * mass / PI / h2
+    for j = i + 1, n do
+      local dx = _x[2 * i + 0] - _x[2 * j + 0]
+      local dy = _x[2 * i + 1] - _x[2 * j + 1]
+      local r2 = dx*dx + dy*dy
+      local z = h2 - r2
+      if z > 0 then
+        local rho_ij = C * z * z * z
+        rho[i] = (rho[i] or 0) + rho_ij
+        rho[j] = (rho[j] or 0) + rho_ij
+      end
+    end
+  end
+end
+
+local function computeAccel()
+  local h2 = h * h
+
+  computeDensity()
+
+  for i = 1, n do
+    if md then
+      local dx, dy = mx - _x[2 * i + 0], my - _x[2 * i + 1]
+      local ddx = dx * dx
+      local ddy = dy * dy
+
+      local sx = 0.2 - ddx; sx = sx > 0 and sx or 0
+      local sy = 0.2 - ddy; sy = sy > 0 and sy or 0
+
+      _a[2 * i + 0] = g + sy * (dy > 0 and 1 or -1)
+      _a[2 * i + 1] = 0 + sx * (dx > 0 and 1 or -1)
+    else
+      _a[2 * i + 0] = g
+      _a[2 * i + 1] = 0
+    end
+  end
+
+  local C0 = mass / PI / (h2 * h2)
+  local Cp =  15 * k
+  local Cv = -40 * mu
+
+  for i = 1, n do
+    local rhoi = rho[i]
+    for j = i + 1, n do
+      local dx = _x[2 * i + 0] - _x[2 * j + 0]
+      local dy = _x[2 * i + 1] - _x[2 * j + 1]
+      local r2 = dx*dx + dy*dy
+      if r2 < h2 then
+        local rhoj = rho[j]
+        local q = math.sqrt(r2) / h
+        local u = 1 - q
+        local w0 = C0 * u/rhoi/rhoj
+        local wp = w0 * Cp * (rhoi + rhoj - 2*rho0) * u/q
+        local wv = w0 * Cv
+        local dvx = _v[2 * i + 0] - _v[2 * j + 0]
+        local dvy = _v[2 * i + 1] - _v[2 * j + 1]
+        _a[2 * i + 0] = _a[2 * i + 0] + (wp*dx + wv*dvx)
+        _a[2 * i + 1] = _a[2 * i + 1] + (wp*dy + wv*dvy)
+        _a[2 * j + 0] = _a[2 * j + 0] - (wp*dx + wv*dvx)
+        _a[2 * j + 1] = _a[2 * j + 1] - (wp*dy + wv*dvy)
+      end
+    end
+  end
+end
+
+local function dampReflect(which, barrier, pos)
+  -- Ignore degenerate cases
+  if _v[pos + which] == 0 then return end
+
+  -- Scale back the distance traveled based on time from collision
+  local tbounce = (_x[pos + which]-barrier)/_v[pos + which]
+  _x[pos]   = _x[pos]   - _v[pos]*(1 - DAMP)*tbounce
+  _x[pos+1] = _x[pos+1] - _v[pos]*(1 - DAMP)*tbounce
+
+  -- Reflect the position and velocity
+  _x[pos + which]  = 2 * barrier - _x[pos + which]
+  _v[pos + which]  = -_v[pos + which]
+  _vh[pos + which] = -_vh[pos + which]
+
+  -- Damp the velocities
+  _v[pos]   = _v[pos]   * DAMP; _vh[pos]   = _vh[pos]   * DAMP
+  _v[pos+1] = _v[pos+1] * DAMP; _vh[pos+1] = _vh[pos+1] * DAMP
+end
+
+local function reflectBC()
+  local pos = 1
+  for i = 1, n do
+    if _x[pos]   < XMIN then dampReflect(0, XMIN, pos) end
+    if _x[pos]   > XMAX then dampReflect(0, XMAX, pos) end
+    if _x[pos+1] < XMIN then dampReflect(1, YMIN, pos) end
+    if _x[pos+1] > XMAX then dampReflect(1, YMAX, pos) end
+    pos = pos + 2
+  end
+end
+
+local function leapfrogStart(dt)
+  for i = 1, 2*n do _vh[i] = _v[i]  +  _a[i] * dt / 2 end
+  for i = 1, 2*n do _v[i]  = _v[i]  +  _a[i] * dt end
+  for i = 1, 2*n do _x[i]  = _x[i]  + _vh[i] * dt end
+  reflectBC()
+end
+
+local function leapfrogStep(dt)
+  for i = 1, 2*n do _vh[i] = _vh[i] +  _a[i] * dt end
+  for i = 1, 2*n do _v[i]  = _vh[i] +  _a[i] * dt / 2 end
+  for i = 1, 2*n do _x[i]  = _x[i]  + _vh[i] * dt end
+  reflectBC()
+end
+
+-- Initialization
+
+local function boxIndicator(x, y)
+  return x < 0.5 and y < 0.5
+end
+
+local function circIndicator(x, y)
+  local dx = x - 0.5
+  local dy = y - 0.3
+  local r2 = dx*dx + dy*dy
+  return r2 < 0.25*0.25
+end
+
+local function setupState(count)
+  n = count
+  for i = 1, 2 * n + 1 do
+    _x[i] = _x[i] or 0
+    _v[i] = _v[i] or 0
+    _vh[i] = _vh[i] or 0
+    _a[i] = _a[i] or 0
+  end
+end
+
+local function placeParticles(indicateF)
+  local hh = h / 1.3
+
+  local count = 0
+  for x = 0, 1, hh do
+    for y = 0, 1, hh do
+      count = count + (indicateF(x, y) and 1 or 0)
+    end
+  end
+
+  setupState(count)
+  local p = 0
+
+  for x = 0, 1, hh do
+    for y = 0, 1, hh do
+      if indicateF(x, y) then
+        _x[2 * p + 0] = x
+        _x[2 * p + 1] = y
+        _v[2 * p + 0] = 0
+        _v[2 * p + 1] = 0
+        p = p + 1
+      end
+    end
+  end
+end
+
+local function normalizeMass()
+  mass = 1
+  computeDensity()
+  local rho2s = 0
+  local rhos  = 0
+
+  for i = 1, n do
+    rho2s = rho2s + rho[i] * rho[i]
+    rhos  = rhos  + rho[i]
+  end
+  mass = mass * (rho0*rhos) / rho2s
+end
+
+local function initParticles()
+  placeParticles(circIndicator)
+  normalizeMass()
+end
+
+local cnv = image.newImage(_w / 2, _h / 2)
+function _draw()
+  cls()
+
+  cnv:clear()
+
+  for i = 1, 2 * n, 2 do
+    local xp = _x[i]
+    local yp = _x[i + 1]
+
+    pix(xp * _w, yp * _h, 8)
+    --rect(_x[i] * _w, _x[i + 1] * _h, 8, 8, 8)
+
+    for j = 6, 11 do
+      for k = -j, j do
+        local ak = math.abs(k)
+        local ep = math.sqrt(j * j - ak * ak)
+        for l = j - ep, j + ep do
+          local c = cnv:getPixel(xp * (_w / 2) + k, yp * (_h / 2) - j + l)
+          cnv:drawPixel(xp * (_w / 2) + k, yp * (_h / 2) - j + l, c + 1)
+        end
+      end
+    end
+  end
+
+  cnv:flush()
+  cnv:render(0, 0, 0, 0, _w / 2, _h / 2, 2)
+
+  -- for x = 1, 50 do
+  --   for y = 1, 50 do
+
+  --   end
+  -- end
+
+  swap()
+end
+
+function _update(dt)
+  for i = 1, npframe do
+    computeAccel()
+    leapfrogStep(dt / 5)
+  end
+end
+
+function _event(e, ...)
+  if e == "mouseMoved" then
+    local xx, yy = ...
+    mx, my = xx / _w, yy / _h
+  elseif e == "mousePressed" then
+    md = true
+  elseif e == "mouseReleased" then
+    md = false
+  end
+end
+
+do -- Init
+  initParticles()
+  computeAccel()
+  leapfrogStart(dt)
+end
+
+#include "/lib/loops.lua"
+
+pop()
+
+gpu.blitPalette(op)

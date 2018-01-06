@@ -143,6 +143,7 @@
     <ClCompile Include="shader.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="luaIncludes.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="rikoAudio.h" />
     <ClInclude Include="rikoConsts.h" />

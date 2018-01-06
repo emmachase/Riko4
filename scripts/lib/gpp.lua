@@ -2,6 +2,9 @@ local gpp = {}
 
 local gpuDrawPixel = gpu.drawPixel
 local gpuDrawRectangle = gpu.drawRectangle
+local gpuBlitImage = function(a, ...)
+  a:render(...)
+end
 
 local gpuWidth = gpu.width
 local gpuHeight = gpu.height
@@ -11,6 +14,22 @@ local function round(n)
     return math.ceil(n)
   else
     return math.floor(n)
+  end
+end
+
+function gpp.target(targetBuffer, selfInd)
+  if selfInd then
+    gpuDrawPixel = function(...) targetBuffer:drawPixel(...) end
+    gpuDrawRectangle = function(...) targetBuffer:drawRectangle(...) end
+    gpuBlitImage = function(a, ...)
+      a:copy(targetBuffer, ...)
+    end
+  else
+    gpuDrawPixel = targetBuffer.drawPixel
+    gpuDrawRectangle = targetBuffer.drawRectangle
+    gpuBlitImage = function(a, ...)
+      a:render(...)
+    end
   end
 end
 
@@ -229,6 +248,8 @@ function gpp.fillPolygon(poly, c)
     end
   end
 
+  local typeNum = type(c) == "number"
+
   for pixelY = imgTop, imgBot do
     -- Build a list of nodes
     nodes = 0; j = #poly
@@ -264,7 +285,12 @@ function gpp.fillPolygon(poly, c)
       if   (nodeX[i + 1] >  0 ) then
         if (nodeX[i    ] <  0 ) then nodeX[i] = 0 end
         if (nodeX[i + 1] >  gpuWidth) then nodeX[i + 1] = gpuWidth end
-        gpuDrawRectangle(nodeX[i], pixelY, round(nodeX[i + 1] - nodeX[i] + 1), 1, c)
+
+        if typeNum then
+          gpuDrawRectangle(nodeX[i], pixelY, round(nodeX[i + 1] - nodeX[i] + 1), 1, c)
+        else
+          gpuBlitImage(c, nodeX[i], pixelY, nodeX[i], pixelY, round(nodeX[i + 1] - nodeX[i] + 1), 1)
+        end
       end
     end
   end

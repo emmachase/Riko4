@@ -1,0 +1,56 @@
+#include "/lib/header.lua"
+#include "/lib/extras.lua"
+
+local t = 0
+local str = "Hello world!"
+
+cls()
+
+local function cpr(text, y, c)
+  write(text, (_w - #text * 4) / 2, y, c)
+end
+
+function _draw()
+  local xo = (_w - #str * 5) / 2 - 3
+  local rw = #str * 5 + 8
+  for i = 1, 500 do
+    local x = rnd(0, _w)
+    local y = rnd(0, _h)
+    local c = (x / 15 + y / 15 + t / 5) % 16 + 1
+    
+    if x > xo - 10 and x < xo + rw + 10 and
+       y > 45 and y < 100 then
+      c = 1
+    end
+    
+    pix(x - 1, y    , c)
+    pix(x + 1, y    , c)
+    pix(x    , y - 1, c)
+    pix(x    , y + 1, c)
+  end
+  
+  rect(xo, 50, rw, 45, 1)
+  
+  for i = 1, #str do
+    local c = str:sub(i, i)
+    
+    local cos = (math.cos(t + i / 3) / 2) + 0.5
+    
+    for j = 7, 2, -1 do
+      write(c, xo + i * 5, 50 + cos * (3 + j * 1.5), 6 + j)
+    end
+    
+    write(c, xo + i * 5, 50 + cos * 5, 16)
+  end
+  
+  cpr("This is Riko4", 75, 16)
+  cpr("Nice to meet you", 85, 16)
+  
+  swap()
+end
+
+function _update(dt)
+  t = t + dt * 5
+end
+
+#include "/lib/loops.lua"

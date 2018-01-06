@@ -26,10 +26,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <LuaJIT/lua.hpp>
-#include <LuaJIT/lauxlib.h>
+#include "luaIncludes.h"
 
 #include "rikoFs.h"
+#include <errno.h>
 
 #include "rikoConsts.h"
 
@@ -37,8 +37,9 @@
 
 #ifdef __WINDOWS__
 #define getFullPath(a, b) GetFullPathName(a, MAX_PATH, b, NULL)
+#define rmdir(a) _rmdir(a)
 #else
-#define getFullPath(a, b) do { realpath(a, b); } while (0);
+#define getFullPath(a, b) realpath(a, b)
 #endif
 
 #define checkPath(luaInput, varName)                                                                                      \
@@ -51,8 +52,11 @@
         char *concatStr = (char*)malloc(ln);                                                                              \
         sprintf(concatStr, "%s/%s", workingFront, luaInput);                                                              \
                                                                                                                           \
-        getFullPath(concatStr, varName);                                                                                  \
+        char* ptrz = (char*)getFullPath(concatStr, varName);                                                              \
         free(concatStr);                                                                                                  \
+        if (ptrz == NULL && errno == ENOENT) {                                                                            \
+            sprintf(varName, "%s/thisisatotallyrealpathyeponehundredpercent", scriptsPath);                               \
+        }                                                                                                                 \
                                                                                                                           \
         int varNameLen = (int)strlen(varName);                                                                            \
                                                                                                                           \
@@ -63,7 +67,7 @@
                 scriptsPath[scriptsPathLen - 1] = tmp;                                                                    \
             } else {                                                                                                      \
                 scriptsPath[scriptsPathLen - 1] = tmp;                                                                    \
-                return luaL_error(L, "attempt to access filejji outside fs sandbox");                                     \
+                return luaL_error(L, "attempt to access file outside fs sandbox");                                        \
             }                                                                                                             \
         } else if (varNameLen > scriptsPathLen) {                                                                         \
             char tmp = varName[scriptsPathLen];                                                                           \
@@ -84,6 +88,7 @@
 
 extern char* scriptsPath;
 char currentWorkingDirectory[MAX_PATH];
+char lastOpenedPath[MAX_PATH];
 
 typedef struct {
     FILE *fileStream;
@@ -231,18 +236,35 @@ static int fsOpenFile(lua_State *L) {
     if (fileHandle_o == NULL)
         return 0;
 
+    strcpy((char *) &lastOpenedPath, filePath + strlen(scriptsPath));
+    for (int i = 0; lastOpenedPath[i] != '\0'; i++) {
+        if (lastOpenedPath[i] == '\\')
+            lastOpenedPath[i] = '/';
+    }
+
     size_t nbytes = sizeof(fileHandleType);
     fileHandleType *outObj = (fileHandleType *)lua_newuserdata(L, nbytes);
 
     luaL_getmetatable(L, "Riko4.fsObj");
     lua_setmetatable(L, -2);
 
-    *outObj = {
+    /**outObj = {
         fileHandle_o,
-        true,
+        true,                 Emscripten doesn't like these
         mode[0] != 'r',
         false
-    };
+    };*/
+
+    outObj->fileStream = fileHandle_o;
+    outObj->open = true;
+    outObj->canWrite = mode[0] != 'r';
+    outObj->eof = false;
+
+    return 1;
+}
+
+static int fsLastOpened(lua_State *L) {
+    lua_pushstring(L, (char*) &lastOpenedPath);
 
     return 1;
 }
@@ -496,8 +518,12 @@ static int fsMv(lua_State *L) {
 static int fsDelete(lua_State *L) {
     char filePath[MAX_PATH + 1];
     checkPath(luaL_checkstring(L, 1), filePath);
+    
+    if (remove(filePath) == 0)
+        lua_pushboolean(L, true);
+    else
+        lua_pushboolean(L, rmdir(filePath) + 1);
 
-    lua_pushboolean(L, remove(filePath) + 1);
     return 1;
 }
 
@@ -564,6 +590,28 @@ static int fsSetCWD(lua_State *L) {
     return 0;
 }
 
+static int fsGetClipboardText(lua_State *L) {
+    if (SDL_HasClipboardText()) {
+        char *text = SDL_GetClipboardText();
+
+        lua_pushstring(L, text);
+
+        SDL_free(text);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+static int fsSetClipboardText(lua_State *L) {
+    const char *text = luaL_checkstring(L, 1);
+
+    SDL_SetClipboardText(text);
+
+    return 0;
+}
+
 static const luaL_Reg fsLib[] = {
     { "getAttr", fsGetAttr },
     { "open", fsOpenFile },
@@ -573,6 +621,9 @@ static const luaL_Reg fsLib[] = {
     { "move", fsMv },
     { "setCWD", fsSetCWD },
     { "getCWD", fsGetCWD },
+    { "getLastFile", fsLastOpened },
+    { "getClipboard", fsGetClipboardText },
+    { "setClipboard", fsSetClipboardText },
     { NULL, NULL }
 };
 

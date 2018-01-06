@@ -1,4 +1,4 @@
-local gridSize = 9
+local gridSize = 7
 
 local rif = dofile("/lib/rif.lua")
 
