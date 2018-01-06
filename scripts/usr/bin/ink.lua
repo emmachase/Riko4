@@ -778,7 +778,7 @@ do
     toolbar[i].maxACL = intmax
 
     toolbar[i].offset = cx
-    cx = cx + #ptl.name * 7 + 16
+    cx = cx + #ptl.name * (gpu.font.data.w + 1) + 16
   end
 end
 
@@ -884,7 +884,7 @@ local function drawContent()
     pathDialog:drawRectangle(1, 1, 98, 10, 1)
     write(pathVars.str, 1, 2, 16, pathDialog.canv)
     if pathVars.focus and math.floor(((os.clock() - pathVars.time) * 2) % 2) == 0 then
-      pathDialog:drawRectangle(pathVars.cpos * 7 + 3, 9, 4, 1, 16)
+      pathDialog:drawRectangle(pathVars.cpos * (gpu.font.data.w + 1) + 3, 9, 4, 1, 16)
     end
 
     pathDialog:flush()
@@ -906,7 +906,7 @@ local function drawContent()
     if newVars.focus and math.floor(((os.clock() - newVars.time) * 2) % 2) == 0 then
       local off = newVars.mode == 1 and 3 or 3 + 49
       local dof = newVars.mode == 1 and newVars.cposw or newVars.cposh
-      newDialog:drawRectangle(dof * 7 + off, 21, 4, 1, 16)
+      newDialog:drawRectangle(dof * (gpu.font.data.w + 1) + off, 21, 4, 1, 16)
     end
 
     newDialog:flush()
@@ -920,7 +920,7 @@ local function drawContent()
   for i=1, #toolbar do
     local pt = toolbar[i]
     if toolbarActive and i == selToolbar then
-      gpu.drawRectangle(pt.offset - 4, 0, #pt.name * 7 + 10, 10, 1)
+      gpu.drawRectangle(pt.offset - 4, 0, #pt.name * (gpu.font.data.w + 1) + 10, 10, 1)
       acp = pt.offset - 4
     end
     write(pt.name, pt.offset, 1, 16)
@@ -929,10 +929,14 @@ local function drawContent()
   if closeHover then
     gpu.drawRectangle(scrnWidth - 10, 0, 10, 10, 8)
   end
-  write("X", scrnWidth - 10, 1, 16)
+
+  for i = scrnWidth - 8, scrnWidth - 3 do
+    gpu.drawPixel(i, scrnWidth - i - 1, 16)
+    gpu.drawPixel(i, 10 - scrnWidth + i, 16)
+  end
 
   if toolbarActive then
-    gpu.drawRectangle(acp, 10, toolbar[selToolbar].maxACL * 7 + 16, #toolbar[selToolbar].actions * 10, 7)
+    gpu.drawRectangle(acp, 10, toolbar[selToolbar].maxACL * (gpu.font.data.w + 1) + 16, #toolbar[selToolbar].actions * 10, 7)
     for i=1, #toolbar[selToolbar].actions do
       write(toolbar[selToolbar].actions[i][1], acp + 4, i * 10, 1)
     end
@@ -1159,7 +1163,7 @@ local function processEvent(ev, p1, p2, p3, p4)
     if tBar then
       local i = selToolbar
 
-      if x > toolbar[i].offset - 5 and x < toolbar[i].maxACL * 7 + toolbar[i].offset + 12 then
+      if x > toolbar[i].offset - 5 and x < toolbar[i].maxACL * (gpu.font.data.w + 1) + toolbar[i].offset + 12 then
         local action = math.floor(y / 10)
         if toolbar[i].actions[action] then
           local f = toolbar[i].actions[action][2]
@@ -1176,7 +1180,7 @@ local function processEvent(ev, p1, p2, p3, p4)
       end
 
       for i=1, #toolbar do
-        if x > toolbar[i].offset - 5 and x < #toolbar[i].name * 7 + toolbar[i].offset + 6 then
+        if x > toolbar[i].offset - 5 and x < #toolbar[i].name * (gpu.font.data.w + 1) + toolbar[i].offset + 6 then
           if not (tBar and i == selToolbar) then
             toolbarActive = true
             selToolbar = i
