@@ -159,6 +159,7 @@ function shell.redraw(swap)
   local delta = ctime - lastf
   lastf = ctime
   fps = fps + (1 / delta - fps)*0.01
+  if fps ~= fps then fps = 60 end -- NaN is the only value that does not equal itself
 
   for i = math.max((lineOffset + drawOffset), 1), #lineHistory do
     local cpos = 2
