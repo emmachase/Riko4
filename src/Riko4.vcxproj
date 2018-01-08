@@ -139,6 +139,7 @@
     <ClCompile Include="fsLib.cpp" />
     <ClCompile Include="GPULib.cpp" />
     <ClCompile Include="ImageLib.cpp" />
+    <ClCompile Include="netLib.cpp" />
     <ClCompile Include="riko.cpp" />
     <ClCompile Include="shader.cpp" />
   </ItemGroup>

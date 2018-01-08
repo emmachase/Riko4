@@ -24,6 +24,7 @@ extern GPU_Target *renderer;
 extern GPU_Target *bufferTarget;
 extern GPU_Image *buffer;
 extern int pixelSize;
+extern int afPixscale;
 
 int palette[16][3] = {
     {24,   24,   24},
@@ -288,6 +289,15 @@ static int gpu_pop(lua_State *L) {
 static int gpu_set_fullscreen(lua_State *L) {
     bool fsc = lua_toboolean(L, 1);
     GPU_SetFullscreen(fsc, true);
+
+    SDL_Window* window;
+    window = SDL_GetWindowFromID(renderer->renderer->current_context_target->context->windowID);
+
+    int *winH = (int *)malloc(sizeof(int));
+    SDL_GetWindowSize(window, NULL, winH);
+
+    afPixscale = *winH / SCRN_HEIGHT;
+    free(winH);
 
     return 0;
 }
