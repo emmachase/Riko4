@@ -1,6 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
 
-#include "SDL2/SDL.h"
 #include "SDL_gpu/SDL_gpu.h"
 #include <stdlib.h>
 #include <string.h>

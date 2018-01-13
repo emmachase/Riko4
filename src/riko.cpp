@@ -37,8 +37,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <SDL2/SDL.h>
-
 #include "SDL_gpu/SDL_gpu.h"
 
 #include "luaIncludes.h"
