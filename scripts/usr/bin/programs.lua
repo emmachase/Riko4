@@ -21,4 +21,4 @@ local tabular = {12, tbl}
 
 shell.tabulate(unpack(tabular))
 
-shell.writeOutputC("\n")
+print()

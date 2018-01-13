@@ -24,6 +24,16 @@ end
 table.sort(outTbl[2])
 table.sort(outTbl[4])
 
+if #outTbl[4] == 0 then
+  outTbl[3] = nil
+  outTbl[4] = nil
+end
+
+if #outTbl[2] == 0 then
+  outTbl[1] = outTbl[3]
+  outTbl[2] = outTbl[4]
+end
+
 shell.tabulate(unpack(outTbl))
 
-shell.writeOutputC("\n")
+print()

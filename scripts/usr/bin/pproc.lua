@@ -8,7 +8,7 @@ local erf
 if shell then
   if shell.writeOutputC then
     erf = function(t)
-      shell.writeOutputC(t, 8)
+      print(t, 8)
     end
   elseif printError then
     erf = function(t)

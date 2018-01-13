@@ -47,7 +47,7 @@ local width, height = gpu.width, gpu.height
 local args = {...}
 if #args < 1 then
   if shell then
-    shell.writeOutputC("Syntax: edit <file>\n", 9)
+    print("Syntax: edit <file>\n", 9)
     return
   else
     error("Syntax: edit <file>", 2)

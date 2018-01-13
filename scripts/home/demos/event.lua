@@ -5,6 +5,8 @@ while true do
     break
   end
   
-  print(unpack(e))
-  shell.redraw(true)
+  if e[1] then
+    print(table.concat(e, " "))
+  end
+  shell.draw()
 end

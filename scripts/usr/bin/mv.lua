@@ -9,7 +9,7 @@ local mask = tonumber("11111111", 2)
 
 local function er(t)
     if shell then
-        shell.writeOutputC(t, 8)
+        print(t, 8)
     else
         error(t, 2)
     end

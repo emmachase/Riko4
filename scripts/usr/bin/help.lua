@@ -48,9 +48,26 @@ local function writeICWrap(str, preserveWordsQ, strLitQ, start, hang)
       newL = (len >= maxW()) or nnl
     end
 
-    shell.writeOutputC(sect .. (newL and "\n" or ""), color)
+    if #sect > 0 then
+      if newL then
+        print(sect, color)
+      elseif sect:find("\n") then
+        local ssect = sect
+        while ssect and ssect:find("\n") do
+          print(ssect:match("[^\n]+"), color)
+          ssect = ssect:match("\n(.+)")
+        end
+
+        if ssect then
+          shell.write(ssect, color)
+        end
+      else
+        shell.write(sect, color)
+      end
+    end
+    
     if newL then
-      shell.writeOutputC((" "):rep(hang))
+      shell.write((" "):rep(hang))
       start = hang * (gpu.font.data.w + 1)
     else
       start = start + #sect
@@ -134,3 +151,5 @@ else
 
   handle:close()
 end
+
+print()

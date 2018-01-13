@@ -26,6 +26,10 @@ if jit.os == "Linux" or jit.os == "OSX" or jit.os == "BSD" or jit.os == "POSIX" 
   end
 end
 
+fs.exists = function(file)
+  return fs.getAttr(file) ~= 0b11111111
+end
+
 loadfile = function(inp)
   local handle = fs.open(inp, "r")
 

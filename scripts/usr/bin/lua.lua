@@ -1,33 +1,22 @@
---HELP: Under construction.. does \b8nothing \b16atm
-
+print("Type exit() to return to the shell.")
 local running = true
+exit = function() running = false end
 
-local eventQueue = {}
+while running do
+  shell.write("> ")
+  local ip = shell.read()
+  local s, e = loadstring("return " .. ip)
 
-local function processEvent(e, ...)
-  local data = {...}
-  if e == "key" then
-    local key = data[1]
-    
-    if key == "return" then
-      shell.pushOutput("Waddup")
-    elseif key == "escape" then
-      running = false
+  if not s then
+    s, e = loadstring(ip)
+  end
+
+  if s then
+    local r = s()
+    if r then
+      print(r)
     end
   end
 end
 
-while running do
-  while true do
-    local e = {coroutine.yield()}
-    if not e[1] then break end
-    eventQueue[#eventQueue + 1] = e
-  end
-  
-  while #eventQueue > 0 do
-    processEvent(unpack(eventQueue[1]))
-    table.remove(eventQueue, 1)
-  end
-
-  shell.redraw()
-end
+exit = nil

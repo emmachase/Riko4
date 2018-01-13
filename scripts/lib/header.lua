@@ -1,4 +1,4 @@
-local pix, rect, cls, pal, pixb, cam, push, sheet, spr, pop, pget, swap, trans, _eventDefault
+local pix, rectFill, rect, cls, pal, pixb, cam, push, sheet, spr, pop, pget, swap, trans, _eventDefault
 local _w, _h = gpu.width, gpu.height
 local _running = true
 
@@ -43,8 +43,16 @@ do
       sprArea, sprArea)
   end
 
+  function rect(x, y, w, h, c)
+    g_.drawRectangle(x, y        , w, 1, c)
+    g_.drawRectangle(x, y + h - 1, w, 1, c)
+
+    g_.drawRectangle(x        , y + 1, 1, h - 2, c)
+    g_.drawRectangle(x + w - 1, y + 1, 1, h - 2, c)
+  end
+
   pix = g_.drawPixel
-  rect = g_.drawRectangle
+  rectFill = g_.drawRectangle
   cls = g_.clear
   pixb = g_.blitPixels
   push = g_.push
