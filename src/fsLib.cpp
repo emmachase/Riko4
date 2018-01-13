@@ -151,8 +151,7 @@ static int fsList(lua_State *L) {
     sprintf(sPath, "%s\\*.*", filePath);
 
     if ((hFind = FindFirstFile(sPath, &fdFile)) == INVALID_HANDLE_VALUE) {
-        printf("Path not found: [%s]\n", filePath);
-        return false;
+        return 0;
     }
 
     lua_newtable(L);
@@ -203,7 +202,7 @@ static int fsList(lua_State *L) {
 
         return 1;
     } else {
-        return luaL_error(L, "Couldn't open the directory");
+        return 0;
     }
 #endif
 }
