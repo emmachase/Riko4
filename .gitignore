@@ -245,3 +245,8 @@ CMakeFiles/
 cmake_install.cmake
 Makefile
 riko4
+
+/.idea/
+*.iml
+*.ipr
+*.cbp
