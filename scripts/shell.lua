@@ -238,6 +238,8 @@ function shell.read(replaceChar, size, history)
   local strPos = 1
   local strScrollAmt = 0
 
+  local historyPt = #history + 1
+
   local function checkBounds()
     if strPos - strScrollAmt > size then
       strScrollAmt = strPos - size
@@ -263,6 +265,18 @@ function shell.read(replaceChar, size, history)
         elseif k == "right" and strPos <= #str then
           strPos = strPos + 1
           term.blink = 0
+        elseif k == "up" then
+          if history and historyPt > 1 then
+            historyPt = historyPt - 1
+            str = history[historyPt]
+            strPos = #str + 1
+          end
+        elseif k == "down" then
+          if history and historyPt < #history then
+            historyPt = historyPt + 1
+            str = history[historyPt]
+            strPos = #str + 1
+          end
         elseif k == "backspace" and strPos > 1 then
           str = str:sub(1, strPos - 2) .. str:sub(strPos)
           strPos = strPos - 1
@@ -366,16 +380,20 @@ function print(text, fg, bg, x, y)
   term.y = term.y + 1
 end
 
+local shellHistory = {}
+
 print("rikoOS 1.0", 13)
 while true do
   ::loop::
   shell.write(getDir(), 13)
   shell.write("> ", 10)
 
-  local input = shell.read()
+  local input = shell.read(nil, nil, shellHistory)
   if not input:match("%S") then
     goto loop
   end
+
+  shellHistory[#shellHistory + 1] = input
 
   local words = shellSplit(input)
   local name = words[1]
