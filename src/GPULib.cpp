@@ -14,7 +14,6 @@
 #include "shader.h"
 
 #include "luaIncludes.h"
-#include <SDL2/SDL.h>
 #include "SDL_gpu/SDL_gpu.h"
 
 #include <stdint.h>

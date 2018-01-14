@@ -37,8 +37,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <SDL2/SDL.h>
-
 #include "SDL_gpu/SDL_gpu.h"
 
 #include "luaIncludes.h"
@@ -619,9 +617,19 @@ int main(int argc, char * argv[]) {
         }
     }
 
+    SDL_Window *window;
+    window = SDL_CreateWindow(
+        "Riko4",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        SCRN_WIDTH * pixelSize,
+        SCRN_HEIGHT * pixelSize,
+        SDL_WINDOW_OPENGL
+    );
+
+    GPU_SetInitWindow(SDL_GetWindowID(window));
     renderer = GPU_Init(
-        // "Riko4",
-        SCRN_WIDTH  * pixelSize,
+        SCRN_WIDTH * pixelSize,
         SCRN_HEIGHT * pixelSize,
         GPU_DEFAULT_INIT_FLAGS
     );
@@ -649,11 +657,7 @@ int main(int argc, char * argv[]) {
     SDL_Surface *surface;
     surface = SDL_LoadBMP("icon.ico");
 
-    SDL_Window* window;
-    window = SDL_GetWindowFromID(renderer->renderer->current_context_target->context->windowID);
     SDL_SetWindowIcon(window, surface);
-
-    SDL_SetWindowTitle(window, "Riko4");
 
     char *bootLoc = (char*)malloc(sizeof(char)*(strlen(scriptsPath) + 10));
     sprintf(bootLoc, "%s/boot.lua", scriptsPath);

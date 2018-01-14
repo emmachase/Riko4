@@ -6,7 +6,6 @@
 #include "rikoImage.h"
 
 #include "luaIncludes.h"
-#include <SDL2/SDL.h>
 #include "SDL_gpu/SDL_gpu.h"
 
 #define clamp(v, min, max) (v < min ? min : (v > max ? max : v))
