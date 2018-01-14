@@ -51,6 +51,11 @@
 #include "rikoImage.h"
 #include "shader.h"
 
+
+#if SDL_PATCHLEVEL <= 4
+#define OLDSDL
+#endif // SDL_PATCHLEVEL <= 4
+
 GPU_Image *buffer;
 GPU_Target *renderer;
 GPU_Target *bufferTarget;
@@ -369,7 +374,12 @@ void loop() {
                 break;
             case SDL_MOUSEWHEEL:
                 lua_pushstring(mainThread, "mouseWheel");
+
+#ifdef OLDSDL
+                mult = 1;
+#else
                 mult = (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) ? -1 : 1;
+#endif
 
                 lua_pushnumber(mainThread, event.wheel.y * mult);
                 lua_pushnumber(mainThread, event.wheel.x * mult);
