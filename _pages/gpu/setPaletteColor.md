@@ -1,7 +1,7 @@
 ---
 layout: doc
 title: "gpu.setPaletteColor"
-permalink: "/gpu/setPaletteColor"
+permalink: "Riko4/gpu/setPaletteColor"
 categories:
  - gpu
 

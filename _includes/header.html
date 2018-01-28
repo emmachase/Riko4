@@ -3,7 +3,7 @@
   <div class="top-wrapper">
     {% assign default_paths = site.pages | map: "path" %}
     {% assign page_paths = site.header_pages | default: default_paths %}
-    <a class="site-icon" href="{{ "/" | relative_url }}"><img src="/assets/img/icon.png"></a>
+    <a class="site-icon" href="{{ "/" | relative_url }}"><img src="assets/img/icon.png"></a>
     <a class="site-title" href="{{ "/" | relative_url }}">{{ site.title | escape }}</a>
   
     {% if page_paths %}

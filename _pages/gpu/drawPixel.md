@@ -1,7 +1,7 @@
 ---
 layout: doc
 title: "gpu.drawPixel"
-permalink: "/gpu/drawPixel"
+permalink: "Riko4/gpu/drawPixel"
 categories:
  - gpu
 
