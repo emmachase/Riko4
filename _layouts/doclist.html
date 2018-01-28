@@ -27,12 +27,12 @@ layout: page
         {% if postcat == pagecat %}
           {% if post.usage %}
             <tr>
-              <td><a href="{{ post.url }}">{{ post.usage }}</a></td>
+              <td><a href="{{ post.url | prepend:site.baseurl }}">{{ post.usage }}</a></td>
               <td>{{ post.excerpt }}</td>
               <td>{{ post.returns }}</td>
             </tr>
           {% else %}
-            <tr><td><a href="{{ post.url }}">{{ post.title }}</a></td></tr>
+            <tr><td><a href="{{ post.url | prepend:site.baseurl }}">{{ post.title }}</a></td></tr>
           {% endif %}
         {% endif %}
       {% endif %}

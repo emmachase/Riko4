@@ -12,8 +12,8 @@ excerpt: "Plots a pixel at `x`, `y` with `color`."
 
 {{ page.excerpt }}
 
-This function draws to the main screen, if you wish to draw to an image, use [image:drawPixel](/image/drawPixel).
-Respects transformations made by [gpu.translate](/gpu/translate).
+This function draws to the main screen, if you wish to draw to an image, use [image:drawPixel](/Riko4/image/drawPixel).
+Respects transformations made by [gpu.translate](/Riko4/gpu/translate).
 
 
 |Parameter|Type|Description|

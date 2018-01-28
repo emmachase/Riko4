@@ -26,7 +26,7 @@ local blitTable = {
 }
 ```
 
-**WARNING:** Please note that new palette colors will persist, and the built-in shell does not revert colors. Thus, a good practice is to use [gpu.getPalette](/gpu/getPalette) at the very beginning of the application, store this and restore that palette at cleanup, see example for details.
+**WARNING:** Please note that new palette colors will persist, and the built-in shell does not revert colors. Thus, a good practice is to use [gpu.getPalette](/Riko4/gpu/getPalette) at the very beginning of the application, store this and restore that palette at cleanup, see example for details.
 
 |Parameter|Type|Description|
 |:--------|---:|-----------|

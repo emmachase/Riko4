@@ -5,7 +5,7 @@
   {% assign pagecat = page.categories | join: ' ' | append: ' ' %}
   {% assign pagecatlen = page.categories.size %}
 
-  <a href="{{page.url}}" class="section-title">{{page.title}}</a>
+  <a href="{{page.url | prepend:site.baseurl}}" class="section-title">{{page.title}}</a>
   <div class="side-section">
     {% for post in site.pages %}
       {% if post.title != page.title %}
@@ -16,7 +16,7 @@
         {% endfor %}
 
         {% if postcat == pagecat %}
-          <a href="{{post.url}}">{{post.title | split: '.' | last}}</a> <br>
+          <a href="{{post.url | prepend:site.baseurl}}">{{post.title | split: '.' | last}}</a> <br>
         {% endif %}
       {% endif %}
     {% endfor %}

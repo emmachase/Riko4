@@ -12,7 +12,7 @@ excerpt: "Sets color index `slot` to rgb values `r`, `g`, and `b`."
 
 {{ page.excerpt }}
 
-This function is for setting a single color at a time, if you wish to modify multiple colors, consider using [gpu.blitPalette](/gpu/blitPalette)
+This function is for setting a single color at a time, if you wish to modify multiple colors, consider using [gpu.blitPalette](/Riko4/gpu/blitPalette)
 
 |Parameter|Type|Description|
 |:--------|---:|-----------|
