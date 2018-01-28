@@ -1,7 +1,7 @@
 ---
 layout: doc
 title: "gpu.blitPalette"
-permalink: "Riko4/gpu/blitPalette"
+permalink: "Riko4/gpu/blitPalette/"
 categories:
  - gpu
 
