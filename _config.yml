@@ -22,7 +22,7 @@ baseurl: "/Riko4" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: incinReal
 github_username:  incinirate
-permalink: /Riko4/:title/
+permalink: pretty
 include: ["_pages"]
 
 # Build settings
