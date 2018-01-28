@@ -1,0 +1,26 @@
+<div class="sidebar trigger">
+{% for page in site.pages %}
+  {% if page.root %}
+
+  {% assign pagecat = page.categories | join: ' ' | append: ' ' %}
+  {% assign pagecatlen = page.categories.size %}
+
+  <a href="{{page.url}}" class="section-title">{{page.title}}</a>
+  <div class="side-section">
+    {% for post in site.pages %}
+      {% if post.title != page.title %}
+        {% assign postcat = '' %}
+        {% for thispostcat in post.categories limit: pagecatlen %}
+          {% assign postcat = postcat | append: thispostcat %}
+          {% assign postcat = postcat | append: ' ' %}
+        {% endfor %}
+
+        {% if postcat == pagecat %}
+          <a href="{{post.url}}">{{post.title | split: '.' | last}}</a> <br>
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endfor %}
+</div>

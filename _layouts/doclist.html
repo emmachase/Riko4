@@ -1,0 +1,41 @@
+---
+layout: page
+---
+
+{{ content }}
+
+{% assign pagecat = page.categories | join: ' ' | append: ' ' %}
+{% assign pagecatlen = page.categories.size %}
+
+<table>
+  <thead>
+    <tr>
+      <th>Function</th>
+      <th>Description</th>
+      <th>Returns</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for post in site.pages %}
+      {% if post.title != page.title %}
+        {% assign postcat = '' %}
+        {% for thispostcat in post.categories limit: pagecatlen %}
+          {% assign postcat = postcat | append: thispostcat %}
+          {% assign postcat = postcat | append: ' ' %}
+        {% endfor %}
+
+        {% if postcat == pagecat %}
+          {% if post.usage %}
+            <tr>
+              <td><a href="{{ post.url }}">{{ post.usage }}</a></td>
+              <td>{{ post.excerpt }}</td>
+              <td>{{ post.returns }}</td>
+            </tr>
+          {% else %}
+            <tr><td><a href="{{ post.url }}">{{ post.title }}</a></td></tr>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  </tbody>
+</table>

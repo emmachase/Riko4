@@ -1,0 +1,18 @@
+---
+layout: default
+---
+<article class="post">
+
+  <header class="post-header">
+    {% if page.usage %}
+    <pre class="doc-title">{{ page.usage | escape }}</pre>
+    {% else %}
+    <h1 class="post-title">{{ page.title | escape }}</h1>
+    {% endif %}
+  </header>
+  <br>
+  <div class="post-content">
+    {{ content }}
+  </div>
+
+</article>
