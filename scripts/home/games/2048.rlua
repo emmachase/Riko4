@@ -1,3 +1,5 @@
+-- vim: set ft=lua:
+
 #include "/lib/header.lua"
 #include "/lib/extras.lua"
 
