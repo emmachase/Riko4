@@ -1,0 +1,410 @@
+#include "/lib/header.lua"
+#include "/lib/extras.lua"
+
+#define DEBUG false
+
+local function rgb(...) return {...} end
+
+local oPal = pal()
+pal({
+  rgb(34, 47, 62),
+  rgb(87, 101, 116),
+  rgb(254, 202, 87),
+  rgb(255, 159, 67),
+  rgb(255, 107, 107),
+  rgb(238, 82, 83),
+  rgb(72, 219, 251),
+  rgb(10, 189, 227),
+  rgb(29, 209, 161),
+  rgb(16, 172, 132),
+  rgb(0, 210, 211),
+  rgb(1, 163, 164),
+  rgb(84, 160, 255),
+  rgb(46, 134, 222),
+  rgb(52, 31, 151),
+  rgb(200, 214, 229)
+})
+
+local gridSize = 4
+
+local drawSize
+do
+  local maxSize = math.min(_w, _h)
+  drawSize = (maxSize - 20) / gridSize
+end
+
+local animGrid = {}
+local grid = {}
+
+local anims = {}
+local animProgress = 1
+local animSpeed = 0.1
+local afterDone = {1, 1, 1}
+
+local score = 0
+local newScores = {}
+
+local function cloneGrid()
+  local t = {}
+  for i = 1, #grid do
+    local gp = grid[i]
+    t[i] = {}
+    for j = 1, #gp do
+      t[i][j] = gp[j]
+    end
+  end
+  
+  return t
+end
+
+local function convertR(x, y, dir)
+  if dir == 1 then
+    -- Up
+    return y, gridSize - x + 1
+  elseif dir == 2 then
+    -- Right
+    return x, y
+  elseif dir == 3 then
+    -- Down
+    return y, x
+  elseif dir == 4 then
+    -- Left
+    return gridSize - x + 1, y
+  end
+end
+
+-- Get in rotated grid
+local function g(x, y, dir)
+  if dir == 1 then
+    -- Up
+    return grid[y][gridSize - x + 1]
+  elseif dir == 2 then
+    -- Right
+    return grid[x][y]
+  elseif dir == 3 then
+    -- Down
+    return grid[y][x]
+  elseif dir == 4 then
+    -- Left
+    return grid[gridSize - x + 1][y]
+  end
+end
+
+local function s(x, y, dir, v)
+  if dir == 1 then
+    -- Up
+    grid[y][gridSize - x + 1] = v
+  elseif dir == 2 then
+    -- Right
+    grid[x][y] = v
+  elseif dir == 3 then
+    -- Down
+    grid[y][x] = v
+  elseif dir == 4 then
+    -- Left
+    grid[gridSize - x + 1][y] = v
+  end
+end
+
+local function slide(dir)
+  local anyMove = false
+  
+  animGrid = cloneGrid()
+  local mani = {}
+  
+  local thisScore = 0
+  
+  -- Combine first
+  for j = 1, gridSize do
+    for i = gridSize, 2, -1 do
+      local val = g(i, j, dir)
+      
+      if val ~= 0 then
+        for k = i - 1, 1, -1 do
+          local ov = g(k, j, dir)
+          if ov == val then
+            thisScore = thisScore + val * 2
+            s(i, j, dir, val * 2)
+            s(k, j, dir, 0)
+            anyMove = true
+            
+            mani[#mani + 1] = {k, i, j} -- Store move meta for animations
+            break
+          elseif ov > 0 then
+            break
+          end
+        end
+      end
+    end
+  end
+  
+  local slides = {}
+  
+  -- Then slide things
+  for j = 1, gridSize do
+    for i = gridSize, 2, -1 do
+      local val = g(i, j, dir)
+      
+      if val == 0 then
+        for k = i - 1, 1, -1 do
+          if g(k, j, dir) ~= 0 then
+            s(i, j, dir, g(k, j, dir))
+            s(k, j, dir, 0)
+            anyMove = true
+            
+            slides[#slides + 1] = {k, i, j} -- Animations aaaa
+            break
+          end
+        end
+      end
+    end
+  end
+  
+  local moves = {}
+  
+  -- Now we have to extrapolate moves from the combines and slides
+  for i = 1, #slides do
+    local slide = slides[i]
+    local fComp = false
+    for j = #mani, 1, -1 do
+      local man = mani[j]
+      if slide[3] == man[3] then
+        -- Possible
+        if slide[1] == man[2] then
+          -- Complex move
+          fComp = true
+          
+          moves[#moves + 1] = {man[1],   slide[2], slide[3]}
+          moves[#moves + 1] = {slide[1], slide[2], slide[3]}
+          
+          -- Remove man
+          table.remove(mani, j)
+          
+          break
+        end
+      end
+    end
+    
+    if not fComp then
+      moves[#moves + 1] = {slide[1], slide[2], slide[3]}
+    end
+  end
+  
+  for i = 1, #mani do
+    -- Any complex moves have already been processed
+    local man = mani[i]
+    moves[#moves + 1] = {man[1], man[2], man[3]}
+  end
+  
+  for i = 1, gridSize do
+    anims[i] = {}
+    for j = 1, gridSize do
+      anims[i][j] = {i, j}
+    end
+  end
+  
+  -- Convert directions
+  for i = 1, #moves do
+    local move = moves[i]
+    local sx, sy = convertR(move[1], move[3], dir)
+    local ex, ey = convertR(move[2], move[3], dir)
+
+    anims[sx][sy] = {ex, ey}
+    animProgress = 0
+  end
+  
+  if thisScore > 0 then
+    score = score + thisScore
+    newScores[#newScores + 1] = {thisScore, 0}
+  end
+  
+  return anyMove
+end
+
+local function insertNew()
+  local avail = {}
+  for i = 1, gridSize do
+    for j = 1, gridSize do
+      if grid[i][j] == 0 then avail[#avail + 1] = {i, j} end
+    end
+  end
+  
+  local pick = avail[rnd(#avail)]
+  
+  grid[pick[1]][pick[2]] = rnd(2) * 2
+  afterDone = {pick[1], pick[2], 0}
+end
+
+local function ease(t)
+  return t < 0.5 and 4*t*t*t or (t-1)*(2*t-2)*(2*t-2)+1
+end
+
+local function lerp(x, y, dx, dy)
+  return (dx - x) * ease(animProgress) + x,
+         (dy - y) * ease(animProgress) + y
+end
+
+local function round(n)
+  if n % 1 >= 0.5 then
+    return math.ceil(n)
+  else
+    return math.floor(n)
+  end
+end
+
+local col = {
+  3,  -- 2
+  4,  -- 4
+  5,  -- 8
+  6,  -- 16
+  7,  -- 32
+  8,  -- 64
+  9,  -- 128
+  10, -- 256
+  11, -- 512
+  12, -- 1024
+  13, -- 2048
+  14, -- 4096
+  15  -- 8192
+}
+local function colr(val)
+  local ind = round(math.log(val) / math.log(2))
+  if #col < ind then
+    return 1
+  else
+    return col[ind]
+  end
+end
+
+local function cWrite(t, x, y, c)
+  t = tostring(t)
+  write(t, x - (#t * (gpu.font.data.w + 1)) / 2, y, c)
+end
+
+function _init()
+  for i = 1, gridSize do 
+    grid[i] = {}
+    for j = 1, gridSize do 
+      grid[i][j] = 0
+    end
+  end
+  
+  if not DEBUG then
+    insertNew()
+    insertNew()
+    afterDone[3] = 1
+  else
+    grid[1][1] = 2
+    grid[2][1] = 4
+    grid[3][1] = 8
+    grid[4][1] = 16
+    grid[1][2] = 32
+    grid[2][2] = 64
+    grid[3][2] = 128
+    grid[4][2] = 256
+    grid[1][3] = 512
+    grid[2][3] = 1024
+    grid[3][3] = 2048
+  end
+  
+  animGrid = cloneGrid()
+  
+  score = 0
+  newScores = {}
+end
+
+function _draw()
+  cls()
+
+  push()
+  cam(-(_w - drawSize * gridSize) / 2, -(_h - drawSize * gridSize) / 2)
+  
+  rect(-1, -1, drawSize * gridSize + 2, drawSize * gridSize + 2, 2)
+  
+  for i = 1, gridSize do
+    for j = 1, gridSize do
+      local x, y = (i - 1) * drawSize, (j - 1) * drawSize
+      rect(x, y, drawSize, drawSize, 2)
+    end
+  end
+  
+  if animProgress < 1 then
+    for i = 1, gridSize do
+      for j = 1, gridSize do
+        local x, y = (i - 1) * drawSize, (j - 1) * drawSize
+        local dx, dy = (anims[i][j][1] - 1) * drawSize, (anims[i][j][2] - 1) * drawSize
+        
+        if animGrid[i][j] > 0 then
+          local cx, cy = lerp(x, y, dx, dy)
+          rectFill(cx + 1, cy + 1, drawSize - 2, drawSize - 2, colr(animGrid[i][j]))
+          cWrite(animGrid[i][j], cx + drawSize / 2, cy + drawSize / 2 - 3, 1)
+        end
+      end
+    end
+    
+    animProgress = animProgress + animSpeed
+  else
+    for i = 1, gridSize do
+      for j = 1, gridSize do
+        if afterDone[3] < 1 and i == afterDone[1] and j == afterDone[2] then
+          local a = afterDone[3]
+          local x, y = (i - 1) * drawSize, (j - 1) * drawSize
+          
+          rectFill(x + drawSize * (1 - a) / 2 + 1, y + drawSize * (1 - a) / 2 + 1, drawSize * a - 2, drawSize * a - 2, colr(grid[i][j]))
+          cWrite(grid[i][j], x + drawSize / 2, y + drawSize / 2 - 3, 1)
+          
+          afterDone[3] = afterDone[3] + animSpeed * 2
+        else
+          local x, y = (i - 1) * drawSize, (j - 1) * drawSize
+          
+          if grid[i][j] > 0 then
+            rectFill(x + 1, y + 1, drawSize - 2, drawSize - 2, colr(grid[i][j]))
+            cWrite(grid[i][j], x + drawSize / 2, y + drawSize / 2 - 3, 1)
+          end
+        end
+      end
+    end
+  end
+  
+  write("Score: " .. score, drawSize * gridSize + 10, 0, 16)
+  
+  for i = #newScores, 1, -1 do
+    local piece = newScores[i]
+    piece[2] = piece[2] + animSpeed
+    write((" "):rep(7) .. "+".. piece[1], drawSize * gridSize + 10, -20 * ease(piece[2]), 2)
+    if piece[2] >= 1 then
+      table.remove(newScores, i)
+    end
+  end
+  
+  pop()
+  
+  swap()
+end
+
+function _event(e, ...)
+  if e == "key" then
+    local k = ...
+    if k == "up" then
+      if slide(1) then      
+        insertNew()
+      end
+    elseif k == "right" then
+      if slide(2) then      
+        insertNew()
+      end
+    elseif k == "down" then
+      if slide(3) then      
+        insertNew()
+      end
+    elseif k == "left" then
+      if slide(4) then
+        insertNew()
+      end
+    end
+  end
+end
+
+#include "/lib/loops.lua"
+
+pal(oPal)
