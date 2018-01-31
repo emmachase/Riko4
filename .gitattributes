@@ -27,3 +27,5 @@
 *.wwaproj   merge=binary
 
 libs/* linguist-vendored
+
+*.rlua linguist-language=Lua
