@@ -128,10 +128,12 @@ function term.write(text, fg, bg, x, y)
   y = y or term.y
 
   local endC = ""
+  local nl = false
   for i = 1, #text do
     local c = text:sub(i, i)
     if c == "\n" then
       endC = text:sub(i + 1)
+      nl = true
       break
     else
       if x > term.width then endC = text:sub(i) break end
@@ -152,7 +154,7 @@ function term.write(text, fg, bg, x, y)
 
   term.x = x
 
-  return endC
+  return endC, nl
 end
 
 
@@ -164,18 +166,27 @@ function shell.write(text, fg, bg, x, y)
   x = x or term.x
   y = y or term.y
 
+  local nl
+
   if text then
     local remainder = text
     repeat
+      term.y = y
+
       if y > term.height + term.scrollAmt then
         term.scroll(y - (term.height + term.scrollAmt))
       end
 
-      remainder = term.write(remainder, fg, bg, x, y)
+      remainder, nl = term.write(remainder, fg, bg, x, y)
 
       x = 1
       y = y + 1
     until remainder == ""
+  end
+
+  if nl then
+    term.x = x
+    term.y = y
   end
 end
 
@@ -209,7 +220,7 @@ function shell.tabulate(...)
             print()
           end
 
-          shell.write((" "):rep((col - 1) * maxLen - term.x) .. item, color)
+          shell.write((" "):rep((col - 1) * (maxLen + 1) - term.x) .. item, color)
 
           col = col + 1
         end

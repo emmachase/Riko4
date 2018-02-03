@@ -27,7 +27,7 @@ if jit.os == "Linux" or jit.os == "OSX" or jit.os == "BSD" or jit.os == "POSIX" 
 end
 
 fs.exists = function(file)
-  return fs.getAttr(file) ~= 0b11111111
+  return fs.getAttr(file) ~= tonumber("11111111", 2)
 end
 
 loadfile = function(inp)
