@@ -66,7 +66,7 @@
                     scriptsPath[scriptsPathLen - 1] = tmp;                                                                \
                 } else {                                                                                                  \
                     scriptsPath[scriptsPathLen - 1] = tmp;                                                                \
-                    return luaL_error(L, "attempt to access file outside fs sandbox");                                    \
+                    return luaL_error(L, "attempt to access file beneath root");                                          \
                 }                                                                                                         \
             } else if (varNameLen > scriptsPathLen) {                                                                     \
                 char tmp = varName[scriptsPathLen];                                                                       \
@@ -74,14 +74,14 @@
                 if (strcmp(varName, scriptsPath) == 0) {                                                                  \
                     varName[scriptsPathLen] = tmp;                                                                        \
                 } else {                                                                                                  \
-                    return luaL_error(L, "attempt to access file outside fs sandbox");                                    \
+                    return luaL_error(L, "attempt to access file beneath root");                                          \
                 }                                                                                                         \
             } else if (varNameLen == scriptsPathLen) {                                                                    \
                 if (strcmp(varName, scriptsPath) != 0) {                                                                  \
-                    return luaL_error(L, "attempt to access file outside fs sandbox");                                    \
+                    return luaL_error(L, "attempt to access file beneath root");                                          \
                 }                                                                                                         \
             } else {                                                                                                      \
-                return luaL_error(L, "attempt to access file outside fs sandbox");                                        \
+                return luaL_error(L, "attempt to access file beneath root");                                              \
             }                                                                                                             \
         }                                                                                                                 \
     } while (0);
