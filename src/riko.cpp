@@ -70,6 +70,8 @@ bool audEnabled = true;
 bool shaderOn = true;
 
 void printLuaError(int result) {
+    printf("%s\n", lua_tostring(mainThread, -1));
+
     if (result != 0) {
         switch (result) {
             case LUA_ERRRUN:

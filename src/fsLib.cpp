@@ -55,34 +55,34 @@
         char* ptrz = (char*)getFullPath(concatStr, varName);                                                              \
         free(concatStr);                                                                                                  \
         if (ptrz == NULL && errno == ENOENT) {                                                                            \
-            sprintf(varName, "%s/thisisatotallyrealpathyeponehundredpercent", scriptsPath);                               \
-        }                                                                                                                 \
-                                                                                                                          \
-        int varNameLen = (int)strlen(varName);                                                                            \
-                                                                                                                          \
-        if (varNameLen + 1 == scriptsPathLen) {                                                                           \
-            char tmp = scriptsPath[scriptsPathLen - 1];                                                                   \
-            scriptsPath[scriptsPathLen - 1] = 0;                                                                          \
-            if (strcmp(varName, scriptsPath) == 0) {                                                                      \
-                scriptsPath[scriptsPathLen - 1] = tmp;                                                                    \
-            } else {                                                                                                      \
-                scriptsPath[scriptsPathLen - 1] = tmp;                                                                    \
-                return luaL_error(L, "attempt to access file outside fs sandbox");                                        \
-            }                                                                                                             \
-        } else if (varNameLen > scriptsPathLen) {                                                                         \
-            char tmp = varName[scriptsPathLen];                                                                           \
-            varName[scriptsPathLen] = 0;                                                                                  \
-            if (strcmp(varName, scriptsPath) == 0) {                                                                      \
-                varName[scriptsPathLen] = tmp;                                                                            \
-            } else {                                                                                                      \
-                return luaL_error(L, "attempt to access file outside fs sandbox");                                        \
-            }                                                                                                             \
-        } else if (varNameLen == scriptsPathLen) {                                                                        \
-            if (strcmp(varName, scriptsPath) != 0) {                                                                      \
-                return luaL_error(L, "attempt to access file outside fs sandbox");                                        \
-            }                                                                                                             \
+            varName[0] = 0;                                                                                               \
         } else {                                                                                                          \
-            return luaL_error(L, "attempt to access file outside fs sandbox");                                            \
+            int varNameLen = (int)strlen(varName);                                                                        \
+                                                                                                                          \
+            if (varNameLen + 1 == scriptsPathLen) {                                                                       \
+                char tmp = scriptsPath[scriptsPathLen - 1];                                                               \
+                scriptsPath[scriptsPathLen - 1] = 0;                                                                      \
+                if (strcmp(varName, scriptsPath) == 0) {                                                                  \
+                    scriptsPath[scriptsPathLen - 1] = tmp;                                                                \
+                } else {                                                                                                  \
+                    scriptsPath[scriptsPathLen - 1] = tmp;                                                                \
+                    return luaL_error(L, "attempt to access file outside fs sandbox");                                    \
+                }                                                                                                         \
+            } else if (varNameLen > scriptsPathLen) {                                                                     \
+                char tmp = varName[scriptsPathLen];                                                                       \
+                varName[scriptsPathLen] = 0;                                                                              \
+                if (strcmp(varName, scriptsPath) == 0) {                                                                  \
+                    varName[scriptsPathLen] = tmp;                                                                        \
+                } else {                                                                                                  \
+                    return luaL_error(L, "attempt to access file outside fs sandbox");                                    \
+                }                                                                                                         \
+            } else if (varNameLen == scriptsPathLen) {                                                                    \
+                if (strcmp(varName, scriptsPath) != 0) {                                                                  \
+                    return luaL_error(L, "attempt to access file outside fs sandbox");                                    \
+                }                                                                                                         \
+            } else {                                                                                                      \
+                return luaL_error(L, "attempt to access file outside fs sandbox");                                        \
+            }                                                                                                             \
         }                                                                                                                 \
     } while (0);
 
@@ -106,6 +106,11 @@ static fileHandleType *checkFsObj(lua_State *L) {
 static int fsGetAttr(lua_State *L) {
     char filePath[MAX_PATH + 1];
     checkPath(luaL_checkstring(L, 1), filePath);
+
+    if (filePath[0] == 0) {
+        lua_pushinteger(L, 0b11111111);
+        return 1;
+    }
 
 #ifdef __WINDOWS__
     unsigned long attr = GetFileAttributes(filePath);
@@ -140,6 +145,10 @@ static int fsGetAttr(lua_State *L) {
 static int fsList(lua_State *L) {
     char filePath[MAX_PATH + 1];
     checkPath(luaL_checkstring(L, 1), filePath);
+
+    if (filePath[0] == 0) {
+        return 0;
+    }
 
 #ifdef __WINDOWS__
     WIN32_FIND_DATA fdFile;
@@ -210,6 +219,10 @@ static int fsList(lua_State *L) {
 static int fsOpenFile(lua_State *L) {
     char filePath[MAX_PATH + 1];
     checkPath(luaL_checkstring(L, 1), filePath);
+
+    if (filePath[0] == 0) {
+        return 0;
+    }
 
     const char *mode = luaL_checkstring(L, 2);
 
@@ -499,6 +512,11 @@ static int fsMkDir(lua_State *L) {
     char filePath[MAX_PATH + 1];
     checkPath(luaL_checkstring(L, 1), filePath);
 
+    if (filePath[0] == 0) {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
     lua_pushboolean(L, f_mkdir(filePath, 0777) + 1);
     return 1;
 }
@@ -507,8 +525,18 @@ static int fsMv(lua_State *L) {
     char filePath[MAX_PATH + 1];
     checkPath(luaL_checkstring(L, 1), filePath);
 
+    if (filePath[0] == 0) {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
     char endPath[MAX_PATH + 1];
     checkPath(luaL_checkstring(L, 2), endPath);
+
+    if (endPath[0] == 0) {
+        lua_pushboolean(L, false);
+        return 1;
+    }
 
     lua_pushboolean(L, rename(filePath, endPath) + 1);
     return 1;
@@ -518,6 +546,11 @@ static int fsDelete(lua_State *L) {
     char filePath[MAX_PATH + 1];
     checkPath(luaL_checkstring(L, 1), filePath);
     
+    if (filePath[0] == 0) {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
     if (remove(filePath) == 0)
         lua_pushboolean(L, true);
     else
