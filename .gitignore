@@ -245,6 +245,7 @@ CMakeFiles/
 cmake_install.cmake
 Makefile
 riko4
+config.lua
 
 /.vscode/
 /.idea/
