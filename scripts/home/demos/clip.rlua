@@ -3,11 +3,11 @@
 gpu.clip()
 
 function _draw()
-  rect(0, 0, 50, 50, 8)
+  rectFill(0, 0, 50, 50, 8)
   
   gpu.clip(5, 5, 15, 15)
   
-  rect(0, 0, 50, 50, 12)
+  rectFill(0, 0, 50, 50, 12)
 
   gpu.clip()
   

@@ -30,6 +30,10 @@ fs.exists = function(file)
   return fs.getAttr(file) ~= tonumber("11111111", 2)
 end
 
+fs.isDir = function(file)
+  return fs.exists(file) and bit.band(fs.getAttr(file), 2) == 2
+end
+
 loadfile = function(inp)
   local handle = fs.open(inp, "r")
 

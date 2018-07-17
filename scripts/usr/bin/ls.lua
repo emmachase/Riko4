@@ -9,6 +9,12 @@ local outTbl = {9, {}, 16, {}}
 
 local list = fs.list(dir)
 
+if not list then
+  print("Directory '" .. dir .. "' does not exist", 8)
+  print()
+  return
+end
+
 for _, v in pairs(list) do
   if (v:sub(1, 1) == "." and (not v:match("%w"))) or v:sub(1, 1) ~= "." then
     pcall(function()

@@ -13,8 +13,8 @@ while running do
 
   if s then
     local r = s()
-    if r then
-      print(r)
+    if r ~= nil then
+      print(tostring(r))
     end
   end
 end
