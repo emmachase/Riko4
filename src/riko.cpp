@@ -28,7 +28,9 @@
 #endif
 
 #include "events.h"
+#include "fs.h"
 #include "luaIncludes.h"
+#include "luaMachine.h"
 #include "process.h"
 
 #include "riko.h"
@@ -55,7 +57,15 @@ int main(int argc, char * argv[]) {
 
     int windowStatus = riko::process::setupWindow();
     if (windowStatus != 0) return windowStatus;
-    
+
+    auto *bootLoc = new char[strlen(riko::fs::scriptsPath) + 10];
+    sprintf(bootLoc, "%s/boot.lua", riko::fs::scriptsPath);
+    riko::mainThread = riko::lua::createLuaInstance(bootLoc);
+
+    if (riko::mainThread == nullptr) {
+        return 7;
+    }
+
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(riko::events::loop, 0, 1);
 #else

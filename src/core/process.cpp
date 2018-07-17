@@ -208,14 +208,6 @@ namespace riko::process {
 
         SDL_SetWindowIcon(window, surface);
 
-        auto *bootLoc = new char[strlen(riko::fs::scriptsPath) + 10];
-        sprintf(bootLoc, "%s/boot.lua", riko::fs::scriptsPath);
-        riko::mainThread = riko::lua::createLuaInstance(bootLoc);
-
-        if (riko::mainThread == nullptr) {
-            return 7;
-        }
-
         return 0;
     }
 
