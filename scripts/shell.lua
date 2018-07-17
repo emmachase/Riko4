@@ -61,7 +61,7 @@ local function shellSplit(str)
   local inStr = false
   for i = 1, #str do
     local c = str:sub(i, i)
-    
+
     if c == "\\" and str:sub(i + 1, i + 1) == "\"" then
       -- Do nothing
     elseif c == "\"" and str:sub(i - 1, i - 1) ~= "\\" then
@@ -210,7 +210,7 @@ function shell.tabulate(...)
     local t = all[i]
     if type(t) == "table" then
       if #t > 0 then
-        
+
         local col = 1
         for j = 1, #t do
           local item = t[j]
@@ -382,6 +382,23 @@ function shell.draw()
   cur:render(unpack(mousePos))
 
   gpu.swap()
+end
+
+function shell.clear()
+  local replace = {
+    width  = math.floor(scrnW / fontW),
+    height = math.floor(scrnH / fontH),
+    buffer = {},
+    x = 1,
+    y = 1,
+    blink = -math.huge
+  }
+
+  for k, v in pairs(replace) do
+    term[k] = v
+  end
+
+  term.scroll(-term.scrollAmt)
 end
 
 function print(text, fg, bg, x, y)
