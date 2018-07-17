@@ -267,9 +267,9 @@ while #lines > 0 do
 
   if skipBlock > 0 then
     local trim = trimS(line) or ""
-    if trim:sub(1, 1) == "#" then
+    if trim:sub(1, 1) == "#" or trim:sub(1, 3) == "--#" then
       -- Preprocessor instruction
-      local inst = trimS(trim:sub(2))
+      local inst = trimS(trim:gsub("^-?-?#?",""))
 
       if sw(inst, "else") then
         if openInner == 0 then
@@ -298,9 +298,9 @@ while #lines > 0 do
       end
     else
       local trim = trimS(line) or ""
-      if trim:sub(1, 3) == "--#" then
+      if trim:sub(1, 1) == "#" or trim:sub(1, 3) == "--#" then
         -- Preprocessor instruction
-        local inst = trimS(trim:sub(4))
+        local inst = trimS(trim:gsub("^-?-?#?",""))
 
         if sw(inst, "includeFile") then
           local command = trimS(inst:sub(12))
