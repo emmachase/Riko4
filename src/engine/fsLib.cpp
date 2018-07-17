@@ -19,10 +19,10 @@
 #  include <unistd.h>
 #  include <dirent.h>
 #  define f_mkdir mkdir
-#else // __WINDOWS__
+#else
 #  include <direct.h>
 #  define f_mkdir(a, b) _mkdir(a)
-#endif // !__WINDOWS__
+#endif
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -39,9 +39,9 @@
 #ifdef __WINDOWS__
 #  define getFullPath(a, b) GetFullPathName(a, MAX_PATH, b, NULL)
 #  define rmdir(a) _rmdir(a)
-#else // !__WINDOWS__
+#else
 #  define getFullPath(a, b) realpath(a, b)
-#endif // __WINDOWS__
+#endif
 
 #define checkPath(luaInput, varName)                                                                                      \
     do {                                                                                                                  \
@@ -261,13 +261,6 @@ namespace riko::fs {
 
         luaL_getmetatable(L, "Riko4.fsObj");
         lua_setmetatable(L, -2);
-
-        /**outObj = {
-            fileHandle_o,
-            true,                 Emscripten doesn't like these
-            mode[0] != 'r',
-            false
-        };*/
 
         outObj->fileStream = fileHandle_o;
         outObj->open = true;

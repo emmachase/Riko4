@@ -8,7 +8,7 @@
 
 #if SDL_PATCHLEVEL <= 4
 #define OLDSDL 
-#endif // SDL_PATCHLEVEL <= 4
+#endif
 
 namespace riko {
     extern bool running;
@@ -181,9 +181,9 @@ namespace riko::events {
 
 #ifdef OLDSDL
                     mult = 1;
-#else // !OLDSDL
+#else
                     mult = (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) ? -1 : 1;
-#endif // OLDSDL
+#endif
 
                     lua_pushnumber(riko::mainThread, event.wheel.y * mult);
                     lua_pushnumber(riko::mainThread, event.wheel.x * mult);
@@ -302,7 +302,7 @@ namespace riko::events {
 
 #ifndef __EMSCRIPTEN__
                 SDL_Delay(1);
-#endif // !__EMSCRIPTEN__
+#endif
             }
 
             readyForProp = true;

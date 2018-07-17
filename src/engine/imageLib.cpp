@@ -26,7 +26,7 @@ namespace riko::image {
         int width;
         int height;
         bool free;
-        int clr;
+//        int clr;
         int lastRenderNum;
         int remap[16];
         bool remapped;
@@ -84,7 +84,7 @@ namespace riko::image {
         a->width = w;
         a->height = h;
         a->free = false;
-        a->clr = 0;
+//        a->clr = 0;
         a->lastRenderNum = riko::gfx::paletteNum;
         for (int i = 0; i < 16; i++) {
             a->remap[i] = i;

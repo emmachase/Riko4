@@ -20,7 +20,7 @@ namespace riko::lua {
         { LUA_BITLIBNAME,  luaopen_bit },
 #ifndef __EMSCRIPTEN__
         { LUA_JITLIBNAME,  luaopen_jit },
-#endif // !__EMSCRIPTEN__
+#endif
         { nullptr,  nullptr }
     };
 
@@ -29,7 +29,7 @@ namespace riko::lua {
         { LUA_FFILIBNAME,  luaopen_ffi },
         { nullptr,  nullptr }
     };
-#endif // !__EMSCRIPTEN__
+#endif
 
 
     void printLuaError(lua_State *L, int result) {
@@ -90,7 +90,7 @@ namespace riko::lua {
             lua_setfield(state, -2, lib->name);
         }
         lua_pop(state, 1);
-#endif // !__EMSCRIPTEN__
+#endif
 
         if (riko::fs::openLua(state) == 2) {
             return nullptr;

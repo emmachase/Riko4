@@ -20,7 +20,7 @@
 #endif
 
 #ifdef __EMSCRIPTEN__
-#include "emscripten.h"
+#  include "emscripten.h"
 #endif
 
 #include <cstring>
@@ -127,14 +127,14 @@ int main(int argc, char * argv[]) {
                 printf("Connected controller %i\n", i);
                 break;
             } else {
-                fprintf(stderr, "Could not open gamecontroller %i: %s\n", i, SDL_GetError());
+                fprintf(stderr, "Could not open game-controller %i: %s\n", i, SDL_GetError());
             }
         }
     }
 
     lua_State *configState = riko::lua::createConfigInstance("config.lua");
-    int narg = lua_resume(configState, 0);
-    printf("Got %d\n", narg);
+    int nArg = lua_resume(configState, 0);
+    printf("Got %d\n", nArg);
     
     bool bundle = false;
 
@@ -278,7 +278,7 @@ int main(int argc, char * argv[]) {
     while (riko::running) {
         riko::events::loop();
     }
-#endif // __EMSCRIPTEN__
+#endif
 
     SDL_free(riko::fs::appPath);
 
