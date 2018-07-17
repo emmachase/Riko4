@@ -299,11 +299,12 @@ namespace riko::gpu {
         SDL_Window *window;
         window = SDL_GetWindowFromID(riko::gfx::renderer->renderer->current_context_target->context->windowID);
 
-        auto *winH = (int *) malloc(sizeof(int));
-        SDL_GetWindowSize(window, nullptr, winH);
+        int winH = 0;
+        SDL_GetWindowSize(window, nullptr, &winH);
 
-        riko::gfx::pixelScale = *winH / SCRN_HEIGHT;
-        free(winH);
+        if (winH != 0) {
+            riko::gfx::pixelScale = winH / SCRN_HEIGHT;
+        }
 
         return 0;
     }
@@ -341,7 +342,7 @@ namespace riko::gpu {
     };
 
     LUALIB_API int openLua(lua_State *L) {
-        translateStack = (int *) malloc(32 * sizeof(int));
+        translateStack = new int[32];
 
         luaL_openlib(L, RIKO_GPU_NAME, gpuLib, 0);
         lua_pushnumber(L, SCRN_WIDTH);

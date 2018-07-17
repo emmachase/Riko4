@@ -20,7 +20,6 @@ namespace riko::shader {
     Uint32 load_shader(GPU_ShaderEnum shader_type, const char *filename) {
         SDL_RWops *rwops;
         Uint32 shader;
-        char *source;
         size_t header_size, file_size;
         const char *header = "";
         GPU_Renderer *renderer = GPU_GetCurrentRenderer();
@@ -48,7 +47,7 @@ namespace riko::shader {
         header_size = strlen(header);
 
         // Allocate source buffer
-        source = (char *) malloc(sizeof(char) * (header_size + file_size + 1));
+        char source[header_size + file_size + 1];
 
         // Prepend header
         strcpy(source, header);
@@ -61,7 +60,6 @@ namespace riko::shader {
         shader = GPU_CompileShader(shader_type, source);
 
         // Clean up
-        free(source);
         SDL_RWclose(rwops);
 
         return shader;
