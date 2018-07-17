@@ -246,6 +246,7 @@ cmake_install.cmake
 Makefile
 riko4
 
+/.vscode/
 /.idea/
 *.iml
 *.ipr

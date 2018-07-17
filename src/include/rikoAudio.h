@@ -5,5 +5,7 @@
 
 #include "luaIncludes.h"
 
-LUALIB_API int luaopen_aud(lua_State *L);
-void closeAudio();
+namespace riko::audio {
+  LUALIB_API int openLua(lua_State *L);
+  void closeAudio();
+}

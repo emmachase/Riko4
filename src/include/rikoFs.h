@@ -5,4 +5,6 @@
 
 #include "luaIncludes.h"
 
-LUALIB_API int luaopen_fs(lua_State *L);
+namespace riko::fs {
+    LUALIB_API int openLua(lua_State *L);
+}

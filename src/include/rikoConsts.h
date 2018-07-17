@@ -27,6 +27,10 @@
 #  define MAX_PATH 1024
 #endif
 
+#ifndef __INT_MAX__
+#  define  __INT_MAX__ 2147483647
+#endif
+
 #define FS_LINE_INCR 256
 
 static const char *sane_scancode_names[sane_NUM_SCANCODES] = {

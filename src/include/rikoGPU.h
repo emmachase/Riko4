@@ -5,4 +5,6 @@
 
 #include "luaIncludes.h"
 
-LUALIB_API int luaopen_gpu(lua_State *L);
+namespace riko::gpu {
+    LUALIB_API int openLua(lua_State *L);
+}

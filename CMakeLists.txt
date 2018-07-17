@@ -38,3 +38,4 @@ if(SDL2_GPU_FOUND)
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/libs/include)
+include_directories(${CMAKE_SOURCE_DIR}/src/include)

@@ -5,4 +5,6 @@
 
 #include "luaIncludes.h"
 
-LUALIB_API int luaopen_image(lua_State *L);
+namespace riko::image {
+    LUALIB_API int openLua(lua_State *L);
+}
