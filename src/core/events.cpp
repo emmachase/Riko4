@@ -1,9 +1,11 @@
+#include <ctime>
+
 #include "SDL_gpu/SDL_gpu.h"
 
 #include "luaMachine.h"
 #include "consts.h"
 
-#include "event.h"
+#include "events.h"
 
 #if SDL_PATCHLEVEL <= 4
 #define OLDSDL 
