@@ -26,8 +26,28 @@ if jit.os == "Linux" or jit.os == "OSX" or jit.os == "BSD" or jit.os == "POSIX" 
   end
 end
 
+fs.copy = function(file, newFile)
+  local handle = fs.open(file, "rb")
+  if not handle then
+    return error("could not open '" .. file .. "' for reading", 8)
+  end
+  local data = handle:read("*a")
+  handle:close()
+
+  handle = fs.open(newFile, "wb")
+  if not handle then
+    return error("could not open '" .. newFile .. "' for writing", 8)
+  end
+  handle:write(data)
+  handle:close()
+end
+
 fs.exists = function(file)
   return fs.getAttr(file) ~= tonumber("11111111", 2)
+end
+
+fs.isDir = function(file)
+  return fs.exists(file) and bit.band(fs.getAttr(file), 2) == 2
 end
 
 loadfile = function(inp)
