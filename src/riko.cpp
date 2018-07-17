@@ -43,11 +43,11 @@
 
 #include "luaIncludes.h"
 
-#include "rikoConsts.h"
+#include "consts.h"
 
 #include "luaMachine.h"
-#include "rikoAudio.h"
-#include "rikoEvents.h"
+#include "audio.h"
+#include "events.h"
 #include "shader.h"
 
 namespace riko {

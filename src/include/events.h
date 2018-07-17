@@ -1,3 +1,5 @@
+#pragma once
+
 #include "SDL_gpu/SDL_gpu.h"
 
 namespace riko::events {

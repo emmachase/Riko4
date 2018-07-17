@@ -29,10 +29,10 @@
 
 #include "luaIncludes.h"
 
-#include "rikoFs.h"
+#include "fs.h"
 #include <cerrno>
 
-#include "rikoConsts.h"
+#include "consts.h"
 
 #include <SDL2/SDL.h>
 
@@ -50,13 +50,12 @@
         auto scriptsPathLen = (int)strlen(scriptsPath);                                                                   \
                                                                                                                           \
         auto ln = (int)(strlen(luaInput) + strlen(workingFront) + 2);                                                     \
-        auto *concatStr = new char[ln];                                                                                   \
+        char concatStr[ln];                                                                                               \
         sprintf(concatStr, "%s/%s", workingFront, luaInput);                                                              \
                                                                                                                           \
         auto* ptrz = (char*)getFullPath(concatStr, varName);                                                              \
-        delete concatStr;                                                                                                  \
         if (ptrz == NULL && errno == ENOENT) {                                                                            \
-            (varName)[0] = 0;                                                                                             \
+            sprintf(varName, "%s", concatStr);                                                                            \
         } else {                                                                                                          \
             auto varNameLen = (int)strlen(varName);                                                                       \
                                                                                                                           \
@@ -670,6 +669,9 @@ namespace riko::fs {
         lua_pushstring(L, "__index");
         lua_pushvalue(L, -2);  /* pushes the metatable */
         lua_settable(L, -3);  /* metatable.__index = metatable */
+        lua_pushstring(L, "__gc");
+        lua_pushcfunction(L, fsObjCloseHandle);
+        lua_settable(L, -3);
 
         luaL_openlib(L, nullptr, fsLib_m, 0);
 

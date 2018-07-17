@@ -4,7 +4,9 @@
 
 #include "luaIncludes.h"
 #include "luaMachine.h"
-#include "rikoConsts.h"
+#include "consts.h"
+
+#include "event.h"
 
 #if SDL_PATCHLEVEL <= 4
 #define OLDSDL 

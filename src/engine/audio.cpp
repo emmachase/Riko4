@@ -1,7 +1,7 @@
 #define PI 3.141592654
 #define TAO (PI * 2)
 
-#include "rikoAudio.h"
+#include "audio.h"
 
 #include "luaIncludes.h"
 

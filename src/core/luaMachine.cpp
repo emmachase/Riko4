@@ -1,12 +1,12 @@
 #include "SDL_gpu/SDL_gpu.h"
 #include "luaIncludes.h"
 
-#include "rikoConsts.h"
+#include "consts.h"
 
-#include "rikoFs.h"
-#include "rikoGPU.h"
-#include "rikoAudio.h"
-#include "rikoImage.h"
+#include "fs.h"
+#include "gpu.h"
+#include "audio.h"
+#include "image.h"
 
 namespace riko::lua {
     static const luaL_Reg lj_lib_load[] = {

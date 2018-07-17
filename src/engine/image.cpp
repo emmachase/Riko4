@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "rikoImage.h"
+#include "image.h"
 
 #include "luaIncludes.h"
 #include "SDL_gpu/SDL_gpu.h"

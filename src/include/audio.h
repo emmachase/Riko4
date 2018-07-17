@@ -1,6 +1,5 @@
 #pragma once
 
-#define _LUALIB_H
 #define RIKO_AUD_NAME "speaker"
 
 #include "luaIncludes.h"

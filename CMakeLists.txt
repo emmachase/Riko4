@@ -9,8 +9,8 @@ set($SDL2_gpu_PATH "${SDL2_gpu_PATH}" CACHE INTERNAL "SDL2_gpu" FORCE)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
-file(GLOB_RECURSE SOURCE_FILES src/*.cpp src/*.c)
-add_executable(riko4 ${SOURCE_FILES}) 
+file(GLOB_RECURSE SOURCE_FILES src/*.cpp src/*.c src/*.h)
+add_executable(riko4 ${SOURCE_FILES})
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)

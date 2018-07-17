@@ -2,7 +2,7 @@
 -- \b6Description: \b7Runs \b16inputFile \b7through the \b12Riko4 \b7preprocessor. It will output to \b16outputFile \b7if given, or \b16inputFile .. ".lua"\b7 otherwise.
 
 
-local args = {...}
+local args = { ... }
 
 local erf
 if shell then
@@ -16,12 +16,12 @@ if shell then
     end
   else
     erf = function(t)
-      error(t)
+      print(t)
     end
   end
 else
   erf = function(t)
-    error(t)
+    print(t)
   end
 end
 
@@ -138,7 +138,7 @@ local function attemptSub(line)
       for char in line:gmatch(".") do
         lineP = lineP .. char
         line = line:sub(2)
-        if char == c and not escaping then  
+        if char == c and not escaping then
           break
         elseif char == "\\" then
           escaping = true
@@ -151,7 +151,7 @@ local function attemptSub(line)
 
       local endS = line:find("]]")
       if endS then
-        lineP = lineP .. line:sub(1, endS + 1)
+        lineP = lineP .. c .. line:sub(1, endS + 1)
         line = line:sub(endS + 2)
         multiline = false
       else
@@ -172,14 +172,14 @@ local function attemptSub(line)
           lineP = lineP .. safe:sub(1, nextPKW - 1)
           safe = safe:sub(endPKW + 1)
           safeOff = safeOff + endPKW
-          
+
           local found = false
           for i = 1, #scope do
             if scope[i][1] == Pstr then
               if scope[i][3] then
                 local s, e, tinner = parenfind(line:sub(safeOff))
 
-                if e then 
+                if e then
                   next = safeOff + e
                   safe = line:sub(safeOff + e, next - 1)
                   safeOff = safeOff + e
@@ -201,13 +201,13 @@ local function attemptSub(line)
                     local indTA = #scope + 1
                     for j = 1, #scope do
                       if v == scope[j][1] then
-                        tempHold[j] = {scope[j][1], scope[j][2], scope[j][3]}
+                        tempHold[j] = { scope[j][1], scope[j][2], scope[j][3] }
                         indTA = j
                         break
                       end
                     end
 
-                    scope[indTA] = {v, params[k]}
+                    scope[indTA] = { v, params[k] }
                     modded[#modded + 1] = indTA
                   end
 
@@ -264,7 +264,7 @@ end
 while #lines > 0 do
   local line = table.remove(lines, 1)
   lineI = lineI + 1
-  
+
   if skipBlock > 0 then
     local trim = trimS(line) or ""
     if trim:sub(1, 1) == "#" then
@@ -298,16 +298,43 @@ while #lines > 0 do
       end
     else
       local trim = trimS(line) or ""
-      if trim:sub(1, 1) == "#" then
+      if trim:sub(1, 3) == "--#" then
         -- Preprocessor instruction
-        local inst = trimS(trim:sub(2))
+        local inst = trimS(trim:sub(4))
 
-        if sw(inst, "include") then
-          local command = trimS(inst:sub(3))
+        if sw(inst, "includeFile") then
+          local command = trimS(inst:sub(12))
           local inStr = command:match("%b\"\"")
           if inStr then
             local fn = inStr:sub(2, #inStr - 1)
-            local Ihandle = fs.open(fn, "rb")
+            local Ihandle = outAPI.open(fn, "rb")
+            if Ihandle then
+              local Idata = Ihandle:read("*all") .. "\n"
+              local Ilines = {"[["}
+
+              for Iline in Idata:gmatch("([^\n]*)\n") do
+                Ilines[#Ilines + 1] = Iline:gsub("[\r\n]", "")
+              end
+
+              Ilines[#Ilines] = Ilines[#Ilines] .. "]]"
+
+              for r = 1, #lines do
+                Ilines[#Ilines + 1] = lines[r]
+              end
+
+              lines = Ilines
+            else
+              erf("Preprocessor parse error: (Line " .. lineI .. ")\nCannot find `" .. fn .. "'\n")
+            end
+          else
+            erf("Preprocessor parse error: (Line " .. lineI .. ")\nUnknown include strategy\n")
+          end
+        elseif sw(inst, "include") then
+          local command = trimS(inst:sub(8))
+          local inStr = command:match("%b\"\"")
+          if inStr then
+            local fn = inStr:sub(2, #inStr - 1)
+            local Ihandle = outAPI.open(fn, "rb")
             if Ihandle then
               local Idata = Ihandle:read("*all") .. "\n"
               local Ilines = {}
@@ -317,7 +344,7 @@ while #lines > 0 do
               end
 
               for r = 1, #lines do
-                  Ilines[#Ilines + 1] = lines[r]
+                Ilines[#Ilines + 1] = lines[r]
               end
 
               lines = Ilines
@@ -326,6 +353,47 @@ while #lines > 0 do
             end
           else
             erf("Preprocessor parse error: (Line " .. lineI .. ")\nUnknown include strategy\n")
+          end
+        elseif sw(inst, "require") then
+          local command = trimS(inst:sub(8))
+          local inStr = command:match("%b\"\"")
+
+          if inStr then
+            local fn = inStr:sub(2, #inStr - 1)
+            local asStr = command:match("[aA][sS] (%S+)") or fn:match("[^%.]+")
+
+            local Ihandle = outAPI.open(fn, "rb")
+            if Ihandle then
+              local Idata = Ihandle:read("*all") .. "\n"
+              local Ilines = {
+                "local " .. asStr .. " = (function()",
+                "  if " .. asStr .. " then return " .. asStr .. " end"
+              }
+
+              for Iline in Idata:gmatch("([^\n]*)\n") do
+                Ilines[#Ilines + 1] = Iline:gsub("[\r\n]", "")
+              end
+
+              Ilines[#Ilines] = Ilines[#Ilines] .. " end)()"
+
+              for r = 1, #lines do
+                Ilines[#Ilines + 1] = lines[r]
+              end
+
+              lines = Ilines
+            else
+              erf("Preprocessor parse error: (Line " .. lineI .. ")\nCannot find `" .. fn .. "'\n")
+            end
+          else
+            erf("Preprocessor parse error: (Line " .. lineI .. ")\nUnknown require strategy\n")
+          end
+        elseif sw(inst, "ignore") then
+          local command = trimS(inst:sub(7)) or ""
+          local num = tonumber(command:match("%d+") or "1")
+
+          for i = 1, num do
+            table.remove(lines, 1)
+            lineI = lineI + 1
           end
         elseif sw(inst, "define") then
           local command = trimS(inst:sub(7))
@@ -351,7 +419,7 @@ while #lines > 0 do
             end
           end
 
-          scope[#scope + 1] = {name, rest, params}
+          scope[#scope + 1] = { name, rest, params }
         elseif sw(inst, "undef") then
           local command = trimS(inst:sub(6))
           local name = command:match("%S+")
@@ -436,8 +504,6 @@ while #lines > 0 do
       end
     end
   end
-
-  
 end
 
 if args[2] == "--sout" then

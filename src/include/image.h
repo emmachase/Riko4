@@ -1,10 +1,9 @@
 #pragma once
 
-#define _LUALIB_H
-#define RIKO_FS_NAME "fs"
+#define RIKO_IMAGE_NAME "image"
 
 #include "luaIncludes.h"
 
-namespace riko::fs {
+namespace riko::image {
     LUALIB_API int openLua(lua_State *L);
 }

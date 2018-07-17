@@ -1,3 +1,5 @@
+#pragma once
+
 #include "luaIncludes.h"
 
 namespace riko::lua {

@@ -8,9 +8,9 @@
 #  endif
 #endif
 
-#include "rikoConsts.h"
+#include "consts.h"
 
-#include "rikoGPU.h"
+#include "gpu.h"
 #include "shader.h"
 
 #include "luaIncludes.h"
