@@ -33,7 +33,7 @@ do
   local handle = fs.open(cDir .. "edit/smol.rff", "rb")
   local data = handle:read("*a")
   handle:close()
-  
+
   local fnt2 = {data=font.parseFontdata2(data)}
   fnt = fnt2.data
 
@@ -110,6 +110,12 @@ local function ccat(tbl, sep)
   return estr
 end
 
+local function trimLines()
+  for i = 1, #content do
+    content[i] = content[i]:gsub("%s+$", "")
+  end
+end
+
 if exists(filename) then
   for line in fsLines(filename) do
     if line then
@@ -145,6 +151,10 @@ local inMenu = false
 local menuItems = { "Save", "Exit" }
 local menuFunctions = {
   function() -- SAVE
+    trimLines()
+    cursorPos = #content[cursorLine]
+    blinkTimeCorrection = os.clock()
+
     local handle = fs.open(filename, "w")
     handle:write(ccat(content, "\n"))
     handle:close()
@@ -602,11 +612,11 @@ local function processEvent(e, p1, p2)
           updateCursor(nx, ny)
           updateSelection()
         end
-        
+
         checkDrawBounds()
       elseif p1 == "left" then
         local nx, ny = cursorPos, cursorLine
-        
+
         initSelection(true)
 
         if modifiers.ctrl then
@@ -628,7 +638,7 @@ local function processEvent(e, p1, p2)
               ny = ny - 1
               nx = #content[ny]
             end
-          until (charType == 2 and let:match("[%w%s]")) 
+          until (charType == 2 and let:match("[%w%s]"))
              or (charType == 1 and let:match("%W"))
              or nx == 0
 
@@ -646,7 +656,7 @@ local function processEvent(e, p1, p2)
 
         updateCursor(nx, ny)
         updateSelection()
-        
+
         checkDrawBounds()
       elseif p1 == "right" then
         local nx, ny = cursorPos, cursorLine
@@ -672,7 +682,7 @@ local function processEvent(e, p1, p2)
                 end
               end
             end
-          until (charType == 2 and let:match("[%w%s]")) 
+          until (charType == 2 and let:match("[%w%s]"))
              or (charType == 1 and let:match("%W"))
              or nx == #content[ny]
 
@@ -689,8 +699,8 @@ local function processEvent(e, p1, p2)
         end
 
         updateCursor(nx, ny)
-        updateSelection()        
-        
+        updateSelection()
+
         checkDrawBounds()
       elseif p1 == "a" and modifiers.ctrl then
         updateCursor(#content[#content], #content)
@@ -729,7 +739,7 @@ local function processEvent(e, p1, p2)
 
           fs.setClipboard(table.concat(clipboard, "\n"))
 
-          removeSelection()          
+          removeSelection()
         end
       elseif p1 == "v" and modifiers.ctrl then
         local clipboardText = fs.getClipboard()
@@ -754,7 +764,7 @@ local function processEvent(e, p1, p2)
               tabInsert(colorizedLines, cursorLine + i - 1, {{clipboard[i], 1}})
               colorizeLine(cursorLine + i - 1)
             end
-            
+
             updateCursor(#content[cursorLine + #clipboard - 1], cursorLine + #clipboard - 1)
 
             content[cursorLine] = content[cursorLine] .. lastBit
@@ -796,7 +806,7 @@ local function processEvent(e, p1, p2)
                 updateCursor(ox, cursorLine - 1)
                 colorizeLine(cursorLine)
               end
-            until (charType == 2 and let:match("[%w%s]")) 
+            until (charType == 2 and let:match("[%w%s]"))
                or (charType == 1 and let:match("%W"))
                or cursorPos == 0
           else
@@ -847,7 +857,7 @@ local function processEvent(e, p1, p2)
         checkDrawBounds()
       elseif p1 == "home" then
         initSelection()
-        
+
         updateCursor(cursorPos - 1, cursorLine)
         updateSelection()
 
@@ -858,15 +868,15 @@ local function processEvent(e, p1, p2)
           updateCursor(fpos - 1, cursorLine)
         end
         updateSelection()
-        
+
         checkDrawBounds()
       elseif p1 == "end" then
         initSelection()
 
         updateSelection()
-        
+
         updateCursor(#content[cursorLine], cursorLine)
-        updateSelection()        
+        updateSelection()
 
         checkDrawBounds()
       elseif p1 == "tab" then
@@ -885,9 +895,15 @@ local function processEvent(e, p1, p2)
             end
           end
         else
-          content[cursorLine] = content[cursorLine]:sub(1, cursorPos) .. "  " .. content[cursorLine]:sub(cursorPos + 1)
-          updateCursor(cursorPos + 2, cursorLine)
-          colorizeLine(cursorLine)
+          if modifiers.shift then
+            content[cursorLine] = content[cursorLine]:match("%s?%s?(.+)")
+            updateCursor(cursorPos - 2, cursorLine)
+            colorizeLine(cursorLine)
+          else
+            content[cursorLine] = content[cursorLine]:sub(1, cursorPos) .. "  " .. content[cursorLine]:sub(cursorPos + 1)
+            updateCursor(cursorPos + 2, cursorLine)
+            colorizeLine(cursorLine)
+          end
         end
       elseif p1 == "pageDown" then
         checkDrawBounds()
