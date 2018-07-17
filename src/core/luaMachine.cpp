@@ -8,6 +8,8 @@
 #include "audio.h"
 #include "image.h"
 
+#include "luaMachine.h"
+
 namespace riko::lua {
     static const luaL_Reg lj_lib_load[] = {
         { "",              luaopen_base },

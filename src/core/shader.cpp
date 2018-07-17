@@ -3,9 +3,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include "SDL_gpu/SDL_gpu.h"
-#include <cstdlib>
-#include <cstring>
-#include <cmath>
+
+#include "shader.h"
 
 namespace riko::gfx {
     extern GPU_Target *renderer;

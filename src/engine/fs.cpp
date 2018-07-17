@@ -24,24 +24,23 @@
 #  define f_mkdir(a, b) _mkdir(a)
 #endif
 
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include "luaIncludes.h"
-
-#include "fs.h"
-#include <cerrno>
-
-#include "consts.h"
-
-#include <SDL2/SDL.h>
-
 #ifdef __WINDOWS__
 #  define getFullPath(a, b) GetFullPathName(a, MAX_PATH, b, NULL)
 #  define rmdir(a) _rmdir(a)
 #else
 #  define getFullPath(a, b) realpath(a, b)
 #endif
+
+#include <cerrno>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#include "SDL_gpu/SDL_gpu.h"
+
+#include "consts.h"
+#include "luaIncludes.h"
+
+#include "fs.h"
 
 #define checkPath(luaInput, varName)                                                                                      \
     do {                                                                                                                  \
@@ -87,7 +86,9 @@
     } while (0);
 
 namespace riko::fs {
-    extern char *scriptsPath;
+    char* appPath;
+    char* scriptsPath;
+
     char currentWorkingDirectory[MAX_PATH];
     char lastOpenedPath[MAX_PATH];
 

@@ -1,8 +1,5 @@
-#include <ctime>
-
 #include "SDL_gpu/SDL_gpu.h"
 
-#include "luaIncludes.h"
 #include "luaMachine.h"
 #include "consts.h"
 

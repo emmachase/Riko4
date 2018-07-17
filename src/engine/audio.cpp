@@ -1,22 +1,17 @@
 #define PI 3.141592654
 #define TAO (PI * 2)
 
-#include "audio.h"
+#include <cstdlib>
+#include <cmath>
+
+#include "SDL_gpu/SDL_gpu.h"
 
 #include "luaIncludes.h"
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_audio.h>
-
-#include <cstdlib>
-
-#include <cmath>
+#include "audio.h"
 
 namespace riko::audio {
-    extern bool audioEnabled;
-}
-
-namespace riko::audio {
+    bool audioEnabled = true;
     bool audioInitialized = false;
 
     struct Sound {

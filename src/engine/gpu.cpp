@@ -8,23 +8,25 @@
 #  endif
 #endif
 
-#include "consts.h"
-
-#include "gpu.h"
-#include "shader.h"
-
-#include "luaIncludes.h"
-#include "SDL_gpu/SDL_gpu.h"
-
 #include <cstdint>
 #include <cstdlib>
 
-namespace riko::gfx {
-    extern int pixelScale;
+#include "SDL_gpu/SDL_gpu.h"
 
-    extern GPU_Target *renderer;
-    extern GPU_Target *bufferTarget;
-    extern GPU_Image *buffer;
+#include "consts.h"
+#include "luaIncludes.h"
+#include "shader.h"
+
+#include "gpu.h"
+
+namespace riko::gfx {
+    bool shaderOn = false;
+
+    int pixelScale = 5;
+
+    GPU_Image *buffer;
+    GPU_Target *renderer;
+    GPU_Target *bufferTarget;
 
     Uint8 palette[16][3] = {
         {24,   24,   24},

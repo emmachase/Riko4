@@ -1,10 +1,11 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "image.h"
+#include "SDL_gpu/SDL_gpu.h"
 
 #include "luaIncludes.h"
-#include "SDL_gpu/SDL_gpu.h"
+
+#include "image.h"
 
 #define clamp(v, min, max) (float)((v) < (min) ? (min) : ((v) > (max) ? (max) : (v)))
 

@@ -5,6 +5,8 @@
 #include "luaIncludes.h"
 
 namespace riko::audio {
-  LUALIB_API int openLua(lua_State *L);
-  void closeAudio();
+    extern bool audioEnabled;
+
+    LUALIB_API int openLua(lua_State *L);
+    void closeAudio();
 }
