@@ -242,9 +242,11 @@ ModelManifest.xml
 
 CMakeCache.txt
 CMakeFiles/
+cmake-build-debug/
 cmake_install.cmake
 Makefile
 riko4
+config.lua
 
 /.vscode/
 /.idea/

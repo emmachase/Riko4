@@ -26,6 +26,19 @@ if jit.os == "Linux" or jit.os == "OSX" or jit.os == "BSD" or jit.os == "POSIX" 
   end
 end
 
+net.get = function(url)
+  net.request(url)
+
+  while true do
+    local e, eUrl, handle = coroutine.yield()
+    if e == "netSuccess" and eUrl == url then
+      return handle
+    elseif e == "netFailure" and eUrl == url then
+      return
+    end
+  end
+end
+
 fs.exists = function(file)
   return fs.getAttr(file) ~= tonumber("11111111", 2)
 end

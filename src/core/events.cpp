@@ -131,15 +131,27 @@ namespace riko::events {
     bool pushNonStandard(SDL_Event &event) {
         if (event.type == NET_SUCCESS) {
             lua_pushstring(riko::mainThread, "netSuccess");
-            ((riko::net::ResponseHandle *) event.user.data1)->constructUserdata(riko::mainThread);
-            pushedArgs = 2;
+
+            auto *url = (std::string *) event.user.data1;
+            lua_pushlstring(riko::mainThread, url->c_str(), url->length());
+
+            ((riko::net::ResponseHandle *) event.user.data2)->constructUserdata(riko::mainThread);
+
+            pushedArgs = 3;
 
             return true;
         } else if (event.type == NET_FAILURE) {
             lua_pushstring(riko::mainThread, "netFailure");
-            auto *errorStr = (std::string*) event.user.data1;
+
+            auto *url = (std::string *) event.user.data1;
+            lua_pushlstring(riko::mainThread, url->c_str(), url->length());
+
+            auto *errorStr = (std::string*) event.user.data2;
             lua_pushlstring(riko::mainThread, errorStr->c_str(), errorStr->length());
-            pushedArgs = 2;
+
+            pushedArgs = 3;
+
+            delete errorStr;
 
             return true;
         }
