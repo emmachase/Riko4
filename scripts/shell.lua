@@ -249,6 +249,7 @@ function shell.read(replaceChar, size, history)
   local strPos = 1
   local strScrollAmt = 0
 
+  history = history or {}
   local historyPt = #history + 1
 
   local function checkBounds()
