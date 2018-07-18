@@ -38,20 +38,22 @@ namespace riko::net {
         cURLpp::terminate();
     }
 
-    void dispatchSuccessEvent(std::stringstream *dataStream) {
+    void dispatchSuccessEvent(std::string *url, std::stringstream *dataStream) {
         SDL_Event successEvent;
         SDL_memset(&successEvent, 0, sizeof(successEvent));
         successEvent.type = riko::events::NET_SUCCESS;
-        successEvent.user.data1 = new ResponseHandle(dataStream);
+        successEvent.user.data1 = new std::string(*url);
+        successEvent.user.data2 = new ResponseHandle(dataStream);
         SDL_PushEvent(&successEvent);
     }
 
-    void dispatchFailureEvent(const char *error) {
+    void dispatchFailureEvent(std::string *url, const char *error) {
         SDL_Event failureEvent;
         SDL_memset(&failureEvent, 0, sizeof(failureEvent));
         failureEvent.type = riko::events::NET_FAILURE;
         auto *errorCopy = new std::string(error);
-        failureEvent.user.data1 = errorCopy;
+        failureEvent.user.data1 = new std::string(*url);
+        failureEvent.user.data2 = errorCopy;
         SDL_PushEvent(&failureEvent);
     }
 
@@ -70,18 +72,19 @@ namespace riko::net {
 
             request.perform();
 
-            dispatchSuccessEvent(dataStream);
-            delete url;
-
-            openThreads--;
+            dispatchSuccessEvent(url, dataStream);
         } catch (cURLpp::RuntimeError &e) {
-            dispatchFailureEvent(e.what());
+            dispatchFailureEvent(url, e.what());
         } catch (cURLpp::LogicError &e) {
-            dispatchFailureEvent(e.what());
+            dispatchFailureEvent(url, e.what());
         }
+
+        delete url;
+
+        openThreads--;
     }
 
-    static int netGet(lua_State *L) {
+    static int netRequest(lua_State *L) {
         auto url = new std::string(luaL_checkstring(L, 1));
 
         if (openThreads >= MAX_CONCURRENT) {
@@ -96,7 +99,7 @@ namespace riko::net {
     }
 
     static const luaL_Reg netLib[] = {
-        {"get", netGet},
+        {"request", netRequest},
         {nullptr, nullptr}
     };
 
