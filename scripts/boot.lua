@@ -26,8 +26,8 @@ if jit.os == "Linux" or jit.os == "OSX" or jit.os == "BSD" or jit.os == "POSIX" 
   end
 end
 
-net.get = function(url)
-  net.request(url)
+net.post = function(url, postData)
+  net.request(url, postData)
 
   while true do
     local e, eUrl, handle = coroutine.yield()
@@ -37,6 +37,10 @@ net.get = function(url)
       return
     end
   end
+end
+
+net.get = function(url)
+  return net.post(url)
 end
 
 fs.copy = function(file, newFile)
