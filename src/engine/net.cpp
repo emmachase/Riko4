@@ -57,12 +57,17 @@ namespace riko::net {
         SDL_PushEvent(&failureEvent);
     }
 
-    void getThread(std::string *url) {
+    void getThread(std::string *url, std::string *postData) {
         try {
             cURLpp::Cleanup cleanup;
 
             cURLpp::Easy request;
             request.setOpt<cURLpp::options::Url>(*url);
+
+            if (postData != nullptr) {
+                request.setOpt<cURLpp::options::PostFields>(*postData);
+                request.setOpt<cURLpp::options::PostFieldSize>(postData->length());
+            }
 
             request.setOpt<cURLpp::options::FollowLocation>(true);
             request.setOpt<cURLpp::options::MaxRedirs>(16L);
@@ -85,14 +90,23 @@ namespace riko::net {
     }
 
     static int netRequest(lua_State *L) {
-        auto url = new std::string(luaL_checkstring(L, 1));
+        size_t urlLen;
+        const char *urlData = luaL_checklstring(L, 1, &urlLen);
+        auto url = new std::string(urlData, urlLen);
+
+        std::string *postData = nullptr;
+        if (lua_gettop(L) > 1) {
+            size_t postLen;
+            const char *postDataCStr = luaL_checklstring(L, 2, &postLen);
+            postData = new std::string(postDataCStr, postLen);
+        }
 
         if (openThreads >= MAX_CONCURRENT) {
             return luaL_error(L, "too many open requests");
         }
 
         openThreads++;
-        std::thread requestThread(getThread, url);
+        std::thread requestThread(getThread, url, postData);
         requestThread.detach();
 
         return 0;
