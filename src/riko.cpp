@@ -48,7 +48,8 @@ namespace riko {
 int main(int argc, char * argv[]) {
     riko::process::parseCommands(argc, argv);
 
-    riko::process::initSDL();
+    int libStatus = riko::process::initLibs();
+    if (libStatus != 0) return libStatus;
 
     riko::process::parseConfig();
 

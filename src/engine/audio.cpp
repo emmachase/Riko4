@@ -173,7 +173,7 @@ namespace riko::audio {
                     }
 
                     double vol = playingAudio[i]->volume * atC * rlC;
-                    
+
                     switch (i) {
                         case 0:
                         case 1:
@@ -206,7 +206,7 @@ namespace riko::audio {
                     }
 
                     playingAudio[i]->remainingCycles--;
-                    
+
                     playingAudio[i]->frequency += playingAudio[i]->frequencyShift;
                 }
             }
@@ -354,7 +354,7 @@ namespace riko::audio {
             pulse->frequency = freq;
             pulse->frequencyShift = (double)freqShift / (sampleRate * time);
         }
-        
+
         pulse->volume = vol < 0 ? 0 : (vol > 1 ? 1 : (float)vol);
         pulse->totalTime = time;
         pulse->attack = atK;
@@ -366,10 +366,10 @@ namespace riko::audio {
     }
 
     static const luaL_Reg audLib[] = {
-        { "play", aud_play },
-        { "stopChannel", aud_stopChan },
-        { "stopAll", aud_stopAll },
-        { nullptr, nullptr }
+            {"play",        aud_play},
+            {"stopChannel", aud_stopChan},
+            {"stopAll",     aud_stopAll},
+            {nullptr,       nullptr}
     };
 
     LUALIB_API int openLua(lua_State *L) {

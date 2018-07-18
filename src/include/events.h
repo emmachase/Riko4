@@ -8,4 +8,7 @@ namespace riko::events {
     const char *cleanKeyName(SDL_Keycode key);
 
     void loop();
+
+    extern Uint32 NET_SUCCESS;
+    extern Uint32 NET_FAILURE;
 }
