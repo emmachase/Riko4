@@ -21,7 +21,7 @@ namespace riko::net {
         return stream->str();
     }
 
-    
+
 
     static ResponseHandle *checkUData (lua_State *L) {
         void *ud = luaL_checkudata(L, 1, "Riko.Net.ResponseHandle");
