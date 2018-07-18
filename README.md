@@ -11,6 +11,8 @@ sdl2 - Ubuntu: libsdl2-dev, Arch: sdl2
 sdl_gpu - No avaliable binaries from package repositories afaik,
  either build from https://github.com/grimfang4/sdl-gpu or grab a
  released copy from https://github.com/grimfang4/sdl-gpu/releases
+ 
+curlpp - Ubuntu: libcurlpp-dev, Arch: aur/libcurlpp
 ```
 
 Build Instructions:
@@ -19,6 +21,8 @@ Build Instructions:
 git clone https://github.com/incinirate/riko4
 cd riko4
 mkdir build
+cp -r scripts build
+cp -r data build
 cd build
 cmake ..
 make

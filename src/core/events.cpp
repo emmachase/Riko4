@@ -5,6 +5,7 @@
 #include "luaMachine.h"
 #include "consts.h"
 
+#include "../engine/userdata/ResponseHandle.h"
 #include "events.h"
 
 #if SDL_PATCHLEVEL <= 4
@@ -125,6 +126,37 @@ namespace riko::events {
             *end = '\0';
             return name;
         }
+    }
+
+    bool pushNonStandard(SDL_Event &event) {
+        if (event.type == NET_SUCCESS) {
+            lua_pushstring(riko::mainThread, "netSuccess");
+
+            auto *url = (std::string *) event.user.data1;
+            lua_pushlstring(riko::mainThread, url->c_str(), url->length());
+
+            ((riko::net::ResponseHandle *) event.user.data2)->constructUserdata(riko::mainThread);
+
+            pushedArgs = 3;
+
+            return true;
+        } else if (event.type == NET_FAILURE) {
+            lua_pushstring(riko::mainThread, "netFailure");
+
+            auto *url = (std::string *) event.user.data1;
+            lua_pushlstring(riko::mainThread, url->c_str(), url->length());
+
+            auto *errorStr = (std::string*) event.user.data2;
+            lua_pushlstring(riko::mainThread, errorStr->c_str(), errorStr->length());
+
+            pushedArgs = 3;
+
+            delete errorStr;
+
+            return true;
+        }
+
+        return false;
     }
 
     void loop() {
@@ -256,10 +288,11 @@ namespace riko::events {
                     lua_pushnumber(riko::mainThread, event.jball.yrel);
                     lua_pushnumber(riko::mainThread, event.jball.ball);
                     lua_pushnumber(riko::mainThread, event.jball.which);
-                    pushedArgs = 4;
+                    pushedArgs = 5;
                     break;
                 default:
-                    readyForProp = false;
+                    if (!pushNonStandard(event))
+                        readyForProp = false;
                 }
             } else {
                 if (canRun) {

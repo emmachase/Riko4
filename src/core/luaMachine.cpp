@@ -7,6 +7,7 @@
 #include "gpu.h"
 #include "audio.h"
 #include "image.h"
+#include "net.h"
 
 #include "luaMachine.h"
 
@@ -100,6 +101,7 @@ namespace riko::lua {
         riko::gpu::openLua(state);
         riko::audio::openLua(state);
         riko::image::openLua(state);
+        riko::net::openLua(state);
 
         lua_pushstring(state, _RIKO_VERSION_);
         lua_setglobal(state, "riko");

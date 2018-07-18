@@ -26,6 +26,23 @@ if jit.os == "Linux" or jit.os == "OSX" or jit.os == "BSD" or jit.os == "POSIX" 
   end
 end
 
+net.post = function(url, postData)
+  net.request(url, postData)
+
+  while true do
+    local e, eUrl, handle = coroutine.yield()
+    if e == "netSuccess" and eUrl == url then
+      return handle
+    elseif e == "netFailure" and eUrl == url then
+      return
+    end
+  end
+end
+
+net.get = function(url)
+  return net.post(url)
+end
+
 fs.copy = function(file, newFile)
   local handle = fs.open(file, "rb")
   if not handle then

@@ -8,6 +8,7 @@
 #include "fs.h"
 #include "gpu.h"
 #include "luaMachine.h"
+#include "net.h"
 #include "riko.h"
 #include "shader.h"
 
@@ -54,7 +55,7 @@ namespace riko::process {
         }
     }
 
-    void initSDL() {
+    int initLibs() {
         SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
 
         /* Open the first available controller. */
@@ -70,6 +71,11 @@ namespace riko::process {
                 }
             }
         }
+
+        int netStatus = riko::net::init();
+        if (netStatus != 0) return netStatus;
+
+        return 0;
     }
 
     void parseConfig() {
@@ -212,6 +218,8 @@ namespace riko::process {
     }
 
     void cleanup() {
+        riko::net::cleanup();
+
         SDL_free(riko::fs::appPath);
 
         riko::lua::shutdownInstance(riko::mainThread);
