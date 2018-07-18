@@ -2,7 +2,7 @@
 
 namespace riko::process {
     void parseCommands(int argc, char * argv[]);
-    void initSDL();
+    int initLibs();
     void parseConfig();
     int openScripts();
     int setupWindow();

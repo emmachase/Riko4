@@ -37,5 +37,19 @@ if(SDL2_GPU_FOUND)
     target_link_libraries(riko4 ${SDL2_gpu_LIBRARY})
 endif()
 
+find_package(CURL REQUIRED)
+
+if(CURL_FOUND)
+    include_directories(${CURL_INCLUDE_DIR})
+    target_link_libraries(riko4 ${CURL_LIBRARY})
+endif()
+
+find_package(CURLpp REQUIRED)
+
+if(CURLPP_FOUND)
+    include_directories(${CURLPP_INCLUDE_DIR})
+    target_link_libraries(riko4 ${CURLPP_LIBRARY})
+endif()
+
 include_directories(${CMAKE_SOURCE_DIR}/libs/include)
 include_directories(${CMAKE_SOURCE_DIR}/src/include)
