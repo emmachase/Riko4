@@ -25,12 +25,11 @@ local syntaxTheme = {
 local oldFont = gpu.font
 local fnt
 
+local cDir = myPath:match(".+%/") .. "edit/"
 do
   local font = dofile("/font.lua")
 
-  local cDir = myPath:match(".+%/")
-
-  local handle = fs.open(cDir .. "edit/smol.rff", "rb")
+  local handle = fs.open(cDir .. "smol.rff", "rb")
   local data = handle:read("*a")
   handle:close()
 
@@ -56,7 +55,7 @@ end
 
 local mposx, mposy = -5, -5
 
-local cur
+local cur, ibar
 do
   local curRIF = "\82\73\86\2\0\6\0\7\1\0\0\0\0\0\0\0\0\0\0\1\0\0\31\16\0\31\241\0\31\255\16\31\255\241\31\241\16\1\31\16\61\14\131\0\24\2"
   local rifout, cw, ch = rif.decode1D(curRIF)
@@ -64,6 +63,8 @@ do
   cur:blitPixels(0, 0, cw, ch, rifout)
   cur:flush()
 end
+
+ibar = rif.createImage(cDir .. "ibar.rif")
 
 local tabInsert = table.insert
 local tabRemove = table.remove
@@ -129,6 +130,7 @@ if #content == 0 then
 end
 
 local mouseDown = false
+local scrolling = false
 local modifiers = {
   ctrl = false,
   shift = false
@@ -146,9 +148,11 @@ local selectionEnd = {1, 1}
 local hasSelection = false
 
 local running = true
+local lineText = ""
+local enterLine = true
 
 local inMenu = false
-local menuItems = { "Save", "Exit" }
+local menuItems = { "Save", "Goto", "Exit" }
 local menuFunctions = {
   function() -- SAVE
     trimLines()
@@ -158,6 +162,9 @@ local menuFunctions = {
     local handle = fs.open(filename, "w")
     handle:write(ccat(content, "\n"))
     handle:close()
+  end,
+  function() -- GOTO
+    enterLine = true
   end,
   function() -- EXIT
     running = false
@@ -478,7 +485,11 @@ local function drawContent()
 
   drawCursor()
 
-  cur:render(mposx, mposy)
+  if mposy >= height - 10 or mposx >= width - 7 or scrolling then
+    cur:render(mposx, mposy)
+  else
+    ibar:render(mposx, mposy - 4)
+  end
 end
 
 local function checkDrawBounds()
@@ -952,19 +963,45 @@ local function processEvent(e, p1, p2)
     end
   elseif e == "mousePressed" or (e == "mouseMoved" and mouseDown) then
     mposx, mposy = p1, p2
-    hasSelection = false
-    local x, y = p1, p2
-    local posX = math.floor((x - 2) / (fnt.w + 1)) - drawOffsets[1]
-    local posY = math.floor((y - 2) / (fnt.h + 1)) + drawOffsets[2] + 1
-    posY = posY < 1 and 1 or (posY > #content and #content or posY)
-    posX = posX < 0 and 0 or (posX > #content[posY] and #content[posY] or posX)
-    updateCursor(posX, posY)
-    checkDrawBounds()
-    if mouseDown then
-      hasSelection = true
-      updateSelection(true)
+
+    if mposx < width - 6 and not scrolling then
+      hasSelection = false
+      local x, y = p1, p2
+      local posX = math.floor((x - 2) / (fnt.w + 1)) - drawOffsets[1]
+      local posY = math.floor((y - 2) / (fnt.h + 1)) + drawOffsets[2] + 1
+      posY = posY < 1 and 1 or (posY > #content and #content or posY)
+      posX = posX < 0 and 0 or (posX > #content[posY] and #content[posY] or posX)
+      updateCursor(posX, posY)
+      checkDrawBounds()
+      if mouseDown then
+        hasSelection = true
+        updateSelection(true)
+      else
+        selectionStart = {posX, posY}
+      end
     else
-      selectionStart = {posX, posY}
+      -- Scrollbar
+      if mposy < height - 10 then
+        local vph = gpu.height - 12
+        local barSize = vph * vph / ((#content + lines) * (fnt.h + 1) + 2)
+        barSize = barSize < 10 and 10 or (barSize >= vph and vph - 1 or barSize)
+        barSize = math.floor(barSize)
+
+        local wouldBeBarPos = mposy - barSize / 2 + 1
+        local newDrawOffset = math.floor((wouldBeBarPos - 1) * (#content + lines) / vph)
+
+        drawOffsets[2] = newDrawOffset
+
+        if drawOffsets[2] < 0 then
+          drawOffsets[2] = 0
+        end
+
+        if drawOffsets[2] > #content - 1 then
+          drawOffsets[2] = #content - 1
+        end
+
+        scrolling = true
+      end
     end
 
     mouseDown = true
@@ -972,6 +1009,7 @@ local function processEvent(e, p1, p2)
     mposx, mposy = p1, p2
   elseif e == "mouseReleased" then
     mouseDown = false
+    scrolling = false
   elseif e == "char" then
     if hasSelection then
       removeSelection()
