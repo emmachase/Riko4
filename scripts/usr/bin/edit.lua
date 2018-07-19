@@ -744,6 +744,10 @@ local function processEvent(e, p1, p2)
       elseif p1 == "v" and modifiers.ctrl then
         local clipboardText = fs.getClipboard()
         if clipboardText then
+          if hasSelection then
+            removeSelection()
+          end
+
           local clipboard = {}
           for line in clipboardText:gmatch("[^\n]+") do
             clipboard[#clipboard + 1] = line:gsub("\r", "")
