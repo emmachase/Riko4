@@ -50,7 +50,7 @@ local locale = {
 }
 
 -- Baked images
-local backMatte, transMatte, checkMatte
+local backMatte, transMatte--, checkMatte
 do
   backMatte = image.newImage(scrnWidth + 4, scrnHeight)
   local backBuffer = {}
@@ -788,7 +788,7 @@ local function outRect(x, y, w, h)
   if w > 0 and h > 0 then
     gpu.drawRectangle(x, y, w, 1, 16)
     gpu.drawRectangle(x, y + h - 1, w, 1, 16)
-    
+
     for i = math.floor(rectT / 4), w - 1, 4 do
       gpu.drawPixel(x + i, y, 1)
       gpu.drawPixel(x + w - i, y + h - 1, 1)
@@ -821,7 +821,6 @@ local function repaintCanv()
 end
 repaintCanv()
 
-local TEMPFRIGGINI = 1
 local function drawContent()
   canvArea:render(0, 10)
 
@@ -836,31 +835,7 @@ local function drawContent()
       0, 0, clipboard.w, clipboard.h, zoomFactor)
   end
 
-  TEMPFRIGGINI = TEMPFRIGGINI % 8 + 1
   if toolVars.select.exists and toolList[selectedTool].name == locale[lang].select then
-    -- checkMatte:render(
-    --   (toolVars.select.locx) * zoomFactor + drawOffX,
-    --   (toolVars.select.locy) * zoomFactor + drawOffY + 10,
-    --   TEMPFRIGGINI / 4, 0,
-    --   (toolVars.select.endx - toolVars.select.locx + 1) * zoomFactor, 1)
-
-    -- checkMatte:render(
-    --   (toolVars.select.locx) * zoomFactor + drawOffX,
-    --   (toolVars.select.endy + 1) * zoomFactor + drawOffY + 9,
-    --   TEMPFRIGGINI / 4, 1,
-    --   (toolVars.select.endx - toolVars.select.locx + 1) * zoomFactor, 1)
-
-    -- checkMatte:render(
-    --   (toolVars.select.locx) * zoomFactor + drawOffX,
-    --   (toolVars.select.locy) * zoomFactor + drawOffY + 10,
-    --   TEMPFRIGGINI / 4, 0,
-    --   1, (toolVars.select.endy - toolVars.select.locy + 1) * zoomFactor)
-
-    -- checkMatte:render(
-    --   (toolVars.select.endx + 1) * zoomFactor + drawOffX - 1,
-    --   (toolVars.select.locy) * zoomFactor + drawOffY + 10,
-    --   TEMPFRIGGINI / 4, 0,
-    --   1, (toolVars.select.endy - toolVars.select.locy + 1) * zoomFactor)
     outRect((toolVars.select.locx) * zoomFactor + drawOffX,
             (toolVars.select.locy) * zoomFactor + drawOffY + 10,
             (toolVars.select.endx - toolVars.select.locx + 1) * zoomFactor,

@@ -6,7 +6,7 @@ local fl = math.floor
 
 local sqrt, atan2 = math.sqrt, math.atan2
 local sin, cos = math.sin, math.cos
-local csc, sec = function(x) return 1 / sin(x) end, function(x) return 1 / cos(x) end
+local sec = function(x) return 1 / cos(x) end
 
 -- I'm not sure where this function came from but I didn't write it
 local function class(superclass, name)
@@ -15,12 +15,12 @@ local function class(superclass, name)
  cls.__super = superclass
  cls.__index = cls
  return setmetatable(cls, {__call = function (c, ...)
-  self = setmetatable({}, cls)
+  local self = setmetatable({}, cls)
   local super = cls.__super
   while (super~=nil) do
    if super.__init then
     super.__init(self, ...)
-   end  
+   end
    super = super.__super
   end
   if cls.__init then
@@ -109,11 +109,11 @@ end
 
 local stars = {}
 
-for i = 1, 100 do
+for _ = 1, 100 do
   local zsp = math.random(1000, 2000) / 1000
   local vpx = (sw / 2) * zsp
   local vpy = (sh / 2) * zsp
-  local star = {math.random(-vpx, vpx) - (sw / 2), 
+  local star = {math.random(-vpx, vpx) - (sw / 2),
                 math.random(-vpy, vpy) - (sh / 2), zsp}
   stars[#stars + 1] = star
 end
@@ -132,7 +132,7 @@ function Destructable:__init(x, y, poly, vx, vy)
   self.vy = vy or 0
   self.rotation = 0
   self.poly = poly
-  
+
   local polyR = 0
   for i = 1, #poly do
     polyR = polyR + math.sqrt(poly[i][1] * poly[i][1] + poly[i][2] * poly[i][2])
@@ -163,10 +163,9 @@ function Destructable:draw()
   local drawFigure = {}
   for i = 1, #plist do
     local ppos = plist[i]
-    local polyps = #plist
 
-    local ang = math.atan2(plist[i][2], plist[i][1])
-    local dst = math.sqrt(plist[i][1] * plist[i][1] + plist[i][2] * plist[i][2])
+    local ang = math.atan2(ppos[2], ppos[1])
+    local dst = math.sqrt(ppos[1] * ppos[1] + ppos[2] * ppos[2])
 
     drawFigure[#drawFigure + 1] = {-offsetX + math.cos(rot + ang) * dst + self.x, -offsetY + math.sin(rot + ang) * dst + self.y}
   end
@@ -175,15 +174,6 @@ function Destructable:draw()
   -- gpp.fillCircle(-offsetX + self.x, -offsetY + self.y, self.polyR, 16)
 
   gpp.fillPolygon(drawFigure, 2)
-end
-
-local function polyListToString(polyList) 
-  local str = ""
-  for i = 1, #polyList do
-    str = str .. "(" .. table.concat(polyList[i], ", ") .. ") "
-  end
-
-  return str
 end
 
 function Destructable:destruct(maxSplit)
@@ -204,21 +194,21 @@ function Destructable:destruct(maxSplit)
     end
 
     local myPoly = {{0, 0}}
-    for j = 1, amount do
+    for _ = 1, amount do
       local npp = table.remove(self.poly, 1)
       myPoly[#myPoly + 1] = npp
     end
 
     local ax, ay = 0, 0
-    for i = 1, #myPoly do
-      ax = ax + myPoly[i][1]
-      ay = ay + myPoly[i][2]
+    for j = 1, #myPoly do
+      ax = ax + myPoly[j][1]
+      ay = ay + myPoly[j][2]
     end
 
     local cx, cy = ax / #myPoly, ay / #myPoly
 
-    for i = 1, #myPoly do
-      myPoly[i] = {myPoly[i][1] - cx, myPoly[i][2] - cy}
+    for j = 1, #myPoly do
+      myPoly[j] = {myPoly[j][1] - cx, myPoly[j][2] - cy}
     end
 
     newPolys[#newPolys + 1] = Destructable(self.x, self.y, myPoly, cx * 8 + math.random(-30, 30), cy * 8 + math.random(-30, 30))
@@ -340,7 +330,7 @@ local function draw()
 
     if i > 1 then
       gpp.drawLine(tverts[i - 1][1], tverts[i - 1][2], x, y, 16)
-      
+
       if i == #verts then
         gpp.drawLine(x, y, tverts[1][1], tverts[1][2], 16)
       end
@@ -358,7 +348,7 @@ local function draw()
       table.remove(exparts, i)
     end
   end
-  
+
   curs:render(mouse[1] - cw / 2, mouse[2] - ch / 2, 0, 0, 16, 16, 1)
 
   gpu.swap()
@@ -384,7 +374,7 @@ local function update(dt)
   for i = 1, #asts do
     asts[i]:update(dt)
   end
-  
+
   for i = #missiles, 1, -1 do
     local missile = missiles[i]
 
@@ -465,7 +455,7 @@ local function update(dt)
   ship[5] = ship[5] * 0.98
 
   if kd.up then
-    parts[#parts + 1] = {ship[1] + math.random(-2, 2), ship[2] + math.random(-2, 2), 1, 
+    parts[#parts + 1] = {ship[1] + math.random(-2, 2), ship[2] + math.random(-2, 2), 1,
       40 * math.cos(ship[3]), 40 * math.sin(ship[3]), 1}
   end
 end
@@ -487,7 +477,7 @@ local function event(e, ...)
 
       speaker.play({channel = 3, frequency = 50, time = 0.1, shift = 0, volume = 0.08, attack = 0.1, release = 0})
 
-      for i = 1, 10 do
+      for _ = 1, 10 do
         speaker.play({channel = 3, frequency = 50, time = 0.1, shift = -5, volume = 0.08, attack = 0, release = 0})
         speaker.play({channel = 3, frequency = 45, time = 0.1, shift = 5, volume = 0.08, attack = 0, release = 0})
       end
@@ -506,7 +496,7 @@ local function event(e, ...)
     local x, y = ...
     mouse = {x, y}
   elseif e == "mousePressed" then
-    local mx, my, b = ...
+    local mx, my, _ = ...
 
     local theta = 0
     local dist = math.huge
@@ -523,7 +513,7 @@ local function event(e, ...)
     for i = 0, math.pi * 2, 0.001 do
       local tm = (((-v0)*cos(i0) + sqrt(2*a*(x-x0)*cos(i) + v0*v0*cos(i0)*cos(i0))) * sec(i))/a
       local tm2 = -(((v0*cos(i0) + sqrt(2*a*(x-x0)*cos(i) + v0*v0*cos(i0)*cos(i0))) * sec(i))/a)
-      
+
       local tch = tm == tm and tm or nil
       local tch2 = tm2 == tm2 and tm2 or nil
 

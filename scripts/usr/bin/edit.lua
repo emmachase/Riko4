@@ -81,8 +81,8 @@ local filename = args[1]
 
 local content = {}
 
-local function fsLines(filename)
-  local handle = fs.open(filename, "rb")
+local function fsLines(fn)
+  local handle = fs.open(fn, "rb")
   local i = 1
 
   return function()
@@ -352,14 +352,14 @@ local braceWidthGoal = (#menuItems[menuSelected] + 1)*(fnt.w + 1)
 
 local function updateHint()
   if inMenu then
-    local width = 0
+    local hWidth = 0
     for i=1, #menuItems do
       if i == menuSelected then
         break
       end
-      width = width + #menuItems[i] + 2
+      hWidth = hWidth + #menuItems[i] + 2
     end
-    braceXGoal = 2 + width * (fnt.w + 1)
+    braceXGoal = 2 + hWidth * (fnt.w + 1)
     braceWidthGoal = (#menuItems[menuSelected] + 1) * (fnt.w + 1)
 
     hintText = " " .. table.concat(menuItems, "  ")
@@ -518,7 +518,7 @@ local function removeSelection()
       colorizeLine(selectionStart[2])
     else
 
-      for i = selectionStart[2] + 1, selectionEnd[2] - 1 do
+      for _ = selectionStart[2] + 1, selectionEnd[2] - 1 do
         tabRemove(content, selectionStart[2] + 1)
         tabRemove(colorizedLines, selectionStart[2] + 1)
       end

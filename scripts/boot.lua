@@ -26,6 +26,10 @@ if jit.os == "Linux" or jit.os == "OSX" or jit.os == "BSD" or jit.os == "POSIX" 
   end
 end
 
+local function trim(str)
+  return str:match("^%s*(.*)"):match("^(.-)%s*$")
+end
+
 net.post = function(url, postData)
   net.request(url, postData)
 
@@ -40,7 +44,15 @@ net.post = function(url, postData)
 end
 
 net.get = function(url)
-  return net.post(url)
+  net.request(url)
+  while true do
+    local e, eUrl, handle = coroutine.yield()
+    if e == "netSuccess" and eUrl == url then
+      return handle
+    elseif e == "netFailure" and eUrl == url then
+      return
+    end
+  end
 end
 
 fs.copy = function(file, newFile)
@@ -67,6 +79,56 @@ fs.isDir = function(file)
   return fs.exists(file) and bit.band(fs.getAttr(file), 2) == 2
 end
 
+fs.combine = function(path1, path2, hardJoin)
+  path1 = trim(path1); path2 = trim(path2)
+  path1 = path1:gsub("\\", "/")
+  path2 = path2:gsub("\\", "/")
+
+  local fromRoot = false
+
+  local begin = path1:sub(1, 1)
+  local begin2 = path2:sub(1, 1)
+  if begin2 == "/" then
+    if not hardJoin then
+      return path2
+    end
+
+    fromRoot = true
+  elseif begin == "/" then
+    fromRoot = true
+  end
+
+  local negativeDepth = 0
+  local builtPath = {}
+  for pathPart in path1:gmatch("[^/]+") do
+    if pathPart == "." then
+    elseif pathPart == ".." then
+      if #builtPath > 0 then
+        builtPath[#builtPath] = nil
+      else
+        negativeDepth = negativeDepth + 1
+      end
+    else
+      builtPath[#builtPath + 1] = pathPart
+    end
+  end
+
+  for pathPart in path2:gmatch("[^/]+") do
+    if pathPart == "." then
+    elseif pathPart == ".." then
+      if #builtPath > 0 then
+        builtPath[#builtPath] = nil
+      else
+        negativeDepth = negativeDepth + 1
+      end
+    else
+      builtPath[#builtPath + 1] = pathPart
+    end
+  end
+
+  return (fromRoot and "/" or "") .. ("../"):rep(negativeDepth) .. table.concat(builtPath, "/")
+end
+
 loadfile = function(inp)
   local handle = fs.open(inp, "r")
 
@@ -79,7 +141,7 @@ loadfile = function(inp)
 
   handle:close()
 
-  return load(cont)
+  return load(cont, "@" .. fs.combine(fs.getCWD(), inp))
 end
 
 dofile = function(inp)
