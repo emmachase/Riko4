@@ -28,21 +28,26 @@ local mouseX, mouseY = -5, -5
 local mouse2Down = false
 local doX, doY = 1, 1
 
-local grid = {}
-local bomSpc = {}
-for i = 1, gridWidth do
-  grid[i] = {}
-  for j = 1, gridHeight do
-    grid[i][j] = {false, 0, false}
-    bomSpc[#bomSpc + 1] = {i, j}
+local grid
+local bomSpc
+local function regenBoard()
+  grid = {}
+  bomSpc = {}
+  for i = 1, gridWidth do
+    grid[i] = {}
+    for j = 1, gridHeight do
+      grid[i][j] = {false, 0, false}
+      bomSpc[#bomSpc + 1] = {i, j}
+    end
+  end
+
+  for _ = 1, bombCount do
+    local rnd = math.random(1, #bomSpc)
+    local ind = table.remove(bomSpc, rnd)
+    grid[ind[1]][ind[2]][2] = -1
   end
 end
-
-for _ = 1, bombCount do
-  local rnd = math.random(1, #bomSpc)
-  local ind = table.remove(bomSpc, rnd)
-  grid[ind[1]][ind[2]][2] = -1
-end
+regenBoard()
 
 local function checkNeighbor(gx, gy)
   local cnt = 0
@@ -132,6 +137,7 @@ local function drawContent()
   end
 end
 
+local firstClick = true
 local function processEvent(e, ...)
   if e == "key" then
     local k = ...
@@ -160,13 +166,18 @@ local function processEvent(e, ...)
         return
       end
 
-      grid[gx][gy][1] = true
-      local val = checkNeighbor(gx, gy)
-      grid[gx][gy][2] = val
-      if val == 0 then
-        floodZero(gx, gy)
-      end
+      repeat
+        grid[gx][gy][1] = true
+        local val = checkNeighbor(gx, gy)
+        grid[gx][gy][2] = val
+        if val == 0 then
+          floodZero(gx, gy)
+        else
+          regenBoard()
+        end
+      until (not firstClick) or val == 0
 
+      firstClick = false
       dirty = true
     elseif b == 3 and not gameLost then
       grid[gx][gy][3] = true
