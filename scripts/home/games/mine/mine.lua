@@ -160,13 +160,13 @@ local function processEvent(e, ...)
     local gx, gy = math.floor((x - doX) / 14) + 1, math.floor((y - doY) / 14) + 1
 
     if b == 1 and not gameLost then
-      if grid[gx][gy][2] == -1 then
-        gameLost = true
-        dirty = true
-        return
-      end
-
       repeat
+        if (not firstClick) and grid[gx][gy][2] == -1 then
+          gameLost = true
+          dirty = true
+          return
+        end
+
         grid[gx][gy][1] = true
         local val = checkNeighbor(gx, gy)
         grid[gx][gy][2] = val
