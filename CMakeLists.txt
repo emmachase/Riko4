@@ -12,9 +12,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp src/*.c src/*.h)
 add_executable(riko4 ${SOURCE_FILES})
 
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set_target_properties(riko4 PROPERTIES
+	CXX_STANDARD 17
+	CXX_STANDARD_REQUIRED ON)
 
 find_package(SDL2 REQUIRED)
 
