@@ -83,7 +83,7 @@ local function drawContent()
   if math.max(0, math.floor((frms - 90)/1.4)) + 1 > 1 then
     rifImg:render((gpu.width - w) / 2 + 1, (gpu.height - h) / 2 + 1, w, math.min(h, math.max(0, math.floor((frms - 90)/1.4)) + 1))
   end
-  
+
   -- print(min)
 
   -- rifImg:render(1, 1)

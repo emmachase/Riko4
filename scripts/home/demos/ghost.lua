@@ -16,12 +16,12 @@ local function class(superclass, name)
  cls.__super = superclass
  cls.__index = cls
  return setmetatable(cls, {__call = function (c, ...)
-  self = setmetatable({}, cls)
+  local self = setmetatable({}, cls)
   local super = cls.__super
   while (super~=nil) do
    if super.__init then
     super.__init(self, ...)
-   end  
+   end
    super = super.__super
   end
   if cls.__init then
@@ -38,9 +38,9 @@ local function Sprite(id, x, y)
   spsheet:render(x, y, spx * 8, spy * 8, 8, 8)
 end
 
-Items = {}
+local Items = {}
 
-Item = class(nil,"Stuff")
+local Item = class(nil,"Stuff")
 
 function Item:__init()
  self.x = math.random(10, w - 8)
@@ -52,9 +52,9 @@ function Item:__init()
 end
 
 function Item:update()
- self.x = self.x + self.vx 
- self.y = self.y + self.vy 
- 
+ self.x = self.x + self.vx
+ self.y = self.y + self.vy
+
  if self.x<0 or self.x>w - 8 then
   self.vx = -self.vx
  end
@@ -69,8 +69,8 @@ end
 
 
 
-for x=1,500 do
- bunny = Item()
+for _=1,500 do
+ Item()
 end
 
 local fps = 60
@@ -79,11 +79,11 @@ local function _update(dt)
  fps = 1 / dt
 
  gpu.clear(0)
- 
+
  for x=1,#Items do
   Items[x]:update()
  end
- 
+
  write("Dots :" .. #Items, 8,9, 1)
  write("Dots :" .. #Items, 8,8, 8)
  write("FPS :" .. fps, 8,17, 1)
@@ -92,7 +92,7 @@ local function _update(dt)
  -- add 500 more
  write("press A to add 500 more", 8, h - 12)
 
- 
+
 
 --  if btnp(5) then
 --    for x=1,500 do
@@ -107,8 +107,8 @@ local function event(e, ...)
     if k == "escape" then
       running = false
     elseif k == "a" then
-      for x=1,500 do
-        bunny = Item()
+      for _=1,500 do
+        Item()
       end
     end
   end
@@ -122,16 +122,16 @@ while running do
     if not e[1] then break end
     eventQueue[#eventQueue + 1] = e
   end
-  
-  for i = #eventQueue, 1, -1 do
+
+  for _ = #eventQueue, 1, -1 do
     local e = table.remove(eventQueue, 1)
     event(unpack(e))
   end
-  
+
   local stf = os.clock() - last
   last = os.clock()
   _update(stf)
-  
+
 
   gpu.swap()
   -- draw()
