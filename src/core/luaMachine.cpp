@@ -1,3 +1,8 @@
+#include <string>
+#include <fstream>
+#include <iostream>
+#include <vector>
+
 #include "SDL_gpu/SDL_gpu.h"
 #include "luaIncludes.h"
 
@@ -74,7 +79,7 @@ namespace riko::lua {
         return L;
     }
 
-    lua_State *createLuaInstance(const char* filename) {
+    lua_State *createLuaInstance(const char* filename, const char* innerFilename) {
         lua_State *state = luaL_newstate();
 
         // Make standard libraries available in the Lua object
@@ -110,7 +115,16 @@ namespace riko::lua {
 
         int result;
 
-        result = luaL_loadfile(thread, filename);
+        std::ifstream bootFile(filename, std::ios::ate);
+        std::streamsize size = bootFile.tellg();
+        bootFile.seekg(0, std::ios::beg);
+
+        std::vector<char> fileContents(static_cast<unsigned long>(size));
+        if (!bootFile.read(fileContents.data(), size)) {
+            return nullptr;
+        }
+
+        result = luaL_loadbuffer(thread, fileContents.data(), static_cast<size_t>(size), innerFilename);
 
         if (result != 0) {
             riko::lua::printLuaError(thread, result);
