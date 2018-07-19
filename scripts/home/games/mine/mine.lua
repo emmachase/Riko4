@@ -13,13 +13,11 @@ local scrnWidth, scrnHeight = gpu.width, gpu.height
 
 local gridWidth = tonumber(args[1]) or math.floor(scrnWidth / 11) --30
 local gridHeight = tonumber(args[2]) or math.floor(scrnHeight / 11) --20
-local bombCount = 90
+local bombCount = tonumber(args[3]) or math.floor(gridWidth * gridHeight * 0.15)
 
 local bigX = gridWidth * 11 > scrnWidth
 local bigY = gridHeight * 11 > scrnHeight
--- 9 6
--- 14 11
--- 11 9
+
 local numColor = {
   1,
   4,
@@ -126,7 +124,7 @@ local function drawContent()
       for j = 1, gridHeight do
         if grid[i][j][1] then
           -- mine:render((i - 1) * 11, (j - 1) * 11)
-          gpu.drawRectangle((i - 1) * 11 + doX, (j - 1) * 11 + doY, 13, 13, 7)
+          gpu.drawRectangle((i - 1) * 11 + doX, (j - 1) * 11 + doY, 11, 11, 7)
 
           if grid[i][j][2] ~= 0 then
             write(tostring(grid[i][j][2]), (i - 1) * 11 + 3 + doX, (j - 1) * 11 + 2 + doY, numColor[grid[i][j][2]])
@@ -192,7 +190,7 @@ local function processEvent(e, ...)
         grid[gx][gy][2] = val
         if val == 0 then
           floodZero(gx, gy)
-        else
+        elseif firstClick then
           regenBoard()
         end
       until (not firstClick) or val == 0
