@@ -1,3 +1,5 @@
+local args = {...}
+
 local rif = dofile("/lib/rif.lua")
 
 local mineBloc = rif.createImage("mineBloc.rif")
@@ -9,10 +11,15 @@ local running = true
 local gameLost = false
 local scrnWidth, scrnHeight = gpu.width, gpu.height
 
-local gridWidth = 30
-local gridHeight = 20
+local gridWidth = tonumber(args[1]) or math.floor(scrnWidth / 11) --30
+local gridHeight = tonumber(args[2]) or math.floor(scrnHeight / 11) --20
 local bombCount = 90
 
+local bigX = gridWidth * 11 > scrnWidth
+local bigY = gridHeight * 11 > scrnHeight
+-- 9 6
+-- 14 11
+-- 11 9
 local numColor = {
   1,
   4,
@@ -26,7 +33,15 @@ local numColor = {
 
 local mouseX, mouseY = -5, -5
 local mouse2Down = false
-local doX, doY = 1, 1
+local doX, doY = 0, 0
+
+if not bigX then
+  doX = (scrnWidth - gridWidth * 11) / 2
+end
+
+if not bigY then
+  doY = (scrnHeight - gridHeight * 11) / 2
+end
 
 local grid
 local bomSpc
@@ -110,20 +125,20 @@ local function drawContent()
     for i = 1, gridWidth do
       for j = 1, gridHeight do
         if grid[i][j][1] then
-          -- mine:render((i - 1) * 14, (j - 1) * 14)
-          gpu.drawRectangle((i - 1) * 14 + doX, (j - 1) * 14 + doY, 13, 13, 7)
+          -- mine:render((i - 1) * 11, (j - 1) * 11)
+          gpu.drawRectangle((i - 1) * 11 + doX, (j - 1) * 11 + doY, 13, 13, 7)
 
           if grid[i][j][2] ~= 0 then
-            write(tostring(grid[i][j][2]), (i - 1) * 14 + 2 + doX, (j - 1) * 14 + 2 + doY, numColor[grid[i][j][2]])
+            write(tostring(grid[i][j][2]), (i - 1) * 11 + 3 + doX, (j - 1) * 11 + 2 + doY, numColor[grid[i][j][2]])
           end
         else
-          mineBloc:render((i - 1) * 14 + doX, (j - 1) * 14 + doY)
+          mineBloc:render((i - 1) * 11 + doX, (j - 1) * 11 + doY)
 
           if grid[i][j][2] == -1 and gameLost then
-            mine:render((i - 1) * 14 + 1 + doX, (j - 1) * 14 + 1 + doY)
+            mine:render((i - 1) * 11 + 1 + doX, (j - 1) * 11 + 1 + doY)
           end
           if grid[i][j][3] then
-            flag:render((i - 1) * 14 + 2 + doX, (j - 1) * 14 + 2 + doY)
+            flag:render((i - 1) * 11 + 2 + doX, (j - 1) * 11 + 2 + doY)
           end
         end
       end
@@ -149,15 +164,20 @@ local function processEvent(e, ...)
     mouseX = x
     mouseY = y
     if mouse2Down then
-      doX = doX + dx
-      doY = doY + dy
-      doX = doX > 1 and 1 or (doX < -(gridWidth * 14 - scrnWidth) and -(gridWidth * 14 - scrnWidth) or doX)
-      doY = doY > 1 and 1 or (doY < -(gridHeight * 14 - scrnHeight) and -(gridHeight * 14 - scrnHeight) or doY)
+	  if bigX then
+		doX = doX + dx
+		doX = doX > 0 and 0 or (doX < -(gridWidth * 11 - scrnWidth) and -(gridWidth * 11 - scrnWidth) or doX)
+	  end
+	  
+	  if bigY then
+		doY = doY + dy
+		doY = doY > 0 and 0 or (doY < -(gridHeight * 11 - scrnHeight) and -(gridHeight * 11 - scrnHeight) or doY)
+	  end
     end
     dirty = true
   elseif e == "mousePressed" then
     local x, y, b = ...
-    local gx, gy = math.floor((x - doX) / 14) + 1, math.floor((y - doY) / 14) + 1
+    local gx, gy = math.floor((x - doX) / 11) + 1, math.floor((y - doY) / 11) + 1
 
     if b == 1 and not gameLost then
       repeat
