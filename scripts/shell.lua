@@ -338,6 +338,7 @@ function shell.read(replaceChar, size, history)
   return str
 end
 
+local isFull = false
 local pumpLast = os.clock()
 function shell.pumpEvents(func)
   local eq = {}
@@ -349,6 +350,10 @@ function shell.pumpEvents(func)
 
   while #eq > 0 do
     local e = table.remove(eq, 1)
+    if e[1] == "key" and e[2] == "f11" then
+      isFull = not isFull
+      gpu.setFullscreen(true)
+    end
     func(unpack(e))
   end
 
@@ -370,7 +375,9 @@ function shell.draw()
           gpu.drawRectangle(fontW * i, fontH * j, fontW, fontH, char[2])
         end
 
-        write(char[1], fontW * i, fontH * j, char[3])
+        if char[1] ~= " " then
+          write(char[1], fontW * i, fontH * j, char[3])
+        end
       end
     end
   end

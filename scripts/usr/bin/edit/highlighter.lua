@@ -22,108 +22,238 @@ local wordPrims = {
 
 
 local syntaxTheme
+local state = {
+  [0] = {mode = "normal"}
+}
 
 function highlighter.init(args)
   syntaxTheme = args.syntaxTheme
 end
 
-function highlighter.colorizeLine(text)
-  local coloredLine = {}
+function highlighter.clear()
+  state = {
+    [0] = {mode = "normal"}
+  }
+end
 
-  local instr = false
-  local laststr
+function highlighter.setLine(lineNumber, newText)
+  state[lineNumber] = {
+    mode = "unparsed",
+    colored = {},
+    text = newText
+  }
 
-  while #text > 0 do
-    local beginp, endp = text:find("[a-zA-Z0-9%_]+")
+  for i = lineNumber, #state do
+    state[i].mode = "unparsed"
+  end
+end
 
-    if not beginp then
-      local lastun = ""
-      local blastun = ""
-      for i=1, #text do
-        local unimp = text:sub(i, i)
-        if unimp then
-          if not instr and unimp == "-" and #text > i and text:sub(i + 1, i + 1) == "-" then
-            tableInsert(coloredLine, {text:sub(i), syntaxTheme.comment})
-            break
-          elseif instr and ((lastun == "\\" and blastun ~= "\\") or unimp == "\\") then
-            tableInsert(coloredLine, {unimp, syntaxTheme.special})
-          elseif laststr and unimp == laststr and (lastun ~= "\\" or blastun == "\\") then
-            laststr = nil
-            instr = false
-            tableInsert(coloredLine, {unimp, syntaxTheme.string})
-          elseif not laststr and (unimp == "\"" or unimp == "'") then
-            laststr = unimp
-            instr = true
-            tableInsert(coloredLine, {unimp, syntaxTheme.string})
-          else
-            tableInsert(coloredLine, {unimp, instr and syntaxTheme.string or syntaxTheme.catch})
-          end
+function highlighter.insertLine(lineNumber, text)
+  table.insert(state, lineNumber, {
+    mode = "unparsed",
+    colored = {},
+    text = text
+  })
 
-          blastun = lastun
-          lastun = unimp
-        end
-      end
+  for i = lineNumber, #state do
+    state[i].mode = "unparsed"
+  end
+end
+
+function highlighter.removeLine(lineNumber)
+  table.remove(state, lineNumber)
+
+  for i = lineNumber, #state do
+    state[i].mode = "unparsed"
+  end
+end
+
+function highlighter.recolor(lineNumber)
+  debugTrace(lineNumber)
+  if state[lineNumber].mode ~= "unparsed" then
+    return
+  end
+
+  local startParse = 1
+  for i = lineNumber, 2, -1 do
+    if state[i].mode ~= "unparsed" then
+      startParse = i
       break
-    else
-      local lastun = ""
-      local blastun = ""
-      local qt = false
-      for i=1, beginp - 1 do
-        local unimp = text:sub(i, i)
-        if unimp then
-          if not instr and unimp == "-" and #text > i and text:sub(i + 1, i + 1) == "-" then
-            tableInsert(coloredLine, {text:sub(i), syntaxTheme.comment})
-            qt = true
-            break
-          elseif instr and ((lastun == "\\" and blastun ~= "\\") or unimp == "\\") then
-            tableInsert(coloredLine, {unimp, syntaxTheme.special})
-          elseif laststr and unimp == laststr and (lastun ~= "\\" or blastun == "\\") then
-            laststr = nil
-            instr = false
-            tableInsert(coloredLine, {unimp, syntaxTheme.string})
-          elseif not laststr and (unimp == "\"" or unimp == "'") then
-            laststr = unimp
-            instr = true
-            tableInsert(coloredLine, {unimp, syntaxTheme.string})
-          else
-            tableInsert(coloredLine, {unimp, instr and syntaxTheme.string or syntaxTheme.catch})
-          end
-
-          blastun = lastun
-          lastun = unimp
-        end
-      end
-
-      if qt then break end
-
-      if lastun == "\\" and instr then
-        tableInsert(coloredLine, {text:sub(beginp, beginp), syntaxTheme.special})
-        text = text:sub(beginp + 1)
-      else
-        local word = text:sub(beginp, endp)
-        do
-          local nextX = text:sub(endp + 1):match("%S+")
-
-          if instr then
-            tableInsert(coloredLine, {word, syntaxTheme.string})
-          elseif specialVars[word] then
-            tableInsert(coloredLine, {word, syntaxTheme.specialKeyword})
-          elseif keywords[word] then
-            tableInsert(coloredLine, {word, syntaxTheme.keyword})
-          elseif nextX and nextX:sub(1, 1) == "(" then
-            tableInsert(coloredLine, {word, syntaxTheme.func})
-          elseif tonumber(word) or wordPrims[word] then
-            tableInsert(coloredLine, {word, syntaxTheme.primitive})
-          else
-            tableInsert(coloredLine, {word, syntaxTheme.catch})
-          end
-        end
-        text = text:sub(endp + 1)
-      end
     end
   end
 
-  return coloredLine
+  for i = startParse, lineNumber do
+    highlighter.parse(lineNumber)
+  end
+end
+
+function highlighter.getColoredLine(lineNumber)
+  if (not state[lineNumber]) or state[lineNumber].mode == "unparsed" then
+    highlighter.recolor(lineNumber)
+  end
+
+  return state[lineNumber].colored
+end
+
+
+
+local function consumeWhitespace(text)
+  return (text or ""):match("^(%s*)(.+)") or ""
+end
+
+local function insertColor(line, text, color)
+  local c = line.colored
+  c[#c + 1] = {text, color or 16}
+end
+
+local luaParsers = {
+  parseIdentifier = function(toParse, curLine)
+    local indentifier = toParse:match("^[%l_][%w_]*")
+    if indentifier then
+      local restToParse = toParse:sub(#indentifier + 1)
+      local color = syntaxTheme.catch
+      if wordPrims[indentifier] then
+        color = syntaxTheme.primitive
+      elseif keywords[indentifier] then
+        color = syntaxTheme.keyword
+      elseif specialVars[indentifier] then
+        color = syntaxTheme.specialKeyword
+      elseif restToParse:match("^%s-%(") then
+        color = syntaxTheme.func
+      end
+
+      insertColor(curLine, indentifier, color)
+      return restToParse
+    end
+  end,
+  parseComment = function(toParse, curLine)
+    if toParse:sub(1, 2) == "--" then
+      if toParse:sub(3, 4) == "[[" then
+        local _, closingComment = toParse:find("]]")
+        if closingComment then
+          insertColor(curLine, toParse:sub(1, closingComment), syntaxTheme.comment)
+          return toParse:sub(closingComment + 1)
+        else
+          curLine.mode = "multi-comment"
+          insertColor(curLine, toParse, syntaxTheme.comment)
+          return ""
+        end
+      else
+        insertColor(curLine, toParse, syntaxTheme.comment)
+        return ""
+      end
+    end
+  end,
+  parseNumber = function(toParse, curLine)
+    local number = toParse:match("^%d*%.?%d*")
+    if number and tonumber(number) then
+      debugTrace(number)
+      insertColor(curLine, number, syntaxTheme.primitive)
+      return toParse:sub(#number + 1)
+    end
+  end,
+  parseString = function(toParse, curLine)
+    local beginner = toParse:match("^[\"']")
+    if beginner then
+      insertColor(curLine, "\"", syntaxTheme.string)
+      toParse = toParse:sub(2)
+
+      repeat
+        local nextMatch, endMatch = toParse:find("\\%d+")
+        if not nextMatch then
+          nextMatch, endMatch = toParse:find("\\.")
+        end
+
+        if nextMatch then
+          insertColor(curLine, toParse:sub(1, nextMatch - 1), syntaxTheme.string)
+          insertColor(curLine, toParse:sub(nextMatch, endMatch), syntaxTheme.stringEscape)
+          toParse = toParse:sub(endMatch + 1)
+        end
+      until not nextMatch
+
+      local strClose = toParse:find(beginner)
+      if strClose then
+        insertColor(curLine, toParse:sub(1, strClose), syntaxTheme.string)
+        return toParse:sub(strClose + 1)
+      else
+        insertColor(curLine, toParse, syntaxTheme.string)
+        return ""
+      end
+    end
+
+    if toParse:sub(1, 2) == "[[" then
+      local _, closingString = toParse:find("]]")
+      if closingString then
+        insertColor(curLine, toParse:sub(1, closingString), syntaxTheme.string)
+        return toParse:sub(closingString + 1)
+      else
+        curLine.mode = "multi-string"
+        insertColor(curLine, toParse, syntaxTheme.string)
+        return ""
+      end
+    end
+  end
+}
+
+function highlighter.parse(lineNumber)
+  local prevLine = state[lineNumber - 1]
+  local curLine = state[lineNumber]
+  curLine.mode = prevLine.mode
+
+  local toParse = curLine.text
+  debugTrace(lineNumber .. "<--")
+
+  curLine.colored = {}
+
+  local count = 0
+  while #toParse > 0 do
+    if curLine.mode == "normal" then
+      local space, content = consumeWhitespace()
+      if #space > 0 then
+        insertColor(curLine, space)
+        toParse = content
+      end
+
+      repeat -- Really just a loop construct we can 'break' out of as a 'continue' polyfill
+        local n
+        n = luaParsers.parseIdentifier(toParse, curLine); if n then toParse = n; break end
+        n = luaParsers.parseNumber(toParse, curLine);     if n then toParse = n; break end
+        n = luaParsers.parseString(toParse, curLine);     if n then toParse = n; break end
+        n = luaParsers.parseComment(toParse, curLine);    if n then toParse = n; break end
+
+
+        insertColor(curLine, toParse:sub(1, 1), syntaxTheme.catch)
+        toParse = toParse:sub(2)
+      until true
+    elseif curLine.mode == "multi-comment" then
+      local _, endComment = toParse:find("]]")
+      if endComment then
+        insertColor(curLine, toParse:sub(1, endComment), syntaxTheme.comment)
+        toParse = toParse:sub(endComment + 1)
+        curLine.mode = "normal"
+      else
+        insertColor(curLine, toParse, syntaxTheme.comment)
+        toParse = ""
+      end
+    elseif curLine.mode == "multi-string" then
+      local _, endString = toParse:find("]]")
+      if endString then
+        insertColor(curLine, toParse:sub(1, endString), syntaxTheme.string)
+        toParse = toParse:sub(endString + 1)
+        curLine.mode = "normal"
+      else
+        insertColor(curLine, toParse, syntaxTheme.string)
+        toParse = ""
+      end
+    end
+
+    count = count + 1
+
+    if count > 1000 then
+      curLine.mode = "normal"
+      break
+    end
+  end
 end
 
 return highlighter

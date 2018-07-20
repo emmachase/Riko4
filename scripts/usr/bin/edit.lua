@@ -61,9 +61,9 @@ local syntaxTheme = {
   keyword = 13,        -- purple
   specialKeyword = 12, -- light blue
   func = 12,           -- light blue
-  special = 12,        -- also light blue ;)
   string = 8,          -- red
-  primitive = 9,       -- orange
+  stringEscape = 10,   -- orange
+  primitive = 9,       -- orange also
   comment = 6,         -- dark gray
   catch = 16           -- everything else is white
 }

@@ -17,7 +17,6 @@ local heightInLines
 
 -- In the form of an array of lines
 local editorContent = {}
-local colorizedLines = {}
 
 local cursorBlinkTimer = os.clock()
 local cursorLine = 1
@@ -143,22 +142,22 @@ local function removeSelection()
 
     if selection.start[2] == selection.stop[2] then
       editorContent[selection.start[2]] = editorContent[selection.start[2]]:sub(1, selection.start[1]) .. editorContent[selection.start[2]]:sub(selection.stop[1] + 2)
-      colorizedLines[selection.start[2]] = highlighter.colorizeLine(editorContent[selection.start[2]])
+      highlighter.setLine(selection.start[2], editorContent[selection.start[2]])
     else
 
       for _ = selection.start[2] + 1, selection.stop[2] - 1 do
         tableRemove(editorContent, selection.start[2] + 1)
-        tableRemove(colorizedLines, selection.start[2] + 1)
+        highlighter.removeLine(selection.start[2] + 1)
       end
 
       editorContent[selection.start[2]] = editorContent[selection.start[2]]:sub(1, selection.start[1])
       editorContent[selection.start[2] + 1] = editorContent[selection.start[2] + 1]:sub(selection.stop[1] + 2)
 
       editorContent[selection.start[2]] = editorContent[selection.start[2]] .. editorContent[selection.start[2] + 1]
-      colorizedLines[selection.start[2]] = highlighter.colorizeLine(editorContent[selection.start[2]])
+      highlighter.setLine(selection.start[2], editorContent[selection.start[2]])
 
       tableRemove(editorContent, selection.start[2] + 1)
-      tableRemove(colorizedLines, selection.start[2] + 1)
+      highlighter.removeLine(selection.start[2] + 1)
     end
 
     selection.active = false
@@ -186,6 +185,10 @@ end
 -- newLines: An array of lines to be set as the new data
 function editor.setText(newLines)
   editorContent = newLines
+  highlighter.clear()
+  for i = 1, #newLines do
+    highlighter.setLine(i, newLines[i])
+  end
 end
 
 function editor.getText()
@@ -211,10 +214,6 @@ function editor.draw()
       local dy = (i - 1) * (fontH + 1) + 2
       if not editorContent[cy] then
         break
-      end
-
-      if not colorizedLines[cy] then
-        colorizedLines[cy] = highlighter.colorizeLine(editorContent[cy])
       end
 
       local hScrl = scrollX*(fontW + 1)
@@ -248,8 +247,9 @@ function editor.draw()
 
 
       local cx = 1 + scrollX*(fontW + 1)
-      for j = 1, #colorizedLines[cy] do
-        local chk = colorizedLines[cy][j]
+      local coloredLine = highlighter.getColoredLine(cy)
+      for j = 1, #coloredLine do
+        local chk = coloredLine[j]
         write(chk[1], cx, dy, chk[2])
         cx = cx + (fontW + 1) * #chk[1]
       end
@@ -462,23 +462,23 @@ local function onShortcuts(modifiers, key)
       if #clipboard == 1 then
         editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) .. clipboard[1] .. editorContent[cursorLine]:sub(cursorPos + 1)
         updateCursor(cursorPos + #clipboard[1], cursorLine)
-        colorizedLines[cursorLine] = highlighter.colorizeLine(editorContent[cursorLine])
+        highlighter.setLine(cursorLine, editorContent[cursorLine])
       else
         local lastBit = editorContent[cursorLine]:sub(cursorPos + 1)
 
         editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) .. clipboard[1]
-        colorizedLines[cursorLine] = highlighter.colorizeLine(editorContent[cursorLine])
+        highlighter.setLine(cursorLine, editorContent[cursorLine])
 
         for i = 2, #clipboard do
           tableInsert(editorContent, cursorLine + i - 1, clipboard[i])
-          tableInsert(colorizedLines, cursorLine + i - 1, {{clipboard[i], 1}})
-          colorizedLines[cursorLine + i - 1] = highlighter.colorizeLine(editorContent[cursorLine + i - 1])
+
+          highlighter.insertLine(cursorLine + i - 1, clipboard[i])
         end
 
         updateCursor(#editorContent[cursorLine + #clipboard - 1], cursorLine + #clipboard - 1)
 
         editorContent[cursorLine] = editorContent[cursorLine] .. lastBit
-        colorizedLines[cursorLine] = highlighter.colorizeLine(editorContent[cursorLine])
+        highlighter.setLine(cursorLine, editorContent[cursorLine])
       end
     end
 
@@ -572,13 +572,13 @@ local function onMutateKeys(modifiers, key)
           if cursorPos > 0 then
             editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos - 1) .. editorContent[cursorLine]:sub(cursorPos + 1)
             updateCursor(cursorPos - 1, cursorLine)
-            colorizedLines[cursorLine] = highlighter.colorizeLine(editorContent[cursorLine])
+            highlighter.setLine(cursorLine, editorContent[cursorLine])
           elseif cursorLine > 1 then
             local ox = #editorContent[cursorLine - 1]
             editorContent[cursorLine - 1] = editorContent[cursorLine - 1] .. tableRemove(editorContent, cursorLine)
-            tableRemove(colorizedLines, cursorLine)
+            highlighter.removeLine(cursorLine)
             updateCursor(ox, cursorLine - 1)
-            colorizedLines[cursorLine] = highlighter.colorizeLine(editorContent[cursorLine])
+            highlighter.setLine(cursorLine, editorContent[cursorLine])
           end
         until (charType == 2 and let:match("[%w%s]"))
             or (charType == 1 and let:match("%W"))
@@ -587,13 +587,13 @@ local function onMutateKeys(modifiers, key)
         if cursorPos > 0 then
           editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos - 1) .. editorContent[cursorLine]:sub(cursorPos + 1)
           updateCursor(cursorPos - 1, cursorLine)
-          colorizedLines[cursorLine] = highlighter.colorizeLine(editorContent[cursorLine])
+          highlighter.setLine(cursorLine, editorContent[cursorLine])
         elseif cursorLine > 1 then
           local ox = #editorContent[cursorLine - 1]
           editorContent[cursorLine - 1] = editorContent[cursorLine - 1] .. tableRemove(editorContent, cursorLine)
-          tableRemove(colorizedLines, cursorLine)
+          highlighter.removeLine(cursorLine)
           updateCursor(ox, cursorLine - 1)
-          colorizedLines[cursorLine] = highlighter.colorizeLine(editorContent[cursorLine])
+          highlighter.setLine(cursorLine, editorContent[cursorLine])
         end
       end
     end
@@ -606,11 +606,11 @@ local function onMutateKeys(modifiers, key)
     else
       if cursorPos < #editorContent[cursorLine] then
         editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) .. editorContent[cursorLine]:sub(cursorPos + 2)
-        colorizedLines[cursorLine] = highlighter.colorizeLine(editorContent[cursorLine])
+        highlighter.setLine(cursorLine, editorContent[cursorLine])
       elseif cursorLine < #editorContent then
         editorContent[cursorLine] = editorContent[cursorLine] .. tableRemove(editorContent, cursorLine + 1)
-        tableRemove(colorizedLines, cursorLine + 1)
-        colorizedLines[cursorLine] = highlighter.colorizeLine(editorContent[cursorLine])
+        highlighter.removeLine(cursorLine + 1)
+        highlighter.setLine(cursorLine, editorContent[cursorLine])
       end
     end
     cursorBlinkTimer = os.clock()
@@ -624,10 +624,9 @@ local function onMutateKeys(modifiers, key)
     localIndent = localIndent and localIndent - 1 or #editorContent[cursorLine]
     editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos)
     tableInsert(editorContent, cursorLine + 1, (" "):rep(localIndent)..cont)
-    tableInsert(colorizedLines, cursorLine + 1, {{cont, 1}})
+    highlighter.setLine(cursorLine, editorContent[cursorLine])
+    highlighter.insertLine(cursorLine + 1, editorContent[cursorLine + 1])
     updateCursor(localIndent, cursorLine + 1)
-    colorizedLines[cursorLine - 1] = highlighter.colorizeLine(editorContent[cursorLine - 1])
-    colorizedLines[cursorLine] = highlighter.colorizeLine(editorContent[cursorLine])
     checkDrawBounds()
   elseif key == "tab" then
     if selection.active then
@@ -636,23 +635,23 @@ local function onMutateKeys(modifiers, key)
       if modifiers.shift then
         for i = selection.start[2], selection.stop[2] do
           editorContent[i] = editorContent[i]:match("%s?%s?(.+)")
-          colorizedLines[i] = highlighter.colorizeLine(editorContent[i])
+          highlighter.setLine(i, editorContent[i])
         end
       else
         for i = selection.start[2], selection.stop[2] do
           editorContent[i] = "  " .. editorContent[i]
-          colorizedLines[i] = highlighter.colorizeLine(editorContent[i])
+          highlighter.setLine(i, editorContent[i])
         end
       end
     else
       if modifiers.shift then
         editorContent[cursorLine] = editorContent[cursorLine]:match("%s?%s?(.+)")
         updateCursor(cursorPos - 2, cursorLine)
-        colorizedLines[cursorLine] = highlighter.colorizeLine(editorContent[cursorLine])
+        highlighter.setLine(cursorLine, editorContent[cursorLine])
       else
         editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) .. "  " .. editorContent[cursorLine]:sub(cursorPos + 1)
         updateCursor(cursorPos + 2, cursorLine)
-        colorizedLines[cursorLine] = highlighter.colorizeLine(editorContent[cursorLine])
+        highlighter.setLine(cursorLine, editorContent[cursorLine])
       end
     end
   end
@@ -715,7 +714,7 @@ function editor.onChar(modifiers, char)
 
   editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) .. char .. editorContent[cursorLine]:sub(cursorPos + 1)
   updateCursor(cursorPos + 1, cursorLine)
-  colorizedLines[cursorLine] = highlighter.colorizeLine(editorContent[cursorLine])
+  highlighter.setLine(cursorLine, editorContent[cursorLine])
   checkDrawBounds()
 end
 
