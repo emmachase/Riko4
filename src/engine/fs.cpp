@@ -336,7 +336,7 @@ namespace riko::fs {
 
             if (fgets(dataBuf, FS_LINE_INCR, data->fileStream) == nullptr) {
                 lua_pushstring(L, "");
-                delete dataBuf;
+                delete[] dataBuf;
                 return 1;
             }
 
@@ -345,11 +345,11 @@ namespace riko::fs {
                 data->eof = true;
                 dataBufLen = ftell(data->fileStream);
                 lua_pushlstring(L, dataBuf, static_cast<size_t>(dataBufLen - st));
-                delete dataBuf;
+                delete[] dataBuf;
                 return 1;
             } else if (dataBuf[dataBufLen - 1] == '\n' || dataBuf[dataBufLen - 1] == '\r') {
                 lua_pushlstring(L, dataBuf, static_cast<size_t>(dataBufLen - 1));
-                delete dataBuf;
+                delete[] dataBuf;
                 return 1;
             }
 
@@ -362,7 +362,7 @@ namespace riko::fs {
 
                 if (fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->fileStream) == nullptr) {
                     lua_pushstring(L, "");
-                    delete dataBuf;
+                    delete[] dataBuf;
                     return 1;
                 }
 
@@ -371,11 +371,11 @@ namespace riko::fs {
                     data->eof = true;
                     dataBufLen = ftell(data->fileStream);
                     lua_pushlstring(L, dataBuf, static_cast<size_t>(dataBufLen - st));
-                    delete dataBuf;
+                    delete[] dataBuf;
                     return 1;
                 } else if (dataBuf[dataBufLen - 1] == '\n') {
                     lua_pushlstring(L, dataBuf, static_cast<size_t>(dataBufLen - 1));
-                    delete dataBuf;
+                    delete[] dataBuf;
                     return 1;
                 }
             }
@@ -403,7 +403,7 @@ namespace riko::fs {
 
                     data->eof = true;
 
-                    delete dataBuf;
+                    delete[] dataBuf;
 
                     return 1;
                 } else if (mode[1] == 'l') {
@@ -416,7 +416,7 @@ namespace riko::fs {
 
                     if (fgets(dataBuf, FS_LINE_INCR, data->fileStream) == nullptr) {
                         lua_pushstring(L, "");
-                        delete dataBuf;
+                        delete[] dataBuf;
                         return 1;
                     }
 
@@ -425,11 +425,11 @@ namespace riko::fs {
                         data->eof = true;
                         dataBufLen = ftell(data->fileStream);
                         lua_pushlstring(L, dataBuf, static_cast<size_t>(dataBufLen - st));
-                        delete dataBuf;
+                        delete[] dataBuf;
                         return 1;
                     } else if (dataBuf[dataBufLen - 1] == '\n' || dataBuf[dataBufLen - 1] == '\r') {
                         lua_pushlstring(L, dataBuf, static_cast<size_t>(dataBufLen - 1));
-                        delete dataBuf;
+                        delete[] dataBuf;
                         return 1;
                     }
 
@@ -444,7 +444,7 @@ namespace riko::fs {
                         if (fgets(dataBuf + i * (FS_LINE_INCR - 1) * sizeof(char), FS_LINE_INCR, data->fileStream) ==
                             nullptr) {
                             lua_pushstring(L, "");
-                            delete dataBuf;
+                            delete[] dataBuf;
                             return 1;
                         }
 
@@ -453,11 +453,11 @@ namespace riko::fs {
                             data->eof = true;
                             dataBufLen = ftell(data->fileStream);
                             lua_pushlstring(L, dataBuf, static_cast<size_t>(dataBufLen - st));
-                            delete dataBuf;
+                            delete[] dataBuf;
                             return 1;
                         } else if (dataBuf[dataBufLen - 1] == '\n' || dataBuf[dataBufLen - 1] == '\r') {
                             lua_pushlstring(L, dataBuf, static_cast<size_t>(dataBufLen - 1));
-                            delete dataBuf;
+                            delete[] dataBuf;
                             return 1;
                         }
                     }
@@ -480,7 +480,7 @@ namespace riko::fs {
 
             lua_pushlstring(L, dataBuf, result);
 
-            delete dataBuf;
+            delete[] dataBuf;
 
             return 1;
         } else {
@@ -488,7 +488,7 @@ namespace riko::fs {
             size_t len = 16 + strlen(typeN);
             auto *eMsg = new char[len];
             sprintf(eMsg, "%s was unexpected", typeN);
-            delete eMsg;
+            delete[] eMsg;
 
             return luaL_argerror(L, 2, eMsg);
         }
@@ -576,14 +576,14 @@ namespace riko::fs {
 
             getFullPath(concatStr, fPath);
 
-            delete concatStr;
+            delete[] concatStr;
 
             if (strlen(fPath) < MAX_PATH) {
                 strncpy(currentWorkingDirectory, fPath, strlen(fPath));
                 currentWorkingDirectory[strlen(fPath)] = 0;
             }
 
-            delete fPath;
+            delete[] fPath;
         } else {
             size_t nwdlen = strlen(nwd);
 
@@ -595,14 +595,14 @@ namespace riko::fs {
 
             getFullPath(concatStr, fPath);
 
-            delete concatStr;
+            delete[] concatStr;
 
             if (strlen(fPath) < MAX_PATH) {
                 strncpy(currentWorkingDirectory, fPath, strlen(fPath));
                 currentWorkingDirectory[strlen(fPath)] = 0;
             }
 
-            delete fPath;
+            delete[] fPath;
         }
 
         return 0;
@@ -663,7 +663,7 @@ namespace riko::fs {
             return 2;
         }
 
-        delete fPath;
+        delete[] fPath;
 
         luaL_newmetatable(L, "Riko4.fsObj");
 

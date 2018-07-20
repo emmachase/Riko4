@@ -59,7 +59,7 @@ int main(int argc, char * argv[]) {
     int windowStatus = riko::process::setupWindow();
     if (windowStatus != 0) return windowStatus;
 
-    auto *bootLoc = new char[strlen(riko::fs::scriptsPath) + 10];
+    char bootLoc[strlen(riko::fs::scriptsPath) + 10];
     sprintf(bootLoc, "%s/boot.lua", riko::fs::scriptsPath);
     riko::mainThread = riko::lua::createLuaInstance(bootLoc, "@/boot.lua");
 
