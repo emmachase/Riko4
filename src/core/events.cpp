@@ -333,10 +333,6 @@ namespace riko::events {
                         riko::exitCode = 1;
                     }
                 }
-
-#ifndef __EMSCRIPTEN__
-                SDL_Delay(1);
-#endif
             }
 
             readyForProp = true;

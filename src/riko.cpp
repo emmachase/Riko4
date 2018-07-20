@@ -71,7 +71,17 @@ int main(int argc, char * argv[]) {
     emscripten_set_main_loop(riko::events::loop, 0, 1);
 #else
     while (riko::running) {
+        int start = SDL_GetTicks();
+
         riko::events::loop();
+
+        int time = SDL_GetTicks() - start;
+        if (time < 0) continue;
+
+        int sleepTime = 100/6 - time;
+        if (sleepTime > 0) {
+            SDL_Delay(sleepTime);
+        }
     }
 #endif
 
