@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SDL_gpu/SDL_gpu.h"
+
 #include "luaIncludes.h"
 
 namespace riko {
@@ -9,4 +11,5 @@ namespace riko {
     extern bool useBundle;
 
     extern lua_State *mainThread;
+    extern SDL_Window *window;
 }

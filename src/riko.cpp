@@ -42,6 +42,7 @@ namespace riko {
     bool useBundle = false;
 
     lua_State *mainThread;
+    SDL_Window *window;
 }
 
 

@@ -290,6 +290,15 @@ namespace riko::events {
                     lua_pushnumber(riko::mainThread, event.jball.which);
                     pushedArgs = 5;
                     break;
+                case SDL_WINDOWEVENT:
+                    switch (event.window.event) {
+                    case SDL_WINDOWEVENT_RESIZED:
+                        int candidateTwo = event.window.data1 / SCRN_WIDTH;
+                        int candidateOne = event.window.data2 / SCRN_HEIGHT;
+
+                        riko::gfx::pixelScale = (candidateOne > candidateTwo) ? candidateTwo : candidateOne;
+                    }
+                    break;
                 default:
                     if (!pushNonStandard(event))
                         readyForProp = false;

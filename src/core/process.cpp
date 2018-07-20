@@ -172,8 +172,7 @@ namespace riko::process {
             }
         }
 
-        SDL_Window *window;
-        window = SDL_CreateWindow(
+        riko::window = SDL_CreateWindow(
                 "Riko4",
                 SDL_WINDOWPOS_CENTERED,
                 SDL_WINDOWPOS_CENTERED,
@@ -182,12 +181,14 @@ namespace riko::process {
                 SDL_WINDOW_OPENGL
         );
 
-        GPU_SetInitWindow(SDL_GetWindowID(window));
+        GPU_SetInitWindow(SDL_GetWindowID(riko::window));
         riko::gfx::renderer = GPU_Init(
                 static_cast<Uint16>(SCRN_WIDTH * riko::gfx::pixelScale),
                 static_cast<Uint16>(SCRN_HEIGHT * riko::gfx::pixelScale),
                 GPU_DEFAULT_INIT_FLAGS
         );
+
+        SDL_GetWindowSize(riko::window, &riko::gfx::windowWidth, &riko::gfx::windowHeight);
 
         SDL_ShowCursor(SDL_DISABLE);
 
@@ -212,7 +213,7 @@ namespace riko::process {
         SDL_Surface *surface;
         surface = SDL_LoadBMP("icon.ico");
 
-        SDL_SetWindowIcon(window, surface);
+        SDL_SetWindowIcon(riko::window, surface);
 
         return 0;
     }

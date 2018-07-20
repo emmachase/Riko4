@@ -15,6 +15,7 @@
 
 #include "consts.h"
 #include "luaIncludes.h"
+#include "riko.h"
 #include "shader.h"
 
 #include "gpu.h"
@@ -51,6 +52,9 @@ namespace riko::gfx {
 
     int drawOffX = 0;
     int drawOffY = 0;
+
+    int windowWidth;
+    int windowHeight;
 }
 
 #define off(o, t) (float)((o) - riko::gfx::drawOffX), (float)((t) - riko::gfx::drawOffY)
@@ -298,14 +302,15 @@ namespace riko::gpu {
         auto fsc = static_cast<bool>(lua_toboolean(L, 1));
         GPU_SetFullscreen(fsc, true);
 
-        SDL_Window *window;
-        window = SDL_GetWindowFromID(riko::gfx::renderer->renderer->current_context_target->context->windowID);
-
+        int winW = 0;
         int winH = 0;
-        SDL_GetWindowSize(window, nullptr, &winH);
+        SDL_GetWindowSize(riko::window, &winW, &winH);
 
-        if (winH != 0) {
-            riko::gfx::pixelScale = winH / SCRN_HEIGHT;
+        int candidateOne = winH / SCRN_HEIGHT;
+        int candidateTwo = winW / SCRN_WIDTH;
+
+        if (winW != 0 && winH != 0) {
+            riko::gfx::pixelScale = (candidateOne > candidateTwo) ? candidateTwo : candidateOne;
         }
 
         return 0;
@@ -316,7 +321,9 @@ namespace riko::gpu {
 
         riko::shader::updateShader();
 
-        GPU_BlitRect(riko::gfx::buffer, nullptr, riko::gfx::renderer, nullptr);
+        GPU_BlitScale(riko::gfx::buffer, nullptr, riko::gfx::renderer,
+            riko::gfx::windowWidth / 2, riko::gfx::windowHeight / 2,
+            riko::gfx::pixelScale, riko::gfx::pixelScale);
 
         GPU_Flip(riko::gfx::renderer);
 

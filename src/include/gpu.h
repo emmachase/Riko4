@@ -13,6 +13,9 @@ namespace riko::gfx {
     extern GPU_Target *renderer;
     extern GPU_Target *bufferTarget;
     extern GPU_Image *buffer;
+
+    extern int windowWidth;
+    extern int windowHeight;
 }
 
 namespace riko::gpu {
