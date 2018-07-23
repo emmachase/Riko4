@@ -62,7 +62,7 @@ int main(int argc, char * argv[]) {
 
     char bootLoc[strlen(riko::fs::scriptsPath) + 10];
     sprintf(bootLoc, "%s/boot.lua", riko::fs::scriptsPath);
-    riko::mainThread = riko::lua::createLuaInstance(bootLoc, "@/boot.lua");
+    riko::mainThread = riko::lua::createLuaInstance(bootLoc, "@boot.lua");
 
     if (riko::mainThread == nullptr) {
         return 7;
