@@ -80,7 +80,7 @@ end
 
 local function getDir()
   local dir = fs.getCWD():gsub("%\\", "/")
-  if dir:sub(#dir) == "/" then dir = dir:sub(1, #dir - 1) end
+  if #dir > 1 and dir:sub(#dir) == "/" then dir = dir:sub(1, #dir - 1) end
   return dir
 end
 

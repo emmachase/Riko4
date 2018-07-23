@@ -557,7 +557,12 @@ namespace riko::fs {
     }
 
     static int fsGetCWD(lua_State *L) {
-        lua_pushstring(L, currentWorkingDirectory + strlen(scriptsPath));
+        char *path = currentWorkingDirectory + strlen(scriptsPath);
+        if (path[0] == 0) {
+            lua_pushstring(L, "/");
+        } else {
+            lua_pushstring(L, path);
+        }
 
         return 1;
     }
