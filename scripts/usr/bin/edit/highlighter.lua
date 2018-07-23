@@ -157,7 +157,7 @@ local luaParsers = {
       toParse = toParse:sub(2)
 
       repeat
-        local nextMatch, endMatch = toParse:find("\\%d+")
+        local nextMatch, endMatch = toParse:find("\\%d%d?%d?")
         if not nextMatch then
           nextMatch, endMatch = toParse:find("\\.")
         end
