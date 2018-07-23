@@ -16,7 +16,7 @@ if not list then
 end
 
 for _, v in pairs(list) do
-  if (v:sub(1, 1) == "." and (not v:match("%w"))) or v:sub(1, 1) ~= "." then
+  if (v ~= "." and v:sub(1, 1) == "." and not v:match("%w")) or v:sub(1, 1) ~= "." then
     pcall(function()
       if bit.band(fs.getAttr(dir .. "/" .. v), 2) == 2 then
         table.insert(outTbl[2], v)
