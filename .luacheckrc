@@ -18,5 +18,6 @@ return {
 
   ignore = {
     "212", -- Unused argument.
+    "213"  -- Unused loop variable.
   }
 }

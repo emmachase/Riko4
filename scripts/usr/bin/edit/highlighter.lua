@@ -49,7 +49,7 @@ function highlighter.setLine(lineNumber, newText)
 end
 
 function highlighter.insertLine(lineNumber, text)
-  table.insert(state, lineNumber, {
+  tableInsert(state, lineNumber, {
     mode = "unparsed",
     colored = {},
     text = text
@@ -69,7 +69,6 @@ function highlighter.removeLine(lineNumber)
 end
 
 function highlighter.recolor(lineNumber)
-  debugTrace(lineNumber)
   if state[lineNumber].mode ~= "unparsed" then
     return
   end
@@ -147,7 +146,6 @@ local luaParsers = {
   parseNumber = function(toParse, curLine)
     local number = toParse:match("^%d*%.?%d*")
     if number and tonumber(number) then
-      debugTrace(number)
       insertColor(curLine, number, syntaxTheme.primitive)
       return toParse:sub(#number + 1)
     end
@@ -201,7 +199,6 @@ function highlighter.parse(lineNumber)
   curLine.mode = prevLine.mode
 
   local toParse = curLine.text
-  debugTrace(lineNumber .. "<--")
 
   curLine.colored = {}
 
