@@ -244,7 +244,7 @@ local function handleFunc(forcePrint, success, ...)
       printOutput(returnVal, length)
     end
   else
-    shell.write(table.concat(returnVal, " ") .. "\n", errorColor)
+    shell.write(table.concat({...}, " ") .. "\n", errorColor)
   end
 end
 

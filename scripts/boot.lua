@@ -129,6 +129,13 @@ fs.combine = function(path1, path2, hardJoin)
   return (fromRoot and "/" or "") .. ("../"):rep(negativeDepth) .. table.concat(builtPath, "/")
 end
 
+table.pack = function(...)
+  local t = {...}
+  t.n = select("#", ...)
+
+  return t
+end
+
 loadfile = function(inp)
   local handle = fs.open(inp, "r")
 
