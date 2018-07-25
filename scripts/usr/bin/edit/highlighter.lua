@@ -13,7 +13,8 @@ local keywords = {
 local specialVars = {
   ["io"]      = true, ["fs"]    = true, ["gpu"]       = true, ["image"]  = true,
   ["speaker"] = true, ["table"] = true, ["coroutine"] = true, ["string"] = true,
-  ["_G"]      = true, ["math"]  = true, ["error"]     = true, ["os"]     = true
+  ["_G"]      = true, ["math"]  = true, ["error"]     = true, ["os"]     = true,
+  ["require"] = true
 }
 
 local wordPrims = {

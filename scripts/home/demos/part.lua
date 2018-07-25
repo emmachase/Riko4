@@ -1,5 +1,15 @@
-local rif = dofile("/lib/rif.lua")
-local gpp = dofile("/lib/gpp.lua")
+--[[
+
+Part(icle test)
+
+A neat demo set in space where you control a ship with the arrow
+keys, demonstrating how a particle system can be used to create
+various effects in an efficient and beautiful manner.
+
+]]
+
+local rif = require "rif"
+local gpp = require "gpp"
 
 local sw, sh = gpu.width, gpu.height
 local fl = math.floor
