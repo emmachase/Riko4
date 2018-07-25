@@ -14,6 +14,7 @@ return {
     "speaker",
 
     "write"
+    "addRequirePath"
   },
 
   ignore = {

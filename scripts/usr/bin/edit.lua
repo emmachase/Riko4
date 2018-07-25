@@ -15,39 +15,7 @@ local running = true
 
 local myPath = fs.getLastFile()
 local workingDir = myPath:match(".+%/") .. "edit/"
-
-local function resolveFile(file)
-    return ((file:sub(1, 1) == "/" or file:sub(1, 1) == "\\") and file) or fs.combine(workingDir, file)
-end
-
-local requireCache = {}
-
-function require(file) -- luacheck: ignore
-    local path = resolveFile(file)
-
-    if requireCache[path] then
-        return requireCache[path]
-    else
-        local env = {
-            shell = shell,
-            require = require,
-            resolveFile = resolveFile
-        }
-
-        setmetatable(env, { __index = _G })
-
-        local chunk, err = loadfile(path, env)
-
-        if chunk == nil then
-            return error("Error loading file " .. path .. ":\n" .. (err or "N/A"), 0)
-        end
-
-        requireCache[path] = chunk()
-        return requireCache[path]
-    end
-end
-
-
+addRequirePath(workingDir)
 
 local editorTheme = {
   bg = 1,        -- black
@@ -68,7 +36,10 @@ local syntaxTheme = {
   catch = 16           -- everything else is white
 }
 
-local rif = dofile("/lib/rif.lua")
+local context = require("context").new()
+
+context:set("mediator", context:get("mediator")())
+local rif = require("rif")
 
 local mposx, mposy = -5, -5
 
@@ -86,7 +57,10 @@ if not fs.exists(filename) then
   end
 end
 
-local editor = require("editor.lua")
+local eventPriorityQueue
+local insertionQueue = {}
+
+local editor = context:get "editor"
 editor.init({
   editorTheme = editorTheme,
   syntaxTheme = syntaxTheme,
@@ -95,12 +69,23 @@ editor.init({
   initialLine = tonumber(args[2])
 })
 
-local menu = require("menu.lua")
+local menu = context:get "menu"
 menu.init({
   editorTheme = editorTheme,
   filename = filename,
   quitFunc = function()
     running = false
+  end,
+  attacher = function(obj)
+    insertionQueue[#insertionQueue + 1] = obj
+  end,
+  detacher = function(obj)
+    for i = 1, #eventPriorityQueue do
+      if eventPriorityQueue[i] == obj then
+        table.remove(eventPriorityQueue, i)
+        break
+      end
+    end
   end
 })
 
@@ -145,11 +130,11 @@ local eventModifiers = {
   }
 }
 
-local eventPriorityQueue = {
+
+eventPriorityQueue = {
   editor,
   menu
 }
-
 
 local function drawContent()
   gpu.clear(editorTheme.bg)
@@ -170,6 +155,10 @@ local function drawContent()
   elseif cursorName == "ibar" then
     ibar:render(mposx, mposy - 4)
   end
+end
+
+local function update(dt)
+  menu.update(dt)
 end
 
 local function capitalize(str)
@@ -195,7 +184,7 @@ local function processEvent(e, p1, p2)
   for i = 1, #eventPriorityQueue do
     local eventTarget = eventPriorityQueue[i]
     if eventTarget[propName] then
-      local capture, promote = eventTarget[propName](eventModifiers[e] or {}, p1, p2)
+      local capture, promote = eventTarget[propName](eventTarget, eventModifiers[e] or {}, p1, p2)
 
       if promote ~= nil then
         table.remove(eventPriorityQueue, i)
@@ -216,6 +205,11 @@ local function processEvent(e, p1, p2)
     end
   end
 
+  for i = #insertionQueue, 1, -1 do
+    table.insert(eventPriorityQueue, 1, insertionQueue[i])
+    insertionQueue[i] = nil
+  end
+
   if e == "mouseMoved" then
     mposx, mposy = p1, p2
   end
@@ -223,6 +217,7 @@ end
 
 local eventQueue = {}
 
+local lastTime = os.clock()
 drawContent()
 while running do
   while true do
@@ -237,6 +232,9 @@ while running do
   end
 
   if not running then break end
+
+  update(os.clock() - lastTime)
+  lastTime = os.clock()
 
   gpu.clear()
 

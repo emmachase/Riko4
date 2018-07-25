@@ -82,7 +82,7 @@ function highlighter.recolor(lineNumber)
   end
 
   for i = startParse, lineNumber do
-    highlighter.parse(lineNumber)
+    highlighter.parse(i)
   end
 end
 

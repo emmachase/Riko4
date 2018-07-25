@@ -1,6 +1,6 @@
 -- TODO: Line numbers are wrong with rlua files, fix this..
 
-return function(filename, args)
+return function(filename, args, env)
   local processor = loadfile("/usr/bin/pproc.lua")
 
   local s, retFile = pcall(processor, filename, "--sout")
@@ -18,10 +18,11 @@ return function(filename, args)
       else
         print("Unknown Error Occurred", 8)
       end
-  
+
       return
     end
 
+    setfenv(func, env)
     local s, e = pcall(func, unpack(args))
     if not s then
       if e then

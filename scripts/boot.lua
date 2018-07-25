@@ -1,6 +1,11 @@
-if jit.os == "Linux" or jit.os == "OSX" or jit.os == "BSD" or jit.os == "POSIX" or jit.os == "Other" then
-  local ffi = require("ffi")
+local ffi
+if jit then
+  ffi = require("ffi")
+  _G.ffi = ffi
+  _G.require = nil
+end
 
+if jit and (jit.os == "Linux" or jit.os == "OSX" or jit.os == "BSD" or jit.os == "POSIX" or jit.os == "Other") then
   ffi.cdef [[
     struct timeval {
       long tv_sec;
@@ -79,6 +84,14 @@ fs.isDir = function(file)
   return fs.exists(file) and bit.band(fs.getAttr(file), 2) == 2
 end
 
+fs.getBaseDir = function(path)
+  if fs.isDir(path) then
+    return path
+  else
+    return path:reverse():match("/(.+)"):reverse()
+  end
+end
+
 fs.combine = function(path1, path2, hardJoin)
   path1 = trim(path1); path2 = trim(path2)
   path1 = path1:gsub("\\", "/")
@@ -143,12 +156,17 @@ loadfile = function(inp)
   if handle then
     cont = handle:read("*a")
   else
-    return nil
+    return nil, "cannot open " .. inp .. ": No such file"
   end
 
   handle:close()
 
-  return load(cont, "@" .. fs.combine(fs.getCWD(), inp))
+  local chunk = load(cont, "@" .. fs.combine(fs.getCWD(), inp))
+  if chunk then
+    setfenv(chunk, getfenv(2))
+  end
+
+  return chunk
 end
 
 dofile = function(inp)

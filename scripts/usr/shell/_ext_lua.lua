@@ -1,4 +1,4 @@
-return function(filename, args)
+return function(filename, args, env)
   local func, e = loadfile(filename)
   if not func then
     if e then
@@ -15,6 +15,7 @@ return function(filename, args)
     return
   end
 
+  setfenv(func, env)
   local s, e = pcall(func, unpack(args))
   if not s then
     if e then

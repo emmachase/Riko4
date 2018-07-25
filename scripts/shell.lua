@@ -416,55 +416,146 @@ function print(text, fg, bg, x, y)
   term.y = term.y + 1
 end
 
+local function newEnv(workingDir)
+  local env = {}
+
+  local requirePaths = {workingDir, "/lib/"}
+
+  local function resolveFile(file)
+    file = file:gsub("%.", "/") .. ".lua"
+    if file:sub(1, 1) == "/" or file:sub(1, 1) == "\\" then
+      return {file}
+    else
+      local paths = {}
+      for i = 1, #requirePaths do
+        paths[i] = fs.combine(requirePaths[i], file)
+      end
+
+      return paths
+    end
+  end
+
+  local requireCache = {}
+
+  function env.require(file) -- luacheck: ignore
+    local paths = resolveFile(file)
+
+    for i = 1, #paths do
+      local path = paths[i]
+
+      if requireCache[path] then
+        return requireCache[path]
+      elseif fs.exists(path) then
+        local chunk, err = env.loadfile(path, env)
+
+        if chunk == nil then
+          return error("Error loading file " .. path .. ":\n" .. (err or "N/A"), 0)
+        end
+
+        requireCache[path] = chunk()
+
+        return requireCache[path]
+      end
+    end
+
+    local errStr = "module '" .. file .. "' not found:"
+    for i = 1, #paths do
+      errStr = errStr .. "\n no file '" .. paths[i] .. "'"
+    end
+
+    return error(errStr)
+  end
+
+  function env.addRequirePath(path)
+    table.insert(requirePaths, 1, path)
+  end
+
+  function env.loadstring(...)
+    local chunk, e = loadstring(...)
+    if chunk then
+      setfenv(chunk, env)
+    end
+
+    return chunk, e
+  end
+
+  function env.load(...)
+    local chunk, e = load(...)
+    if chunk then
+      setfenv(chunk, env)
+    end
+
+    return chunk, e
+  end
+
+  function env.loadfile(...)
+    local chunk, e = loadfile(...)
+    if chunk then
+      setfenv(chunk, env)
+    end
+
+    return chunk, e
+  end
+
+  function env.dofile(...)
+    local chunk, e = env.loadfile(...)
+    if chunk then
+      return chunk()
+    else
+      return error(e, 2)
+    end
+  end
+
+  env._G = env
+  return setmetatable(env, {__index = _G})
+end
+
 local shellHistory = {}
 
 print("rikoOS 1.0", 13)
 while true do
-  ::loop::
   shell.write(getDir(), 13)
   shell.write("> ", 10)
 
   local input = shell.read(nil, nil, shellHistory)
-  if not input:match("%S") then
-    goto loop
-  end
+  if input:match("%S") then
+    shellHistory[#shellHistory + 1] = input
 
-  shellHistory[#shellHistory + 1] = input
+    local words = shellSplit(input)
+    local name = words[1]
+    local ex = name:reverse():match("([^%.]+)%.")
 
-  local words = shellSplit(input)
-  local name = words[1]
-  local ex = name:reverse():match("([^%.]+)%.")
+    local handlerFunc
+    if ex and fs.exists(name) then
+      ex = ex:reverse()
+      handlerFunc = handlers[ex]
+    end
 
-  local handlerFunc
-  if ex and fs.exists(name) then
-    ex = ex:reverse()
-    handlerFunc = handlers[ex]
-  end
+    if not handlerFunc then
+      for i = 1, #config.path do
+        local pre = config.path[i]
+        for ext, handler in pairs(handlers) do
+          local tname = pre .. "/" .. name .. "." .. ext
 
-  if not handlerFunc then
-    for i = 1, #config.path do
-      local pre = config.path[i]
-      for ext, handler in pairs(handlers) do
-        local tname = pre .. "/" .. name .. "." .. ext
-
-        if fs.exists(tname) then
-          handlerFunc = handler
-          name = tname
-          break
+          if fs.exists(tname) then
+            handlerFunc = handler
+            name = tname
+            break
+          end
         end
+
+        if handlerFunc then break end
+      end
+    end
+
+    if not handlerFunc then
+      print("Cannot find file `" .. name .. "`", 8)
+    else
+      for i = 1, #words do
+        words[i] = words[i + 1]
       end
 
-      if handlerFunc then break end
+      handlerFunc(name, words, newEnv(fs.getBaseDir(fs.combine(fs.getCWD(), name))))
     end
-  end
-
-  if not handlerFunc then
-    print("Cannot find file `" .. name .. "`", 8)
-  else
-    for i = 1, #words do
-      words[i] = words[i + 1]
-    end
-
-    handlerFunc(name, words)
   end
 end

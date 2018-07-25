@@ -22,3 +22,4 @@ local pal = {
 
 while gpu.pop() do end
 gpu.blitPalette(pal)
+gpu.clip()
