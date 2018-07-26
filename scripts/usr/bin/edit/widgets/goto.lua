@@ -11,7 +11,7 @@ return function(context)
   function gotoWidget.new()
     local self = setmetatable({
       popout = popout.new(80, fontH + 2),
-      input = input.new(80, "%d")
+      input = input.new(80, "Line #", "%d")
     }, {__index = gotoWidget})
 
     self.popout.drawCallback = self.internalDraw

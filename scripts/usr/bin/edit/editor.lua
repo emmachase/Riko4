@@ -583,20 +583,33 @@ return function(context)
         removeSelection()
       else
         if modifiers.ctrl then
+          if cursorPos > 0 then
+            editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos - 1) .. editorContent[cursorLine]:sub(cursorPos + 1)
+            updateCursor(cursorPos - 1, cursorLine)
+            highlighter.setLine(cursorLine, editorContent[cursorLine])
+          elseif cursorLine > 1 then
+            local ox = #editorContent[cursorLine - 1]
+            editorContent[cursorLine - 1] = editorContent[cursorLine - 1] .. tableRemove(editorContent, cursorLine)
+            highlighter.removeLine(cursorLine)
+            updateCursor(ox, cursorLine - 1)
+            highlighter.setLine(cursorLine, editorContent[cursorLine])
+            return
+          end
+
           local charType = 0 -- 1 == Letter, 2 == Punctuation
-          repeat
+          while cursorPos > 0 do
             local let = editorContent[cursorLine]:sub(cursorPos, cursorPos) or ""
             if charType == 0 then
-              if let:match("%S") then
-                if let:match("%w") then
-                  charType = 1
-                else
-                  charType = 2
-                end
-              end
+              charType =
+                   (let:match("%s") and 3)
+                or (let:match("%w") and 2)
+                or (let:match("%W") and 1)
+                or 0
             end
 
-            if (charType == 2 and let:match("[%w%s]")) or (charType == 1 and let:match("%W")) then
+            if    ((charType == 3 and let:match("%S"))
+                or (charType == 2 and let:match("%W"))
+                or (charType == 1 and let:match("[%w%s]"))) then
               break
             end
 
@@ -604,16 +617,8 @@ return function(context)
               editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos - 1) .. editorContent[cursorLine]:sub(cursorPos + 1)
               updateCursor(cursorPos - 1, cursorLine)
               highlighter.setLine(cursorLine, editorContent[cursorLine])
-            elseif cursorLine > 1 then
-              local ox = #editorContent[cursorLine - 1]
-              editorContent[cursorLine - 1] = editorContent[cursorLine - 1] .. tableRemove(editorContent, cursorLine)
-              highlighter.removeLine(cursorLine)
-              updateCursor(ox, cursorLine - 1)
-              highlighter.setLine(cursorLine, editorContent[cursorLine])
             end
-          until (charType == 2 and let:match("[%w%s]"))
-              or (charType == 1 and let:match("%W"))
-              or cursorPos == 0
+          end
         else
           if cursorPos > 0 then
             editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos - 1) .. editorContent[cursorLine]:sub(cursorPos + 1)
@@ -635,13 +640,44 @@ return function(context)
       if selection.active then
         removeSelection()
       else
-        if cursorPos < #editorContent[cursorLine] then
-          editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) .. editorContent[cursorLine]:sub(cursorPos + 2)
-          highlighter.setLine(cursorLine, editorContent[cursorLine])
-        elseif cursorLine < #editorContent then
-          editorContent[cursorLine] = editorContent[cursorLine] .. tableRemove(editorContent, cursorLine + 1)
-          highlighter.removeLine(cursorLine + 1)
-          highlighter.setLine(cursorLine, editorContent[cursorLine])
+        if modifiers.ctrl then
+          if cursorPos < #editorContent[cursorLine] then
+            editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) .. editorContent[cursorLine]:sub(cursorPos + 2)
+            highlighter.setLine(cursorLine, editorContent[cursorLine])
+          elseif cursorLine < #editorContent then
+            editorContent[cursorLine] = editorContent[cursorLine] .. tableRemove(editorContent, cursorLine + 1)
+            highlighter.removeLine(cursorLine + 1)
+            highlighter.setLine(cursorLine, editorContent[cursorLine])
+            return
+          end
+
+          local charType = 0
+          local let = editorContent[cursorLine]:sub(cursorPos + 1, cursorPos + 1) or ""
+
+          charType =
+               (let:match("%s") and 3)
+            or (let:match("%w") and 2)
+            or (let:match("%W") and 1)
+            or 0
+
+          while cursorPos < #editorContent[cursorLine]
+              and ((charType == 3 and let:match("%s"))
+                or (charType == 2 and let:match("%w"))
+                or (charType == 1 and let:match("[^%w%s]"))) do
+            editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) .. editorContent[cursorLine]:sub(cursorPos + 2)
+            highlighter.setLine(cursorLine, editorContent[cursorLine])
+
+            let = editorContent[cursorLine]:sub(cursorPos + 1, cursorPos + 1) or ""
+          end
+        else
+          if cursorPos < #editorContent[cursorLine] then
+            editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) .. editorContent[cursorLine]:sub(cursorPos + 2)
+            highlighter.setLine(cursorLine, editorContent[cursorLine])
+          elseif cursorLine < #editorContent then
+            editorContent[cursorLine] = editorContent[cursorLine] .. tableRemove(editorContent, cursorLine + 1)
+            highlighter.removeLine(cursorLine + 1)
+            highlighter.setLine(cursorLine, editorContent[cursorLine])
+          end
         end
       end
       cursorBlinkTimer = os.clock()

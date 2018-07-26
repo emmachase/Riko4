@@ -2,12 +2,13 @@ local input = {}
 
 local fontW, fontH = gpu.font.data.w, gpu.font.data.h
 
-function input.new(w, charset, pattern)
+function input.new(w, hint, charset, pattern)
   return setmetatable({
     text = "",
     scrollX = 0,
     cursorPos = 0,
     blinkTime = os.clock(),
+    hint = hint,
     w=w,charset=charset,pattern=pattern,
     bg = 6
   }, {__index = input})
@@ -17,7 +18,12 @@ function input:draw(x, y)
   gpu.clip(x, y, self.w, fontH + 2)
 
   gpu.drawRectangle(x, y, self.w, fontH + 2, self.bg)
-  write(self.text, x - self.scrollX*(fontW + 1), y)
+  local str, c = self.text, 16
+  if #str == 0 then
+    str = self.hint or ""
+    c = 7
+  end
+  write(str, x - self.scrollX*(fontW + 1), y, c)
 
   if (os.clock() - self.blinkTime) % 1 < 0.5 then
     write("_", x - (self.scrollX - self.cursorPos)*(fontW + 1), y + 1)
