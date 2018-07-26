@@ -2,9 +2,11 @@ local gridSize = 7
 
 local rif = dofile("/lib/rif.lua")
 
+local fontW, fontH = gpu.font.data.w, gpu.font.data.h
+
 local running = true
 local width, height = gpu.width, gpu.height
-local translateX = math.floor((width  - (gridSize + 1) * 16) / 2)
+local translateX = math.floor((width  - (gridSize) * 16) / 2)
 local translateY = math.floor((height - (gridSize + 1) * 16) / 2)
 
 local curs = rif.createImage("curs.rif")
@@ -14,23 +16,36 @@ local mousePosX, mousePosY = -5, -5
 
 
 local grid = {}
-for i = 0, (gridSize - 1) do
-  grid[i] = {}
-  for j = 0, (gridSize - 1) do
-    if j % (gridSize - 1) == 0 and i == (gridSize - 1) / 2 then
-      grid[i][j] = true
-    else
-      grid[i][j] = false
-    end
-  end
-end
 
 local turn = 0
 local state = 0
 
-local p1 = {(gridSize - 1) / 2, gridSize - 1}
-local p2 = {(gridSize - 1) / 2, 0}
-local lookup = {p1, p2}
+local p1, p2, lookup
+
+local dirty = true
+
+local function init()
+  for i = 0, (gridSize - 1) do
+    grid[i] = {}
+    for j = 0, (gridSize - 1) do
+      if j % (gridSize - 1) == 0 and i == (gridSize - 1) / 2 then
+        grid[i][j] = true
+      else
+        grid[i][j] = false
+      end
+    end
+  end
+
+  turn = 0
+  state = 0
+
+  p1 = {(gridSize - 1) / 2, gridSize - 1}
+  p2 = {(gridSize - 1) / 2, 0}
+  lookup = {p1, p2}
+
+  dirty = true
+end
+init()
 
 local function playMove()
   speaker.stopChannel(3)
@@ -53,7 +68,39 @@ local function playNotAllowed()
   speaker.play({channel = 2, frequency = 400, time = 0.03, shift = 50, volume = 0.06, attack = 0, release = 0})
 end
 
-local dirty = true
+local function writeCentered(str, y, c, c2)
+  local x = (width - (#str * (fontW + 1))) / 2
+
+  write(str, x + 1, y + 1, c2)
+  write(str, x, y, c)
+end
+
+local function checkBlocked(x, y)
+  if grid[x] then
+    return grid[x][y] ~= false and 1 or 0
+  else
+    return 1
+  end
+end
+
+local function checkWin()
+  local p1Blocks = 0
+  local p2Blocks = 0
+  for i = -1, 1 do
+    for j = -1, 1 do
+      p1Blocks = p1Blocks + checkBlocked(p1[1] + i, p1[2] + j)
+      p2Blocks = p2Blocks + checkBlocked(p2[1] + i, p2[2] + j)
+    end
+  end
+
+  if p1Blocks >= 8 then
+    state = 3
+    dirty = true
+  elseif p2Blocks >= 8 then
+    state = 2
+    dirty = true
+  end
+end
 
 local function draw()
   if dirty then
@@ -81,9 +128,21 @@ local function draw()
       tex:render(translateX + gridSize * 16, translateY + i * 16, 34, 17, 16, 16)
     end
 
-    local str = "P" .. (turn + 1) .. "'s turn: " .. (state == 0 and "Move" or "Destroy")
-    write(str, math.floor((width - (8 * #str)) / 2) + 1, translateY + 16 * (gridSize + 1) + 1, turn == 0 and 2 or 3)
-    write(str, math.floor((width - (8 * #str)) / 2), translateY + 16 * (gridSize + 1), turn == 0 and 13 or 14)
+    writeCentered("Press R to Reset", translateY - fontH - 6, 16, 7)
+
+    if state > 1 then
+      local str = "P" .. (state - 1) .. " wins!"
+      local strY = translateY + 16 * (gridSize + 1) + 1
+      writeCentered(str, strY,
+        state == 2 and 13 or 14,
+        state == 2 and 2 or 3)
+    else
+      local str = "P" .. (turn + 1) .. "'s turn: " .. (state == 0 and "Move" or "Destroy")
+      local strY = translateY + 16 * (gridSize + 1) + 1
+      writeCentered(str, strY,
+        turn == 0 and 13 or 14,
+        turn == 0 and 2 or 3)
+    end
 
     curs:render(mousePosX, mousePosY)
 
@@ -98,6 +157,8 @@ local function processEvent(e, ...)
     local key = ...
     if key == "escape" then
       running = false
+    elseif key == "r" then
+      init()
     end
   elseif e == "mouseMoved" then
     local nx, ny = ...
@@ -106,6 +167,8 @@ local function processEvent(e, ...)
 
     dirty = true
   elseif e == "mousePressed" then
+    if state > 1 then return end
+
     local mx, my = ...
     mx, my = mx - translateX, my - translateY
 
@@ -133,9 +196,11 @@ local function processEvent(e, ...)
       grid[rx][ry] = true
       dirted = true
       playDestroy()
+
+      checkWin()
     end
 
-    if dirted then
+    if state < 2 and dirted then
       turn = state == 1 and 1 - turn or turn
       state = (state + 1) % 2
       dirty = true

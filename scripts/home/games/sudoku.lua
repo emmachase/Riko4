@@ -155,13 +155,13 @@ local function draw()
   for i = 1, 9 do
     for j = 1, 9 do
       if sodGrid[i][j] > 0 then
-        write(tostring(sodGrid[i][j]), (i - 1) * 11 + tlx + 1, (j - 1) * 11 + tly + 2)
+        write(tostring(sodGrid[i][j]), (i - 1) * 11 + tlx + 3, (j - 1) * 11 + tly + 2)
       end
     end
   end
 
   for i = 1, #written do
-    write(written[i][1], (written[i][2] - 1) * 11 + tlx + 1, (written[i][3] - 1) * 11 + tly + 2, 10)
+    write(written[i][1], (written[i][2] - 1) * 11 + tlx + 3, (written[i][3] - 1) * 11 + tly + 2, 10)
   end
 
   if won then

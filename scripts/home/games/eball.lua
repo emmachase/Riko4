@@ -4,7 +4,7 @@ local simulating = false
 local turn = 1
 
 local width, height = gpu.width, gpu.height
-local cx, cy = 170, 100
+local cx, cy = width / 2, height / 2
 
 local mousePosX, mousePosY = -5, -5
 
