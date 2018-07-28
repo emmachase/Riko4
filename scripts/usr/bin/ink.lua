@@ -250,12 +250,22 @@ local secColor = 9
 local workingImage = {}
 local dispImage
 
+local function toBlitTable(bData, w, h)
+  local out = {}
+  for i = 1, h do
+    for j = 1, w do
+      out[#out + 1] = bData[j][i] == 0 and -1 or bData[j][i]
+    end
+  end
+
+  return out
+end
+
 local function constructImage(over)
-  -- workingImage = {}
   for i = 1, imgWidth do
-    workingImage[i] = {}
+    workingImage[i] = workingImage[i] or {}
     for j = 1, imgHeight do
-      if (over and not workingImage[i][j]) or (not over) then
+      if (over and workingImage[i][j] == nil) or (not over) then
         workingImage[i][j] = 0
       end
     end
@@ -272,6 +282,9 @@ local function constructImage(over)
   end
 
   dispImage = image.newImage(imgWidth, imgHeight)
+
+  dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage, imgWidth, imgHeight))
+  dispImage:flush()
 end
 constructImage()
 
@@ -313,17 +326,6 @@ local function saveImage(name)
   status = locale[lang].saved
   statusPos = statusRest
   statusTime = os.clock()
-end
-
-local function toBlitTable(bData)
-  local out = {}
-  for i = 1, #bData[1] do
-    for j = 1, #bData do
-      out[#out + 1] = bData[j][i] == 0 and -1 or bData[j][i]
-    end
-  end
-
-  return out
 end
 
 local function loadImage(name)
@@ -391,7 +393,7 @@ local function drawQ(x, y, b)
   local tx, ty = convertScrn2I(x, y)
   if tx >= 0 and ty >= 0 and tx < imgWidth and ty < imgHeight and (b == 1 or b == 3)then
     workingImage[tx + 1][ty + 1] = (b == 1) and primColor or (b == 3) and secColor
-    dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage))
+    dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage, imgWidth, imgHeight))
     dispImage:flush()
   end
 end
@@ -412,7 +414,7 @@ local function floodFill(x, y, c)
     if py > 1         and workingImage[px][py - 1] == control then fillQueue[#fillQueue + 1] = {px, py - 1} end
   end
 
-  dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage))
+  dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage, imgWidth, imgHeight))
   dispImage:flush()
 end
 
@@ -501,7 +503,7 @@ local toolList = {
       if tx >= 0 and ty >= 0 and tx < imgWidth and ty < imgHeight and b == 1 then
         workingImage[tx + 1][ty + 1] = 0
         dispImage:clear()
-        dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage))
+        dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage, imgWidth, imgHeight))
         dispImage:flush()
       end
     end,
@@ -517,7 +519,7 @@ local toolList = {
         if tx >= 0 and ty >= 0 and tx < imgWidth and ty < imgHeight then
           workingImage[tx + 1][ty + 1] = 0
           dispImage:clear()
-          dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage))
+          dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage, imgWidth, imgHeight))
           dispImage:flush()
         end
       end
@@ -991,7 +993,7 @@ local function processEvent(ev, p1, p2, p3, p4)
         end
         clipboard.full = true
         clipboard.pimg = image.newImage(w, h)
-        clipboard.pimg:blitPixels(0, 0, w, h, toBlitTable(clipboard.data))
+        clipboard.pimg:blitPixels(0, 0, w, h, toBlitTable(clipboard.data, w, h))
         clipboard.pimg:flush()
 
         toolVars.select.exists = false
@@ -1123,7 +1125,7 @@ local function processEvent(ev, p1, p2, p3, p4)
         for j = 1, clipboard.h do
           workingImage[i + tx][j + ty] = clipboard.data[i][j]
           dispImage:clear()
-          dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage))
+          dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage, imgWidth, imgHeight))
           dispImage:flush()
         end
       end
