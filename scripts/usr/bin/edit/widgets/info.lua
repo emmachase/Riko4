@@ -2,7 +2,6 @@ return function(context)
   local infoWidget = {}
 
   local popout = require("popout")
--- rip input
 
   local fontH = gpu.font.data.h
 
@@ -11,23 +10,15 @@ return function(context)
       popout = popout.new(80, fontH + 1, 6),
       text = text,
       timeout = timeout or 1
--- rip input
     }, {__index = infoWidget})
 
     self.popout.drawCallback = self.internalDraw
     self.popout.bind = self
 
--- rip input
-    --   self:die()
-      
-    --   mediator:publish({"editor"}, "goto", tonumber(text))
-    -- end
-
     return self
   end
 
   function infoWidget:internalDraw(drawX, drawY)
--- rip input
     write(self.text, drawX + 1, drawY, 16)
   end
 
@@ -51,27 +42,6 @@ return function(context)
     end)
     self:cleanup()
   end
-
---   function infoWidget:onMousePressed()
---     return true
---   end
-
---   function infoWidget:onChar(modifiers, char)
--- -- rip input
-
---     return true
---   end
-
---   function infoWidget:onKey(modifiers, key)
--- -- rip input
-
---     if key == "escape" then
---       self:die()
---       return true
---     end
-
---     return true
---   end
 
   return infoWidget
 end
