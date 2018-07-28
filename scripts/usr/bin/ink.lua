@@ -1123,12 +1123,16 @@ local function processEvent(ev, p1, p2, p3, p4)
       local tx, ty = convertScrn2I(x, y)
       for i = 1, clipboard.w do
         for j = 1, clipboard.h do
-          workingImage[i + tx][j + ty] = clipboard.data[i][j]
-          dispImage:clear()
-          dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage, imgWidth, imgHeight))
-          dispImage:flush()
+          if i + tx > 0 and i + tx <= imgWidth and
+             j + ty > 0 and j + ty <= imgHeight then
+            workingImage[i + tx][j + ty] = clipboard.data[i][j]
+          end
         end
       end
+
+      dispImage:clear()
+      dispImage:blitPixels(0, 0, imgWidth, imgHeight, toBlitTable(workingImage, imgWidth, imgHeight))
+      dispImage:flush()
 
       clipboard.prev = false
       return
