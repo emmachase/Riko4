@@ -23,13 +23,24 @@ function input:draw(x, y)
     str = self.hint or ""
     c = 7
   end
-  write(str, x - self.scrollX*(fontW + 1), y, c)
+  write(str, x + self.scrollX*(fontW + 1), y, c)
 
   if (os.clock() - self.blinkTime) % 1 < 0.5 then
-    write("_", x - (self.scrollX - self.cursorPos)*(fontW + 1), y + 1)
+    write("_", x - (-self.scrollX - self.cursorPos)*(fontW + 1), y + 1)
   end
 
   gpu.clip()
+end
+
+function input:checkDrawBounds()
+  if self.cursorPos > math.floor(self.w/(fontW + 1)) - self.scrollX - 1 then
+    self.scrollX = math.floor(self.w/(fontW + 1)) - self.cursorPos - 1
+  elseif self.cursorPos < 1 - self.scrollX then
+    self.scrollX = 1 - self.cursorPos
+    if self.scrollX > 0 then
+      self.scrollX = 0
+    end
+  end
 end
 
 function input:setText(text)
@@ -47,6 +58,8 @@ function input:onChar(modifiers, char)
     self.text = self.text:sub(1, self.cursorPos) .. char .. self.text:sub(self.cursorPos + 1)
     self.cursorPos = self.cursorPos + 1
   end
+
+  self:checkDrawBounds()
 
   self.blinkTime = os.clock()
 end
@@ -88,6 +101,8 @@ function input:onKey(modifiers, key)
     self.cursorPos = #self.text
     self.blinkTime = os.clock()
   end
+
+  self:checkDrawBounds()
 end
 
 return input
