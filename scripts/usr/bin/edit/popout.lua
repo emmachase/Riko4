@@ -14,12 +14,13 @@ local function round(n)
   end
 end
 
-function popout.new(width, height)
+function popout.new(width, height, bg)
   local self = {
     width = width + 2,
     height = height + 2,
     animState = 0,
-    goingOut = false
+    goingOut = false,
+    bg = bg or 7
   }
 
   return setmetatable(self, {__index = popout})
@@ -47,11 +48,11 @@ function popout:draw()
 
   gpu.drawRectangle(
     xpos, round(self.animState - self.height),
-    self.width, self.height, 7)
+    self.width, self.height, self.bg)
 
   gpu.drawRectangle(
     xpos + 1, round(self.animState),
-    self.width - 2, 1, 7)
+    self.width - 2, 1, self.bg)
 
   if self.drawCallback then
     self.drawCallback(self.bind or {}, xpos + 1, round(self.animState - self.height + 1))

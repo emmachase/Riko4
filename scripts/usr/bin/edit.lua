@@ -126,7 +126,8 @@ end
 local eventModifiers = {
   key = {
     ctrl = false,
-    shift = false
+    shift = false,
+    alt = false
   }
 }
 
@@ -171,12 +172,16 @@ local function processEvent(e, p1, p2)
       eventModifiers.key.ctrl = true
     elseif p1 == "leftShift" or p1 == "rightShift" then
       eventModifiers.key.shift = true
+    elseif p1 == "leftAlt" or p1 == "rightAlt" then
+      eventModifiers.key.alt = true
     end
   elseif e == "keyUp" then
     if p1 == "leftCtrl" or p1 == "rightCtrl" then
       eventModifiers.key.ctrl = false
     elseif p1 == "leftShift" or p1 == "rightShift" then
       eventModifiers.key.shift = false
+    elseif p1 == "leftAlt" or p1 == "rightAlt" then
+      eventModifiers.key.alt = false
     end
   end
 

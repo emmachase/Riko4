@@ -13,10 +13,10 @@ function context:get(filename)
 
   if not self.cache[filename] then
     local result = require(filename)
-    if type(result) == "table" then
-      self.cache[filename] = result
-    else
+    if type(result) == "function" then
       self.cache[filename] = result(self)
+    else
+      self.cache[filename] = result
     end
   end
 

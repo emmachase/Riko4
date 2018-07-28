@@ -12,7 +12,8 @@ return function(context)
   local attacher, detacher
 
   local widgets = {
-    gotoLine = context:get "widgets/goto"
+    gotoLine = context:get "widgets/goto",
+    infoBox = context:get "widgets/info"
   }
 
   local editor = context:get "editor"
@@ -33,6 +34,22 @@ return function(context)
   end
 
   local currentPopout
+  local function constructWidget(name, focus, ...)
+    local widget = widgets[name].new(...)
+    if focus then
+      attacher(widget)
+    end
+    currentPopout = widget
+    widget.cleanup = function(me)
+      if focus then
+        detacher(me)
+        mediator:publish({"editor"}, "startBlink")
+      end
+    end
+    widget.suicide = function()
+      currentPopout = nil
+    end
+  end
 
   local inMenu = false
   local menuItems = { "Save", "Goto", "Exit" }
@@ -44,18 +61,11 @@ return function(context)
       local handle = fs.open(filename, "w")
       handle:write(ccat(editor.getText(), "\n"))
       handle:close()
+
+      constructWidget("infoBox", false, "Saved!")
     end,
     function() -- GOTO
-      local widget = widgets.gotoLine.new()
-      attacher(widget)
-      currentPopout = widget
-      widget.cleanup = function(me)
-        detacher(me)
-        mediator:publish({"editor"}, "startBlink")
-      end
-      widget.suicide = function()
-        currentPopout = nil
-      end
+      constructWidget("gotoLine", true)
     end,
     function() -- EXIT
       quitFunc()

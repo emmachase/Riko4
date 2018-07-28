@@ -511,9 +511,15 @@ return function(context)
       end
 
       checkDrawBounds()
+    elseif key == "s" and modifiers.ctrl then
+      cursorBlinkTimer = -1
+      mediator:publish({"menu"}, "Save")
     elseif key == "g" and modifiers.ctrl then
       cursorBlinkTimer = -1
       mediator:publish({"menu"}, "Goto")
+    elseif key == "w" and modifiers.ctrl and modifiers.alt then
+      cursorBlinkTimer = -1
+      mediator:publish({"menu"}, "Exit")
     end
   end
 

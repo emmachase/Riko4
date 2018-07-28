@@ -127,7 +127,7 @@ while _running do
     if _event then
       _event(unpack(e))
     end
-    
+
     _eventDefault(unpack(e))
   end
 
