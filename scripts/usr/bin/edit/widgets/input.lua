@@ -32,6 +32,16 @@ function input:draw(x, y)
   gpu.clip()
 end
 
+function input:setText(text)
+  self.text = ""
+  self.scrollX = 0
+  self.cursorPos = 0
+
+  for i = 1, #text do
+    self:onChar({}, text:sub(i, i))
+  end
+end
+
 function input:onChar(modifiers, char)
   if char:match(self.charset) then
     self.text = self.text:sub(1, self.cursorPos) .. char .. self.text:sub(self.cursorPos + 1)

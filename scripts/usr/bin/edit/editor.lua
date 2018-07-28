@@ -169,8 +169,41 @@ return function(context)
     end
   end
 
+  local findText = ""
+  local function findNext()
+    if findText ~= "" then
+      local find = editorContent[cursorLine]:lower():find(findText:lower(), cursorPos + 2) -- +2 to skip current occurance
+      if find then
+        mediator:publish({"editor"}, "goto", cursorLine, find - 1)
+        return
+      end
 
+      local startLine = cursorLine
+      local searchLine = cursorLine + 1
 
+      -- Wrap if at end of file
+      if searchLine > #editorContent then
+        searchLine = 1
+      end
+
+      while searchLine <= #editorContent do
+        find = editorContent[searchLine]:lower():find(findText:lower())
+        if find then
+          mediator:publish({"editor"}, "goto", searchLine, find - 1)
+          return
+        elseif startLine == searchLine then
+          mediator:publish({"menu", "misc"}, "info", "No results")
+          return
+        else
+          searchLine = searchLine + 1
+          if searchLine > #editorContent then
+            searchLine = 1
+          end
+        end
+      end
+    end
+  end
+  
   function editor.init(args)
     editorTheme = args.editorTheme
     highlighter.init({
@@ -185,7 +218,7 @@ return function(context)
     cursorLine = args.initialLine or 1
     checkDrawBounds()
 
-    mediator:subscribe({"editor"}, function(cmd, p1)
+    mediator:subscribe({"editor"}, function(cmd, p1, p2)
       if cmd == "stopBlink" then
         cursorBlinkTimer = -1
       elseif cmd == "startBlink" then
@@ -193,7 +226,7 @@ return function(context)
       elseif cmd == "goto" then
         selection.active = false
 
-        local nx, ny = cursorPos, p1
+        local nx, ny = p2 or cursorPos, p1
 
         if ny > #editorContent then
           ny = #editorContent
@@ -206,6 +239,11 @@ return function(context)
         updateCursor(nx, ny)
 
         checkDrawBounds()
+      elseif cmd == "openFind" then
+        mediator:publish({"menu", "misc"}, "openFind", findText)
+      elseif cmd == "findNext" then
+        findText = p1
+        findNext()
       end
     end)
   end
@@ -513,13 +551,18 @@ return function(context)
       checkDrawBounds()
     elseif key == "s" and modifiers.ctrl then
       cursorBlinkTimer = -1
-      mediator:publish({"menu"}, "Save")
+      mediator:publish({"menu", "execute"}, "Save")
+    elseif key == "f" and modifiers.ctrl then
+      cursorBlinkTimer = -1
+      mediator:publish({"menu", "misc"}, "openFind", findText)
     elseif key == "g" and modifiers.ctrl then
       cursorBlinkTimer = -1
-      mediator:publish({"menu"}, "Goto")
+      mediator:publish({"menu", "execute"}, "Goto")
     elseif key == "w" and modifiers.ctrl and modifiers.alt then
       cursorBlinkTimer = -1
-      mediator:publish({"menu"}, "Exit")
+      mediator:publish({"menu", "execute"}, "Exit")
+    elseif key == "f3" then
+      findNext()
     end
   end
 

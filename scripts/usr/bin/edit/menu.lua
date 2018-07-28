@@ -13,7 +13,8 @@ return function(context)
 
   local widgets = {
     gotoLine = context:get "widgets/goto",
-    infoBox = context:get "widgets/info"
+    infoBox = context:get "widgets/info",
+    findNext = context:get "widgets/find"
   }
 
   local editor = context:get "editor"
@@ -35,13 +36,20 @@ return function(context)
 
   local currentPopout
   local function constructWidget(name, focus, ...)
+    if currentPopout then
+      currentPopout:cleanup()
+      currentPopout:die()
+    end
+
     local widget = widgets[name].new(...)
     if focus then
       attacher(widget)
     end
     currentPopout = widget
+    local cleanedUp = false
     widget.cleanup = function(me)
-      if focus then
+      if focus and not cleanedUp then
+        cleanedUp = true
         detacher(me)
         mediator:publish({"editor"}, "startBlink")
       end
@@ -52,7 +60,7 @@ return function(context)
   end
 
   local inMenu = false
-  local menuItems = { "Save", "Goto", "Exit" }
+  local menuItems = { "Save", "Find", "Goto", "Exit" }
   local menuFunctions = {
     function() -- SAVE
       editor.trimLines()
@@ -63,6 +71,9 @@ return function(context)
       handle:close()
 
       constructWidget("infoBox", false, "Saved!")
+    end,
+    function() -- FIND
+      mediator:publish({"editor"}, "openFind")
     end,
     function() -- GOTO
       constructWidget("gotoLine", true)
@@ -106,12 +117,20 @@ return function(context)
     attacher = args.attacher
     detacher = args.detacher
 
-    mediator:subscribe({"menu"}, function(cmd)
+    mediator:subscribe({"menu", "execute"}, function(cmd, ...)
       for i = 1, #menuItems do
         if menuItems[i] == cmd then
-          menuFunctions[i]()
+          menuFunctions[i](...)
           break
         end
+      end
+    end)
+
+    mediator:subscribe({"menu", "misc"}, function(cmd, p1, p2)
+      if cmd == "info" then
+        constructWidget("infoBox", false, p1, p2)
+      elseif cmd == "openFind" then
+        constructWidget("findNext", true, p1)
       end
     end)
   end
