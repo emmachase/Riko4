@@ -14,11 +14,14 @@ return function(context)
   local fontH = gpu.font.data.h
 
   local viewportWidth
+  local activeWidth
   local viewportHeight
   local heightInLines
 
   -- In the form of an array of lines
   local editorContent = {}
+
+  local lineNumbers = false
 
   local cursorBlinkTimer = os.clock()
   local cursorLine = 1
@@ -74,8 +77,8 @@ return function(context)
 
   -- Make sure that the editor cursor position is within the viewport
   local function checkDrawBounds()
-    if cursorPos > math.floor(viewportWidth/(fontW + 1)) - scrollX - 1 then
-      scrollX = math.floor(viewportWidth/(fontW + 1)) - cursorPos - 1
+    if cursorPos > math.floor(activeWidth/(fontW + 1)) - scrollX - 1 then
+      scrollX = math.floor(activeWidth/(fontW + 1)) - cursorPos - 1
     elseif cursorPos < -scrollX then
       scrollX = -cursorPos
     end
@@ -87,12 +90,22 @@ return function(context)
     end
   end
 
+  local function getDrawOffset()
+    if lineNumbers then
+      return (#tostring(#editorContent) + 1)*(fontW+1)
+    else
+      return 0
+    end
+  end
+
   local function drawCursor(force, which)
+    local dOff = getDrawOffset()
+
     if cursorBlinkTimer ~= -1 then
       local ctime = math.floor(((os.clock() - cursorBlinkTimer) * 2)) % 2
 
       if ((ctime == 0 or force)) or which == 1 then
-        write("_", (cursorPos + scrollX) * (fontW + 1) + 1, (cursorLine - scrollY - 1) * (fontH + 1) + 4, editorTheme.text)
+        write("_", dOff + (cursorPos + scrollX) * (fontW + 1) + 1, (cursorLine - scrollY - 1) * (fontH + 1) + 4, editorTheme.text)
       end
     end
   end
@@ -211,6 +224,7 @@ return function(context)
     })
 
     viewportWidth = args.viewportWidth
+    activeWidth = args.viewportWidth
     viewportHeight = args.viewportHeight
 
     heightInLines = math.floor(viewportHeight / (fontH + 1)) - 1
@@ -274,6 +288,8 @@ return function(context)
   editor.updateCursor = updateCursor
 
   function editor.draw()
+    local activeDOff = getDrawOffset()
+
     for i = 0, heightInLines + 2 do
       local cy = i + scrollY
       if cy > 0 then
@@ -291,32 +307,36 @@ return function(context)
           if selBeginLine == selStopLine then
             if cy == selBeginLine then
               if selStopPos == #editorContent[cy] then
-                gpu.drawRectangle((fontW + 1) * (selBeginPos) + 1 + hScrl, dy, (fontW + 1) * (#editorContent[cy] - selBeginPos) + 1, 7, editorTheme.highlight)
+                gpu.drawRectangle(activeDOff + (fontW + 1) * (selBeginPos) + 1 + hScrl, dy, (fontW + 1) * (#editorContent[cy] - selBeginPos) + 1, 7, editorTheme.highlight)
               else
-                gpu.drawRectangle((fontW + 1) * (selBeginPos) + 1 + hScrl, dy, (fontW + 1) * (selStopPos - selBeginPos + 1) + 1, 7, editorTheme.highlight)
+                gpu.drawRectangle(activeDOff + (fontW + 1) * (selBeginPos) + 1 + hScrl, dy, (fontW + 1) * (selStopPos - selBeginPos + 1) + 1, 7, editorTheme.highlight)
               end
             end
           else
             if cy == selBeginLine then
-              gpu.drawRectangle((fontW + 1) * (selBeginPos) + 1 + hScrl, dy, (fontW + 1) * (#editorContent[cy] - selBeginPos) + 1, 7, editorTheme.highlight)
+              gpu.drawRectangle(activeDOff + (fontW + 1) * (selBeginPos) + 1 + hScrl, dy, (fontW + 1) * (#editorContent[cy] - selBeginPos) + 1, 7, editorTheme.highlight)
             elseif cy == selStopLine then
               if selStopPos == #editorContent[cy] then
-                gpu.drawRectangle(hScrl, dy, (fontW + 1) * #editorContent[cy] + 2, 7, editorTheme.highlight)
+                gpu.drawRectangle(activeDOff + hScrl, dy, (fontW + 1) * #editorContent[cy] + 2, 7, editorTheme.highlight)
               else
-                gpu.drawRectangle(hScrl, dy, (fontW + 1) * (selStopPos + 1) + 2, 7, editorTheme.highlight)
+                gpu.drawRectangle(activeDOff + hScrl, dy, (fontW + 1) * (selStopPos + 1) + 2, 7, editorTheme.highlight)
               end
             elseif cy > selBeginLine and cy < selStopLine then
-              gpu.drawRectangle(hScrl, dy, (fontW + 1) * #editorContent[cy] + 2, 7, editorTheme.highlight)
+              gpu.drawRectangle(activeDOff + hScrl, dy, (fontW + 1) * #editorContent[cy] + 2, 7, editorTheme.highlight)
             end
           end
         end
 
+        if lineNumbers then
+          local lineNumber = tostring(cy)
+          write(lineNumber, activeDOff - ((#lineNumber + 1) * (fontW + 1)), dy, editorTheme.lineNumbers)
+        end
 
         local cx = 1 + scrollX*(fontW + 1)
         local coloredLine = highlighter.getColoredLine(cy)
         for j = 1, #coloredLine do
           local chk = coloredLine[j]
-          write(chk[1], cx, dy, chk[2])
+          write(chk[1], activeDOff + cx, dy, chk[2])
           cx = cx + (fontW + 1) * #chk[1]
         end
       end
@@ -816,11 +836,23 @@ return function(context)
     mouseDown = true
   end
 
+  local function onDisplayModifiers(modifiers)
+    lineNumbers = modifiers.alt
+    activeWidth = viewportWidth - getDrawOffset()
+
+    checkDrawBounds()
+  end
+
   function editor:onKey(modifiers, key)
+    onDisplayModifiers(modifiers)
     onArrowKeys(modifiers, key)
     onShortcuts(modifiers, key)
     onMiscNavigation(modifiers, key)
     onMutateKeys(modifiers, key)
+  end
+
+  function editor:onKeyUp(modifiers)
+    onDisplayModifiers(modifiers)
   end
 
   function editor:onChar(modifiers, char)
