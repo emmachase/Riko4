@@ -65,7 +65,7 @@ function input:onChar(modifiers, char)
 end
 
 function input:onKey(modifiers, key)
-  if key == "return" then
+  if key == "return" or key == "keypadEnter" then
     if (not self.pattern) or self.text:match("^" .. self.pattern .. "$") then
       self.completeCallback(self.text)
       self.bg = 6

@@ -26,6 +26,7 @@ return function(context)
   local cursorBlinkTimer = os.clock()
   local cursorLine = 1
   local cursorPos = 0
+  local explicitCursorPos = 0
 
   local mouseDown, scrolling = false, false
   local scrollX, scrollY = 0, 0
@@ -107,7 +108,7 @@ return function(context)
       local ctime = math.floor(((os.clock() - cursorBlinkTimer) * 2)) % 2
 
       if ((ctime == 0 or force)) or which == 1 then
-        write("_", dOff + (cursorPos + scrollX) * (fontW + 1) + 1, (cursorLine - scrollY - 1) * (fontH + 1) + 4, editorTheme.text)
+        write("_", dOff + (cursorPos + scrollX) * (fontW + 1) + 1, (cursorLine - scrollY - 1) * (fontH + 1) + 4, editorTheme.caret)
       end
     end
   end
@@ -152,6 +153,11 @@ return function(context)
     else
       selection.active = false
     end
+
+    if  selection.start[1] == selection.stop[1] and
+        selection.start[2] == selection.stop[2] then
+      selection.active = false
+    end
   end
 
   -- Delete the content in a selection and move the cursor appropriately
@@ -187,9 +193,12 @@ return function(context)
   local findText = ""
   local function findNext()
     if findText ~= "" then
-      local find = editorContent[cursorLine]:lower():find(findText:lower(), cursorPos + 2) -- +2 to skip current occurance
+      local find, findEnd = editorContent[cursorLine]:lower():find(findText:lower(), cursorPos + 2) -- +2 to skip current occurance
       if find then
-        mediator:publish({"editor"}, "goto", cursorLine, find - 1)
+        mediator:publish({"editor"}, "goto", cursorLine, findEnd)
+        selection.active = true
+        selection.start = {find - 1, cursorLine}
+        selection.stop  = {findEnd - 1, cursorLine}
         return
       end
 
@@ -202,9 +211,12 @@ return function(context)
       end
 
       while searchLine <= #editorContent do
-        find = editorContent[searchLine]:lower():find(findText:lower())
+        find, findEnd = editorContent[searchLine]:lower():find(findText:lower())
         if find then
-          mediator:publish({"editor"}, "goto", searchLine, find - 1)
+          mediator:publish({"editor"}, "goto", searchLine, findEnd)
+          selection.active = true
+          selection.start = {find - 1, searchLine}
+          selection.stop  = {findEnd - 1, searchLine}
           return
         elseif startLine == searchLine then
           mediator:publish({"menu", "misc"}, "info", "No results")
@@ -384,7 +396,7 @@ return function(context)
         end
       else
         updateSelection(modifiers)
-        local nx, ny = cursorPos, cursorLine
+        local nx, ny = explicitCursorPos, cursorLine
         if cursorLine > 1 then ny = cursorLine - 1 else nx = 0 end
         if cursorPos > #editorContent[ny] then nx = #editorContent[ny] end
         updateCursor(nx, ny)
@@ -400,7 +412,7 @@ return function(context)
         end
       else
         updateSelection(modifiers)
-        local nx, ny = cursorPos, cursorLine
+        local nx, ny = explicitCursorPos, cursorLine
         if cursorLine < #editorContent then ny = cursorLine + 1 else nx = #editorContent[ny] end
         if cursorPos > #editorContent[ny] then nx = #editorContent[ny] end
         updateCursor(nx, ny)
@@ -451,6 +463,8 @@ return function(context)
       updateCursor(nx, ny)
       updateSelection(modifiers)
 
+      explicitCursorPos = cursorPos
+
       checkDrawBounds()
     elseif key == "right" then
       local nx, ny = cursorPos, cursorLine
@@ -494,6 +508,8 @@ return function(context)
 
       updateCursor(nx, ny)
       updateSelection(modifiers)
+
+      explicitCursorPos = cursorPos
 
       checkDrawBounds()
     end
@@ -607,6 +623,8 @@ return function(context)
       end
       updateSelection(modifiers)
 
+      explicitCursorPos = cursorPos
+
       checkDrawBounds()
     elseif key == "end" then
       initSelection(modifiers)
@@ -615,6 +633,8 @@ return function(context)
 
       updateCursor(#editorContent[cursorLine], cursorLine)
       updateSelection(modifiers)
+
+      explicitCursorPos = cursorPos
 
       checkDrawBounds()
     elseif key == "pageDown" then
@@ -756,7 +776,7 @@ return function(context)
         end
       end
       cursorBlinkTimer = os.clock()
-    elseif key == "return" then
+    elseif key == "return" or key == "keypadEnter" then
       if selection.active then
         removeSelection()
       end
@@ -800,7 +820,9 @@ return function(context)
   end
 
   local function handleMouse(modifiers, x, y)
-    if x < viewportWidth - 6 and not scrolling then
+    x = x - getDrawOffset()
+
+    if x < activeWidth - 6 and not scrolling then
       selection.active = false
       local posX = math.floor((x - 2) / (fontW + 1)) - scrollX
       local posY = math.floor((y - 2) / (fontH + 1)) + scrollY + 1

@@ -18,21 +18,22 @@ local workingDir = myPath:match(".+%/") .. "edit/"
 addRequirePath(workingDir)
 
 local editorTheme = {
-  bg = 1,         -- black
-  text = 16,      -- white
-  selBar = 2,     -- dark blue
-  selChar = 10,   -- yellow
-  highlight = 3,  -- maroon
-  scrollBar = 7,  -- light gray
-  lineNumbers = 7 -- light gray
+  bg = 1,          -- black
+  text = 16,       -- white
+  selBar = 2,      -- dark blue
+  selChar = 10,    -- yellow
+  highlight = 3,   -- maroon
+  scrollBar = 7,   -- light gray
+  lineNumbers = 7, -- light gray
+  caret = 9       -- orange
 }
 local syntaxTheme = {
   keyword = 13,        -- purple
   specialKeyword = 12, -- light blue
   func = 12,           -- light blue
   string = 8,          -- red
-  stringEscape = 10,   -- orange
-  primitive = 9,       -- orange also
+  stringEscape = 10,   -- yellow
+  primitive = 9,       -- orange
   comment = 6,         -- dark gray
   catch = 16           -- everything else is white
 }
