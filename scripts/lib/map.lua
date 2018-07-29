@@ -2,8 +2,6 @@ local maputils = {}
 
 local xml = dofile("/lib/xml.lua")
 
-local pprint = dofile("/lib/pprint.lua")
-
 function maputils.parse(filename, sheets)
   local handle = fs.open(filename, "rb")
   local data = handle:read("*all")
@@ -87,7 +85,7 @@ function maputils.attachSpritesheet(map, sprSht, margin, spacing)
 
   margin = margin or 0
   spacing = spacing or 0
-  
+
   map.sheets[#map.sheets + 1] = {
     image = sprSht,
     width = (w - margin * 2 + spacing) / (map.mapMeta.tileWidth + spacing),
@@ -121,7 +119,7 @@ function maputils.render(map, dx, dy, sx, sy, w, h, remap)
     for x = sx + 1, mw do
       for y = sy + 1, mh do
         local tile = layerData[x][y]
-        
+
         if tile[1] > 0 then
           local sheet = map.sheets[tile[2]]
           local tx = (tile[1] - 1) % sheet.width + 1

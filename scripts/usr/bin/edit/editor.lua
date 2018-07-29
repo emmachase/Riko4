@@ -153,11 +153,6 @@ return function(context)
     else
       selection.active = false
     end
-
-    if  selection.start[1] == selection.stop[1] and
-        selection.start[2] == selection.stop[2] then
-      selection.active = false
-    end
   end
 
   -- Delete the content in a selection and move the cursor appropriately
@@ -230,7 +225,7 @@ return function(context)
       end
     end
   end
-  
+
   function editor.init(args)
     editorTheme = args.editorTheme
     highlighter.init({
@@ -283,6 +278,10 @@ return function(context)
     for i = 1, #newLines do
       highlighter.setLine(i, newLines[i])
     end
+
+    if cursorLine > #newLines then
+      cursorLine = #newLines
+    end
   end
 
   function editor.getText()
@@ -316,7 +315,13 @@ return function(context)
 
         gpu.clip(activeDOff, 0, activeWidth, viewportHeight)
 
-        if selection.active then
+        local nullSelection = false
+        if  selection.start[1] == selection.stop[1] and
+            selection.start[2] == selection.stop[2] then
+          nullSelection = true
+        end
+
+        if selection.active and not nullSelection then
           local selBeginPos, selBeginLine,
                 selStopPos,  selStopLine = getSortedSelection()
 
