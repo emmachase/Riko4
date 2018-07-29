@@ -190,7 +190,7 @@ local function processEvent(e, p1, p2)
   for i = 1, #eventPriorityQueue do
     local eventTarget = eventPriorityQueue[i]
     if eventTarget[propName] then
-      local capture, promote = eventTarget[propName](eventTarget, eventModifiers[e] or {}, p1, p2)
+      local capture, promote = eventTarget[propName](eventTarget, eventModifiers or {}, p1, p2)
 
       if promote ~= nil then
         table.remove(eventPriorityQueue, i)
