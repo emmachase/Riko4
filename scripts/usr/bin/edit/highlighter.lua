@@ -108,7 +108,7 @@ end
 
 local luaParsers = {
   parseIdentifier = function(toParse, curLine)
-    local indentifier = toParse:match("^[%l_][%w_]*")
+    local indentifier = toParse:match("^[%l%u_][%w_]*")
     if indentifier then
       local restToParse = toParse:sub(#indentifier + 1)
       local color = syntaxTheme.catch
