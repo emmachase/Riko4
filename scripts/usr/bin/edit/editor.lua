@@ -78,10 +78,13 @@ return function(context)
 
   -- Make sure that the editor cursor position is within the viewport
   local function checkDrawBounds(skipY)
-    if cursorPos > math.floor(activeWidth/(fontW + 1)) - scrollX - 1 then
-      scrollX = math.floor(activeWidth/(fontW + 1)) - cursorPos - 1
-    elseif cursorPos < -scrollX then
-      scrollX = -cursorPos
+    if cursorPos > math.floor(activeWidth/(fontW + 1)) - scrollX - 3 then
+      scrollX = math.floor(activeWidth/(fontW + 1)) - cursorPos - 3
+    elseif cursorPos - 1 < -scrollX then
+      scrollX = -cursorPos + 1
+      if scrollX > 0 then
+        scrollX = 0
+      end
     end
 
     if not skipY then
@@ -824,10 +827,10 @@ return function(context)
     end
   end
 
-  local function handleMouse(modifiers, x, y)
+  local function handleMouse(move, modifiers, x, y)
     x = x - getDrawOffset()
 
-    if x < activeWidth - 6 and not scrolling then
+    if (move or x < activeWidth - 6) and not scrolling then
       selection.active = false
       local posX = math.floor((x - 2) / (fontW + 1)) - scrollX
       local posY = math.floor((y - 2) / (fontH + 1)) + scrollY + 1
@@ -841,7 +844,7 @@ return function(context)
       else
         selection.start = {posX, posY}
       end
-    else
+    elseif not move or scrolling then
       -- Scrollbar
       if y < viewportHeight then
         local vph = gpu.height - 12
@@ -914,7 +917,7 @@ return function(context)
   end
 
   function editor:onMousePressed(modifiers, x, y)
-    handleMouse(modifiers, x, y)
+    handleMouse(false, modifiers, x, y)
   end
 
   function editor:onMouseReleased(modifiers, x, y)
@@ -924,7 +927,7 @@ return function(context)
 
   function editor:onMouseMoved(modifiers, x, y)
     if mouseDown then
-      handleMouse(modifiers, x, y)
+      handleMouse(true, modifiers, x, y)
     end
   end
 
