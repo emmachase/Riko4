@@ -1,5 +1,3 @@
-#include "/lib/header.lua"
-
 local op = gpu.getPalette()
 local pal = {{0, 0, 0}}
 for i = 2, 15 do
@@ -288,8 +286,7 @@ do -- Init
   leapfrogStart(dt)
 end
 
-#include "/lib/loops.lua"
-
-pop()
-
-gpu.blitPalette(op)
+function _cleanup()
+  pop()
+  gpu.blitPalette(op)
+end

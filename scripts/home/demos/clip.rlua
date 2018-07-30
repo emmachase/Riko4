@@ -1,17 +1,13 @@
-#include "/lib/header.lua"
-
 gpu.clip()
 
 function _draw()
   rectFill(0, 0, 50, 50, 8)
-  
+
   gpu.clip(5, 5, 15, 15)
-  
+
   rectFill(0, 0, 50, 50, 12)
 
   gpu.clip()
-  
+
   swap()
 end
-
-#include "/lib/loops.lua"

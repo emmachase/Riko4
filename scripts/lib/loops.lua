@@ -2,6 +2,8 @@ if _init then
   _init()
 end
 
+#ifndef NOLOOP
+
 local eq = {}
 local last = os.clock()
 while _running do
@@ -16,7 +18,7 @@ while _running do
     if _event then
       _event(unpack(e))
     end
-    
+
     _eventDefault(unpack(e))
   end
 
@@ -29,3 +31,9 @@ while _running do
     _draw()
   end
 end
+
+if _cleanup then
+  _cleanup()
+end
+
+#endif

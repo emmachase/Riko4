@@ -3,7 +3,7 @@
 return function(filename, args, env)
   local processor = loadfile("/usr/bin/pproc.lua")
 
-  local s, retFile = pcall(processor, filename, "--sout")
+  local s, retFile = pcall(processor, filename, "--sout", "--nopt")
 
   if s then
     local func, e = loadstring(retFile)

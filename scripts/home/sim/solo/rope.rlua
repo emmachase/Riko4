@@ -1,5 +1,3 @@
-#include "/lib/header.lua"
-
 local gpp = dofile("/lib/gpp.lua")
 local vec = dofile("../lib/vector.lua")
 
@@ -31,15 +29,15 @@ function _draw()
 
   for i = 1, #rope do
     local r = rope[i]
-    
+
     if i ~= #rope then
       local r2 = rope[i + 1]
       gpp.drawLine(r[1], r[2], r2[1], r2[2], 12)
     end
-    
+
     pix(r[1], r[2], 8)
   end
-  
+
   swap()
 end
 
@@ -53,31 +51,29 @@ function _update(dt)
   for i = 1, #rope do
     local r = rope[i]
     r.f = vec(0, 0)
-    
+
     if not r.fixed then
       if i > 1 then
         applyForce(r, rope[i - 1])
       end
-      
+
       if i < #rope then
         applyForce(r, rope[i + 1])
       end
-      
+
       r.f.y = r.f.y + g
     end
   end
-  
+
   for i = 1, #rope do
     local r = rope[i]
     r.vx = r.vx + r.f.x * dt
     r.vy = r.vy + r.f.y * dt
-    
+
     r[1] = r[1] + r.vx * dt
     r[2] = r[2] + r.vy * dt
-    
+
     r.vx = r.vx * fr
     r.vy = r.vy * fr
   end
 end
-
-#include "/lib/loops.lua"

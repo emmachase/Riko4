@@ -74,6 +74,15 @@ local handle = outAPI.open(fn, "r")
 local data = handle:read("*all") .. "\n"
 handle:close()
 
+if args[3] == "--nopt" then
+  data = [[
+#include "/lib/header.lua"
+#include "/lib/extras.lua"
+]] .. "\n" .. data .. "\n" .. [[
+#include "/lib/loops.lua"
+]]
+end
+
 local function trimS(s)
   return s:match("%s*(.+)")
 end

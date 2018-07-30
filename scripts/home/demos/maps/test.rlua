@@ -1,5 +1,3 @@
-#include "/lib/header.lua"
-
 local opl = pal()
 
 local palette = {}
@@ -53,7 +51,5 @@ function _draw()
 
   swap()
 end
-
-#include "/lib/loops.lua"
 
 pal(opl)
