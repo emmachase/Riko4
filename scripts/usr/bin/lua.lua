@@ -29,11 +29,48 @@ local function prettySort(a, b)
 end
 
 local debugInfo = type(debug) == "table" and type(debug.getinfo) == "function" and debug.getinfo
+local function getFunctionArgs(func)
+  if debugInfo then
+    local args = {}
+    local hook = debug.gethook()
+
+    local argHook = function()
+      local info = debugInfo(3)
+      if info.name ~= "pcall" then return end
+
+      for i = 1, math.huge do
+        local name, value = debug.getlocal(2, i)
+        
+        if name == "(*temporary)" or not name then
+          debug.sethook(hook)
+          return error()
+        end
+
+        args[#args + 1] = name
+      end
+    end
+
+    debug.sethook(argHook, "c")
+    pcall(func)
+
+    return args
+  end
+end
+
 local function prettyFunction(fn)
   if debugInfo then
     local info = debugInfo(fn, "S")
     if info.short_src and info.linedefined and info.linedefined >= 1 then
-      return "function<" .. info.short_src .. ":" .. info.linedefined .. ">"
+      local args
+      if info.what == "Lua" then
+        args = getFunctionArgs(fn)
+      end
+
+      if args then
+        return "function<" .. info.short_src .. ":" .. info.linedefined .. ">(" .. table.concat(args, ", ") .. ")"
+      else
+        return "function<" .. info.short_src .. ":" .. info.linedefined .. ">"
+      end
     end
   end
 
