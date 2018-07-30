@@ -2,6 +2,8 @@
 #pragma ide diagnostic ignored "OCUnusedMacroInspection"
 #define _CRT_SECURE_NO_WARNINGS
 
+#include <cstring>
+
 #include "SDL_gpu/SDL_gpu.h"
 
 #include "shader.h"

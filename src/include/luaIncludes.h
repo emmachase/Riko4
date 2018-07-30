@@ -1,8 +1,11 @@
 #pragma once
 
 #ifdef __EMSCRIPTEN__
-#  include "Lua/lua.h"
+extern "C" {
 #  include "Lua/lauxlib.h"
+#  include "Lua/lua.h"
+#  include "Lua/lualib.h"
+}
 #else
 #  include <LuaJIT/lua.hpp>
 #  include <LuaJIT/lauxlib.h>

@@ -27,6 +27,8 @@
 #  include <ftw.h>
 #endif
 
+#include <cstring>
+
 #include "events.h"
 #include "fs.h"
 #include "luaIncludes.h"
@@ -47,6 +49,10 @@ namespace riko {
 
 
 int main(int argc, char * argv[]) {
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(riko::events::loop, 0, 0);
+#endif
+
     riko::process::parseCommands(argc, argv);
 
     int libStatus = riko::process::initLibs();
@@ -68,9 +74,8 @@ int main(int argc, char * argv[]) {
         return 7;
     }
 
-#ifdef __EMSCRIPTEN__
-    emscripten_set_main_loop(riko::events::loop, 0, 1);
-#else
+    riko::events::ready = true;
+#ifndef __EMSCRIPTEN__
     while (riko::running) {
         int start = SDL_GetTicks();
 
@@ -84,11 +89,13 @@ int main(int argc, char * argv[]) {
             SDL_Delay(sleepTime);
         }
     }
-#endif
 
     riko::process::cleanup();
 
     return riko::exitCode;
+#else
+    return 0;
+#endif
 }
 
 #pragma clang diagnostic pop

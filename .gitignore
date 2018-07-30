@@ -247,6 +247,13 @@ cmake_install.cmake
 Makefile
 riko4
 config.lua
+a.out.js
+a.out.wasm
+ports/
+riko4.data
+riko4.html
+riko4.js
+riko4.wasm
 
 /.vscode/
 /.idea/

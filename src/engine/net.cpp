@@ -3,10 +3,14 @@
 #include <sstream>
 #include <thread>
 
-#include <curlpp/cURLpp.hpp>
-#include <curlpp/Easy.hpp>
-#include <curlpp/Multi.hpp>
-#include <curlpp/Options.hpp>
+#ifndef __EMSCRIPTEN__
+#  include <curlpp/cURLpp.hpp>
+#  include <curlpp/Easy.hpp>
+#  include <curlpp/Multi.hpp>
+#  include <curlpp/Options.hpp>
+#else
+#  include "emscripten.h"
+#endif
 #include <riko.h>
 
 #include "events.h"
@@ -22,7 +26,9 @@ namespace riko::net {
     std::atomic<int> openThreads;
 
     int init() {
+#ifndef __EMSCRIPTEN__
         cURLpp::initialize(CURL_GLOBAL_ALL);
+#endif
         openThreads = 0;
 
         riko::events::NET_SUCCESS = SDL_RegisterEvents(2);
@@ -35,7 +41,9 @@ namespace riko::net {
     }
 
     void cleanup() {
+#ifndef __EMSCRIPTEN__
         cURLpp::terminate();
+#endif
     }
 
     void dispatchSuccessEvent(std::string *url, std::stringstream *dataStream) {
@@ -58,6 +66,9 @@ namespace riko::net {
     }
 
     void getThread(std::string *url, std::string *postData) {
+        auto *dataStream = new std::stringstream;
+
+#ifndef __EMSCRIPTEN__
         try {
             cURLpp::Cleanup cleanup;
 
@@ -72,7 +83,6 @@ namespace riko::net {
             request.setOpt<cURLpp::options::FollowLocation>(true);
             request.setOpt<cURLpp::options::MaxRedirs>(16L);
 
-            auto *dataStream = new std::stringstream;
             request.setOpt<cURLpp::options::WriteStream>(dataStream);
 
             request.perform();
@@ -83,6 +93,12 @@ namespace riko::net {
         } catch (cURLpp::LogicError &e) {
             dispatchFailureEvent(url, e.what());
         }
+#else
+        // TODO
+        // emscripten_wget(url->c_str(), dataStream->str().c_str());
+        // dispatchSuccessEvent(url, dataStream);
+        dispatchFailureEvent(url, "GET currently does not work in browser");
+#endif
 
         delete url;
 

@@ -19,15 +19,18 @@
 namespace riko::lua {
     static const luaL_Reg lj_lib_load[] = {
         { "",              luaopen_base },
-        { LUA_LOADLIBNAME, luaopen_package },
         { LUA_TABLIBNAME,  luaopen_table },
         { LUA_OSLIBNAME,   luaopen_os },
         { LUA_STRLIBNAME,  luaopen_string },
         { LUA_MATHLIBNAME, luaopen_math },
         { LUA_DBLIBNAME,   luaopen_debug },
-        { LUA_BITLIBNAME,  luaopen_bit },
 #ifndef __EMSCRIPTEN__
+        { LUA_LOADLIBNAME, luaopen_package },
+        { LUA_BITLIBNAME,  luaopen_bit },
         { LUA_JITLIBNAME,  luaopen_jit },
+#else
+        { LUA_COLIBNAME,   luaopen_coroutine },
+        { LUA_BITLIBNAME,  luaopen_bit32 },
 #endif
         { nullptr,  nullptr }
     };
@@ -84,11 +87,18 @@ namespace riko::lua {
 
         // Make standard libraries available in the Lua object
         const luaL_Reg *lib;
+#ifdef __EMSCRIPTEN__        
+        for (lib = lj_lib_load; lib->func; lib++) {
+            luaL_requiref(state, lib->name, lib->func, 1);
+            lua_pop(state, 1);  /* remove lib */
+        }
+#else
         for (lib = lj_lib_load; lib->func; lib++) {
             lua_pushcfunction(state, lib->func);
             lua_pushstring(state, lib->name);
             lua_call(state, 1, 0);
         }
+#endif
 
 #ifndef __EMSCRIPTEN__
         luaL_findtable(state, LUA_REGISTRYINDEX, "_PRELOAD",

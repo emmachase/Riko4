@@ -42,6 +42,8 @@ namespace riko::events {
     bool holdR = false;
     clock_t holdL = 0;
 
+    bool ready = false;
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wconversion"
     /* Taken from SDL_iconv() */
@@ -160,6 +162,8 @@ namespace riko::events {
     }
 
     void loop() {
+        if (!riko::events::ready) return;
+
         if (ctrlMod && holdR && clock() - holdL >= CLOCKS_PER_SEC) {
             riko::lua::shutdownInstance(riko::mainThread);
 
@@ -305,7 +309,11 @@ namespace riko::events {
                 }
             } else {
                 if (canRun) {
+#ifdef __EMSCRIPTEN__
+                    int result = lua_resume(riko::mainThread, nullptr, 0);
+#else
                     int result = lua_resume(riko::mainThread, 0);
+#endif
 
                     if (result == 0) {
                         printf("Script finished!\n");
@@ -328,7 +336,11 @@ namespace riko::events {
 
             if (readyForProp) {
                 if (canRun) {
+#ifdef __EMSCRIPTEN__
+                    int result = lua_resume(riko::mainThread, nullptr, pushedArgs);
+#else
                     int result = lua_resume(riko::mainThread, pushedArgs);
+#endif
 
                     if (result == 0) {
                         printf("Script finished!\n");

@@ -31,6 +31,44 @@ if jit and (jit.os == "Linux" or jit.os == "OSX" or jit.os == "BSD" or jit.os ==
   end
 end
 
+if not getfenv then
+  function getfenv(fn)
+    if type(fn) == "number" then
+      fn = debug.getinfo(fn).func
+    end
+
+    local i = 1
+    while true do
+      local name, val = debug.getupvalue(fn, i)
+      if name == "_ENV" then
+        return val
+      elseif not name then
+        break
+      end
+      i = i + 1
+    end
+  end
+
+  function setfenv(fn, env)
+    local i = 1
+    while true do
+      local name = debug.getupvalue(fn, i)
+      if name == "_ENV" then
+        debug.upvaluejoin(fn, i, (function()
+          return env
+        end), 1)
+        break
+      elseif not name then
+        break
+      end
+
+      i = i + 1
+    end
+
+    return fn
+  end
+end
+
 local function trim(str)
   return str:match("^%s*(.*)"):match("^(.-)%s*$")
 end
@@ -149,6 +187,7 @@ table.pack = function(...)
   return t
 end
 
+local strload = loadstring or load
 loadfile = function(inp)
   local handle = fs.open(inp, "r")
 
@@ -161,7 +200,7 @@ loadfile = function(inp)
 
   handle:close()
 
-  local chunk = load(cont, "@" .. fs.combine(fs.getCWD(), inp))
+  local chunk = strload(cont, "@" .. fs.combine(fs.getCWD(), inp))
   if chunk then
     setfenv(chunk, getfenv(2))
   end
@@ -176,6 +215,10 @@ dofile = function(inp)
   else
     error("cannot open " .. inp .. ": No such file", 2)
   end
+end
+
+if not bit then
+  _G.bit = bit32
 end
 
 local font = dofile("font.lua")

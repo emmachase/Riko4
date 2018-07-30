@@ -80,7 +80,12 @@ namespace riko::process {
 
     void parseConfig() {
         lua_State *configState = riko::lua::createConfigInstance("config.lua");
+
+#ifdef __EMSCRIPTEN__
+        int nArg = lua_resume(configState, nullptr, 0);
+#else
         int nArg = lua_resume(configState, 0);
+#endif
         printf("Got %d\n", nArg);
 
         if (lua_type(configState, 1) == LUA_TTABLE) {
