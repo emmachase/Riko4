@@ -13,7 +13,7 @@ return {
     "shell",
     "speaker",
 
-    "write"
+    "write",
     "addRequirePath"
   },
 

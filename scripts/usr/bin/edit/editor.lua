@@ -754,10 +754,9 @@ return function(context)
             return
           end
 
-          local charType = 0
           local let = editorContent[cursorLine]:sub(cursorPos + 1, cursorPos + 1) or ""
 
-          charType =
+          local charType =
                (let:match("%s") and 3)
             or (let:match("%w") and 2)
             or (let:match("%W") and 1)
