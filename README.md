@@ -29,7 +29,9 @@ make
 ```
 
 Screenshots:
-![Shell](http://i.imgur.com/FP7srck.png)
-![Code Editor](http://i.imgur.com/eEoIKv0.png)
-![Image/Spritesheet Editor](http://i.imgur.com/ouWKaab.png)
-![Minesweeper](http://i.imgur.com/IhiV9Pl.png)
+![Hello World](https://i.would.download/a-gate.png)
+![Shell](https://i.would.download/a-vacation.png)
+![Code Editor](https://i.would.download/a-frame.png)
+![Image/Spritesheet Editor](https://i.would.download/a-hot.png)
+![Isola Game](https://i.would.download/a-wall.png)
+![Minesweeper](https://i.would.download/a-railway.png)
