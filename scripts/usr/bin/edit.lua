@@ -56,6 +56,8 @@ if not fs.exists(filename) then
     filename = filename .. ".lua"
   elseif fs.exists(filename .. ".rlua") then
     filename = filename .. ".rlua"
+  elseif not filename:match("%..+$") then
+    filename = filename .. ".rlua"
   end
 end
 
