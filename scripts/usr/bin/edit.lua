@@ -51,7 +51,7 @@ ibar = rif.createImage(workingDir .. "ibar.rif")
 
 
 local filename = args[1]
-if not fs.exists(filename) then
+if not fs.exists(filename) and not fs.isDir(filename) then
   if fs.exists(filename .. ".lua") then
     filename = filename .. ".lua"
   elseif fs.exists(filename .. ".rlua") then
@@ -59,6 +59,11 @@ if not fs.exists(filename) then
   elseif not filename:match("%..+$") then
     filename = filename .. ".rlua"
   end
+end
+
+if fs.isDir(filename) then
+  print("'" .. filename .. "' is a directory", 8)
+  return
 end
 
 local eventPriorityQueue
