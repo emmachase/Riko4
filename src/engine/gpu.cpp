@@ -24,6 +24,7 @@ namespace riko::gfx {
     bool shaderOn = false;
 
     int pixelScale = 5;
+    int setPixelScale = 5;
 
     GPU_Image *buffer;
     GPU_Target *renderer;
@@ -55,6 +56,31 @@ namespace riko::gfx {
 
     int windowWidth;
     int windowHeight;
+    int drawX = 0;
+    int drawY = 0;
+
+    int lastWindowX = 0;
+    int lastWindowY = 0;
+
+    void assessWindow() {
+        int winW = 0;
+        int winH = 0;
+        SDL_GetWindowSize(riko::window, &winW, &winH);
+
+        int candidateOne = winH / SCRN_HEIGHT;
+        int candidateTwo = winW / SCRN_WIDTH;
+
+        if (winW != 0 && winH != 0) {
+            pixelScale = (candidateOne > candidateTwo) ? candidateTwo : candidateOne;
+            windowWidth = winW;
+            windowHeight = winH;
+
+            drawX = (windowWidth - pixelScale*SCRN_WIDTH) / 2;
+            drawY = (windowHeight - pixelScale*SCRN_HEIGHT) / 2;
+
+            GPU_SetWindowResolution(winW, winH);
+        }
+    }
 }
 
 #define off(o, t) (float)((o) - riko::gfx::drawOffX), (float)((t) - riko::gfx::drawOffY)
@@ -300,24 +326,23 @@ namespace riko::gpu {
 
     static int gpu_set_fullscreen(lua_State *L) {
         auto fsc = static_cast<bool>(lua_toboolean(L, 1));
-        GPU_SetFullscreen(fsc, true);
+        if (!GPU_SetFullscreen(fsc, true)) {
+            riko::gfx::pixelScale = riko::gfx::setPixelScale;
+            GPU_SetWindowResolution(
+                riko::gfx::pixelScale * SCRN_WIDTH,
+                riko::gfx::pixelScale * SCRN_HEIGHT);
 
-        int winW = 0;
-        int winH = 0;
-        SDL_GetWindowSize(riko::window, &winW, &winH);
-
-        int candidateOne = winH / SCRN_HEIGHT;
-        int candidateTwo = winW / SCRN_WIDTH;
-
-        if (winW != 0 && winH != 0) {
-            riko::gfx::pixelScale = (candidateOne > candidateTwo) ? candidateTwo : candidateOne;
+            SDL_SetWindowPosition(riko::window, riko::gfx::lastWindowX, riko::gfx::lastWindowY);
         }
+
+        riko::gfx::assessWindow();
 
         return 0;
     }
 
     static int gpu_swap(lua_State *L) {
-        GPU_Clear(riko::gfx::renderer);
+        SDL_Color colorS = {riko::gfx::palette[0][0], riko::gfx::palette[0][1], riko::gfx::palette[0][2], 255};
+        GPU_ClearColor(riko::gfx::renderer, colorS);
 
         riko::shader::updateShader();
 

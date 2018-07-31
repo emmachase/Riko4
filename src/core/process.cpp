@@ -101,6 +101,7 @@ namespace riko::process {
             lua_gettable(configState, -2);
 
             if (lua_type(configState, -1) == LUA_TNUMBER) {
+                riko::gfx::setPixelScale = static_cast<int>(lua_tointeger(configState, -1));
                 riko::gfx::pixelScale = static_cast<int>(lua_tointeger(configState, -1));
             }
             lua_pop(configState, 1);

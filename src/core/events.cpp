@@ -5,23 +5,15 @@
 #include "luaMachine.h"
 #include "consts.h"
 
+#include "riko.h"
+#include "gpu.h"
 #include "../engine/userdata/ResponseHandle.h"
+
 #include "events.h"
 
 #if SDL_PATCHLEVEL <= 4
 #define OLDSDL 
 #endif
-
-namespace riko {
-    extern bool running;
-    extern int exitCode;
-
-    extern lua_State *mainThread;
-
-    namespace gfx {
-        extern int pixelScale;
-    }
-}
 
 namespace riko::events {
     SDL_Event event;
@@ -161,6 +153,11 @@ namespace riko::events {
         return false;
     }
 
+    void screenToRiko(int x, int y, int &rX, int &rY) {
+        rX = (x - riko::gfx::drawX) / riko::gfx::pixelScale;
+        rY = (y - riko::gfx::drawY) / riko::gfx::pixelScale;
+    }
+
     void loop() {
         if (!riko::events::ready) return;
 
@@ -229,8 +226,7 @@ namespace riko::events {
                     pushedArgs = 5;
                     break;
                 case SDL_MOUSEMOTION:
-                    cx = event.motion.x / riko::gfx::pixelScale;
-                    cy = event.motion.y / riko::gfx::pixelScale;
+                    screenToRiko(event.motion.x, event.motion.y, cx, cy);
                     if (cx != lastMoveX || cy != lastMoveY) {
                         lua_pushstring(riko::mainThread, "mouseMoved");
                         lua_pushnumber(riko::mainThread, cx);
@@ -248,15 +244,17 @@ namespace riko::events {
                     break;
                 case SDL_MOUSEBUTTONDOWN:
                     lua_pushstring(riko::mainThread, "mousePressed");
-                    lua_pushnumber(riko::mainThread, (int)(event.button.x / riko::gfx::pixelScale));
-                    lua_pushnumber(riko::mainThread, (int)(event.button.y / riko::gfx::pixelScale));
+                    screenToRiko(event.button.x, event.button.y, cx, cy);
+                    lua_pushnumber(riko::mainThread, cx);
+                    lua_pushnumber(riko::mainThread, cy);
                     lua_pushnumber(riko::mainThread, event.button.button);
                     pushedArgs = 4;
                     break;
                 case SDL_MOUSEBUTTONUP:
                     lua_pushstring(riko::mainThread, "mouseReleased");
-                    lua_pushnumber(riko::mainThread, (int)(event.button.x / riko::gfx::pixelScale));
-                    lua_pushnumber(riko::mainThread, (int)(event.button.y / riko::gfx::pixelScale));
+                    screenToRiko(event.button.x, event.button.y, cx, cy);
+                    lua_pushnumber(riko::mainThread, cx);
+                    lua_pushnumber(riko::mainThread, cy);
                     lua_pushnumber(riko::mainThread, event.button.button);
                     pushedArgs = 4;
                     break;
@@ -296,11 +294,17 @@ namespace riko::events {
                     break;
                 case SDL_WINDOWEVENT:
                     switch (event.window.event) {
+                    case SDL_WINDOWEVENT_MOVED:
+                        riko::gfx::lastWindowX = event.window.data1;
+                        riko::gfx::lastWindowY = event.window.data2;
+                        break;
+                    case SDL_WINDOWEVENT_EXPOSED:
+                    case SDL_WINDOWEVENT_SIZE_CHANGED:
                     case SDL_WINDOWEVENT_RESIZED:
-                        int candidateTwo = event.window.data1 / SCRN_WIDTH;
-                        int candidateOne = event.window.data2 / SCRN_HEIGHT;
-
-                        riko::gfx::pixelScale = (candidateOne > candidateTwo) ? candidateTwo : candidateOne;
+                        riko::gfx::assessWindow();
+                        break;
+                    default:
+                        break;
                     }
                     break;
                 default:

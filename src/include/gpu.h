@@ -8,6 +8,7 @@
 
 namespace riko::gfx {
     extern bool shaderOn;
+    extern int setPixelScale;
     extern int pixelScale;
 
     extern GPU_Target *renderer;
@@ -16,6 +17,13 @@ namespace riko::gfx {
 
     extern int windowWidth;
     extern int windowHeight;
+    extern int drawX;
+    extern int drawY;
+
+    extern int lastWindowX;
+    extern int lastWindowY;
+
+    void assessWindow();
 }
 
 namespace riko::gpu {

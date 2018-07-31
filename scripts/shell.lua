@@ -352,7 +352,7 @@ function shell.pumpEvents(func)
     local e = table.remove(eq, 1)
     if e[1] == "key" and e[2] == "f11" then
       isFull = not isFull
-      gpu.setFullscreen(true)
+      gpu.setFullscreen(isFull)
     end
     func(unpack(e))
   end
