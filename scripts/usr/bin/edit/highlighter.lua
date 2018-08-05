@@ -23,12 +23,14 @@ local wordPrims = {
 
 
 local syntaxTheme
+local specialIndentifiers
 local state = {
   [0] = {mode = "normal"}
 }
 
 function highlighter.init(args)
   syntaxTheme = args.syntaxTheme
+  specialIndentifiers = args.specialIndentifiers or {}
 end
 
 function highlighter.clear()
@@ -96,6 +98,15 @@ function highlighter.getColoredLine(lineNumber)
 end
 
 
+local function matchExtra(indentifier)
+  for i = 1, #specialIndentifiers do
+    if indentifier:match(specialIndentifiers[i]) then
+      return true
+    end
+  end
+
+  return false
+end
 
 local function consumeWhitespace(text)
   return (text or ""):match("^(%s*)(.+)") or ""
@@ -117,6 +128,8 @@ local luaParsers = {
       elseif keywords[indentifier] then
         color = syntaxTheme.keyword
       elseif specialVars[indentifier] then
+        color = syntaxTheme.specialKeyword
+      elseif matchExtra(indentifier) then
         color = syntaxTheme.specialKeyword
       elseif restToParse:match("^%s-%(") then
         color = syntaxTheme.func

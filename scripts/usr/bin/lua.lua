@@ -22,7 +22,10 @@ local syntaxTheme = {
 }
 
 highlighter.init({
-  syntaxTheme = syntaxTheme
+  syntaxTheme = syntaxTheme,
+  specialIndentifiers = {
+    "^_%d*$"
+  }
 })
 
 local keywords = {
