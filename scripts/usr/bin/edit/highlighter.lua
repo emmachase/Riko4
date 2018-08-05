@@ -167,12 +167,14 @@ local luaParsers = {
           nextMatch, endMatch = nextMatch2, endMatch2
         end
 
-        if nextMatch then
+        local strClose = toParse:find(beginner)
+
+        if nextMatch and nextMatch < (strClose or math.huge) then
           insertColor(curLine, toParse:sub(1, nextMatch - 1), syntaxTheme.string)
           insertColor(curLine, toParse:sub(nextMatch, endMatch), syntaxTheme.stringEscape)
           toParse = toParse:sub(endMatch + 1)
         end
-      until not nextMatch
+      until not (nextMatch and nextMatch < (strClose or math.huge))
 
       local strClose = toParse:find(beginner)
       if strClose then
