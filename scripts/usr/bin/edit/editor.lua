@@ -573,7 +573,10 @@ return function(context)
         end
 
         local clipboard = {}
-        for line in clipboardText:gmatch("[^\n]+") do
+        while #clipboardText > 0 do
+          local endLine = clipboardText:find("\n") or #clipboardText + 1
+          local line = clipboardText:sub(1, endLine - 1)
+          clipboardText = clipboardText:sub(endLine + 1)
           clipboard[#clipboard + 1] = line:gsub("\r", "")
         end
 
