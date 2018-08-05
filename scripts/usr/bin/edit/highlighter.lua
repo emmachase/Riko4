@@ -145,7 +145,9 @@ local luaParsers = {
     end
   end,
   parseNumber = function(toParse, curLine)
-    local number = toParse:match("^%d*%.?%d*")
+    local number = toParse:match("^0[xX][0-9a-fA-F]+")
+                or toParse:match("^%d*%.?%d*[eE][-+]?%d+")
+                or toParse:match("^%d*%.?%d*")
     if number and tonumber(number) then
       insertColor(curLine, number, syntaxTheme.primitive)
       return toParse:sub(#number + 1)
@@ -158,9 +160,11 @@ local luaParsers = {
       toParse = toParse:sub(2)
 
       repeat
-        local nextMatch, endMatch = toParse:find("\\%d%d?%d?")
-        if not nextMatch then
-          nextMatch, endMatch = toParse:find("\\.")
+        local nextMatch1, endMatch1 = toParse:find("\\%d%d?%d?")
+        local nextMatch2, endMatch2 = toParse:find("\\%D")
+        local nextMatch, endMatch = nextMatch1, endMatch1
+        if nextMatch2 and nextMatch2 < (nextMatch1 or math.huge) then
+          nextMatch, endMatch = nextMatch2, endMatch2
         end
 
         if nextMatch then
