@@ -2,6 +2,7 @@
 #pragma ide diagnostic ignored "OCUnusedMacroInspection"
 #define _CRT_SECURE_NO_WARNINGS
 
+#include <iostream>
 #include <cstring>
 
 #include "SDL_gpu/SDL_gpu.h"
@@ -22,7 +23,7 @@ namespace riko::shader {
         SDL_RWops *rwops;
         Uint32 shader;
         size_t header_size, file_size;
-        const char *header = "";
+        std::string header = "";
         GPU_Renderer *renderer = GPU_GetCurrentRenderer();
 
         // Open file
@@ -38,20 +39,22 @@ namespace riko::shader {
 
         // Get size from header
         if (renderer->shader_language == GPU_LANGUAGE_GLSL) {
+            std::cout << "Using GLSL " << renderer->max_shader_version << std::endl;
+
             if (renderer->max_shader_version >= 120)
-                header = "#version 120\n";
+                header = "#version " + std::to_string(renderer->max_shader_version) + "\n";
             else
                 header = "#version 110\n";  // Maybe this is good enough?
         } else if (renderer->shader_language == GPU_LANGUAGE_GLSLES)
             header = "#version 100\nprecision mediump int;\nprecision mediump float;\n";
 
-        header_size = strlen(header);
+        header_size = header.size();
 
         // Allocate source buffer
         char source[header_size + file_size + 1];
 
         // Prepend header
-        strcpy(source, header);
+        strcpy(source, header.c_str());
 
         // Read in source code
         SDL_RWread(rwops, source + strlen(source), 1, file_size);

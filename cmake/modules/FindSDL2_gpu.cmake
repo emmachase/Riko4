@@ -70,6 +70,7 @@ message("<FindSDL2_gpu.cmake>")
 SET(SDL2_gpu_SEARCH_PATHS
     ~/Library/Frameworks
     /Library/Frameworks
+    /usr/local/lib
     /usr/local
     /usr
     /sw # Fink
