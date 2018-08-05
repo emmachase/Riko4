@@ -9,6 +9,22 @@ end
 
 local inputColor, outputColor, errorColor = 11, 12, 8
 
+local highlighter = require("edit.highlighter")
+local syntaxTheme = {
+  keyword = 13,        -- purple
+  specialKeyword = 12, -- light blue
+  func = 12,           -- light blue
+  string = 8,          -- red
+  stringEscape = 10,   -- yellow
+  primitive = 9,       -- orange
+  comment = 6,         -- dark gray
+  catch = 16           -- everything else is white
+}
+
+highlighter.init({
+  syntaxTheme = syntaxTheme
+})
+
 local keywords = {
   [ "and" ] = true, [ "break" ] = true, [ "do" ] = true, [ "else" ] = true,
   [ "elseif" ] = true, [ "end" ] = true, [ "false" ] = true, [ "for" ] = true,
@@ -40,7 +56,7 @@ local function getFunctionArgs(func)
 
       for i = 1, math.huge do
         local name, value = debug.getlocal(2, i)
-        
+
         if name == "(*temporary)" or not name then
           debug.sethook(hook)
           return error()
@@ -100,15 +116,17 @@ local function prettyImpl(obj, tracking, width, height, indent, tupleLength)
 
     local limit = math.max(8, math.floor(width * height * 0.8))
     if #formatted > limit then
-      shell.write(formatted:sub(1, limit-3), errorColor)
-      shell.write("...", 6)
+      shell.write(formatted:sub(1, limit-3), syntaxTheme.string)
+      shell.write("...", syntaxTheme.string)
     else
-      shell.write(formatted, errorColor)
+      shell.write(formatted, syntaxTheme.string)
     end
 
     return
   elseif objType == "number" then
-    return shell.write(tostring(obj), 3)
+    return shell.write(tostring(obj), syntaxTheme.primitive)
+  elseif objType == "boolean" then
+    return shell.write(tostring(obj), syntaxTheme.primitive)
   elseif objType == "function" then
     return shell.write(prettyFunction(obj), 7)
   elseif objType ~= "table" or tracking[obj] then
@@ -288,7 +306,10 @@ end
 print("Type exit() to return to the shell.")
 while running do
   shell.write("in [" .. counter .. "]: ", inputColor)
-  local line = shell.read(nil, nil, history)
+  local line = shell.read(nil, nil, history, function(str)
+    highlighter.setLine(1, str)
+    return highlighter.getColoredLine(1)
+  end)
 
   if line:find("%S") then
     if line ~= history[#history] then

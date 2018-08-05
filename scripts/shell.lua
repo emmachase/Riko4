@@ -237,7 +237,7 @@ function shell.tabulate(...)
   print()
 end
 
-function shell.read(replaceChar, size, history)
+function shell.read(replaceChar, size, history, colorFn)
   local maxW = term.width - term.x + 1
   size = size and math.min(size, maxW) or maxW
 
@@ -260,9 +260,12 @@ function shell.read(replaceChar, size, history)
     end
   end
 
-  local alive = "ham"
+  local alive = true
   local evFunc
+  local cLine = {{""}}
   while alive do
+    local fStr = str
+
     evFunc = evFunc or function(e, ...)
       if e == "char" then
         local c = ...
@@ -321,12 +324,40 @@ function shell.read(replaceChar, size, history)
     end
     shell.pumpEvents(evFunc)
 
-    -- Draw
-    local strToDraw = str:sub(strScrollAmt + 1, strScrollAmt + size)
-    if replaceChar then
-      strToDraw = (replaceChar):rep(#strToDraw)
+    if fStr ~= str and colorFn then
+      cLine = colorFn(str)
     end
-    term.write(strToDraw .. (" "):rep(size - #strToDraw), 16, 1, x, y)
+
+    -- Draw
+    if colorFn then
+      term.write((" "):rep(size), 16, 1, x, y)
+
+      if #cLine > 0 then
+        local cx = x
+        local index, eaten = 1, 0
+        while #cLine[index][1] < strScrollAmt + 1 - eaten and index < #cLine do
+          eaten = eaten + #cLine[index][1]
+          index = index + 1
+        end
+
+        local skipFirst = strScrollAmt - eaten + 1
+
+        for j = index, #cLine do
+          local chk = cLine[j]
+          local drawStr = chk[1]:sub(skipFirst, skipFirst + size - (cx - x) - 1)
+          term.write(drawStr, chk[2] or 16, chk[3] or 1, cx, y)
+
+          cx = cx + #drawStr
+          skipFirst = 1
+        end
+      end
+    else
+      local strToDraw = str:sub(strScrollAmt + 1, strScrollAmt + size)
+      if replaceChar then
+        strToDraw = (replaceChar):rep(#strToDraw)
+      end
+      term.write(strToDraw .. (" "):rep(size - #strToDraw), 16, 1, x, y)
+    end
 
     term.x = strPos - strScrollAmt + x - 1
     shell.draw()
