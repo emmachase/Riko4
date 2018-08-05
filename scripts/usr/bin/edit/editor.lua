@@ -319,8 +319,10 @@ return function(context)
         gpu.clip(activeDOff, 0, activeWidth, viewportHeight)
 
         local nullSelection = false
-        if  selection.start[1] == selection.stop[1] and
-            selection.start[2] == selection.stop[2] then
+        if  selection.active and
+            selection.start[1] == selection.stop[1] and
+            selection.start[2] == selection.stop[2] and
+            selection.start[1] == #editorContent[selection.start[2]] then
           nullSelection = true
         end
 
