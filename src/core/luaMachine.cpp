@@ -75,9 +75,16 @@ namespace riko::lua {
 
         lua_State *L = lua_newthread(state);
 
-        luaL_loadfile(L, filename);
+        int result = luaL_loadfile(L, filename);
 
-        // We don't care if it errors bc the config can not exist and that's fine
+        if (result != 0) {
+            L = lua_newthread(state); // To clear out failed load
+
+            std::string appPath = SDL_GetPrefPath("riko4", "app");
+            luaL_loadfile(L, (appPath + filename).c_str());
+        }
+
+        // We don't care if it errors really bc the config can not exist or be invalid and that's fine
 
         return L;
     }

@@ -23,8 +23,8 @@
 namespace riko::gfx {
     bool shaderOn = false;
 
-    int pixelScale = 5;
-    int setPixelScale = 5;
+    int pixelScale = DEFAULT_SCALE;
+    int setPixelScale = DEFAULT_SCALE;
 
     GPU_Image *buffer;
     GPU_Target *renderer;

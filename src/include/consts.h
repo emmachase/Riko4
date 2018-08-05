@@ -7,6 +7,8 @@
 #define SCRN_WIDTH 280
 #define SCRN_HEIGHT 160
 
+#define DEFAULT_SCALE 2
+
 #define sane_NUM_SCANCODES 512
 
 #ifndef NULL
