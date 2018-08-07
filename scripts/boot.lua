@@ -200,20 +200,20 @@ loadfile = function(inp)
 
   handle:close()
 
-  local chunk = strload(cont, "@" .. fs.combine(fs.getCWD(), inp))
+  local chunk, e = strload(cont, "@" .. fs.combine(fs.getCWD(), inp))
   if chunk then
     setfenv(chunk, getfenv(2))
   end
 
-  return chunk
+  return chunk, e
 end
 
 dofile = function(inp)
-  local f = loadfile(inp)
+  local f, e = loadfile(inp)
   if f then
     return f()
   else
-    error("cannot open " .. inp .. ": No such file", 2)
+    return false, e
   end
 end
 
