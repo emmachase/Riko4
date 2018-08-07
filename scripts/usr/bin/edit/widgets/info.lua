@@ -8,13 +8,13 @@ return function(context)
   function infoWidget.new(text, timeout)
     local w = 80
     local tw = #text*(fontW + 1)
-    if tw > 70 then
+    if tw > 76 then
       if tw > 160 then
         text = text:sub(1, math.floor(160 / (fontW + 1)) - 2) .. ".."
         tw = #text*(fontW + 1)
       end
 
-      w = tw + 10
+      w = tw + 4
     end
 
     local self = setmetatable({
