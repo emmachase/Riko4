@@ -3,11 +3,22 @@ return function(context)
 
   local popout = require("popout")
 
-  local fontH = gpu.font.data.h
+  local fontW, fontH = gpu.font.data.w, gpu.font.data.h
 
   function infoWidget.new(text, timeout)
+    local w = 80
+    local tw = #text*(fontW + 1)
+    if tw > 70 then
+      if tw > 160 then
+        text = text:sub(1, math.floor(160 / (fontW + 1)) - 2) .. ".."
+        tw = #text*(fontW + 1)
+      end
+
+      w = tw + 10
+    end
+
     local self = setmetatable({
-      popout = popout.new(80, fontH + 1, 6),
+      popout = popout.new(w, fontH + 1, 6),
       text = text,
       timeout = timeout or 1
     }, {__index = infoWidget})
