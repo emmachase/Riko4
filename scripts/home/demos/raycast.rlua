@@ -252,10 +252,12 @@ function _draw()
         local yp = math.floor(_h2 - (scrnHeight / 2))
         local ystep = scrnHeight / cheight
 
-        for j = 1, cheight do
-          local c = coi:getPixel(xp, j - 1)
-          rectFill(i, yp, 1, math.ceil(ystep), c)
-          yp = yp + ystep
+        for j = 0, cheight - 1 do
+          local c = coi:getPixel(xp, j)
+          local cc = math.ceil(yp + ystep*j)
+          local nx = math.ceil(yp + ystep*(j + 1))
+
+          rectFill(i, cc, 1, nx - cc, c)
         end
       end
     end
