@@ -1,0 +1,239 @@
+-- Settings
+local movSpeed = 4         -- How fast the player moves
+local rotSpeed = 3         -- How fast the player turns
+
+local pos = {0, 0}         -- Starting player position
+local rotation = math.pi/2 -- Starting player rotation
+
+local fov = 0.75           -- Field of View
+
+local wallHeight = 0.3     -- The height of the walls
+
+-- {Point, Point, Color}
+local map = {
+  {{-3, -3}, { 3, -3}, 8},
+  {{-3, -3}, {-3,  3}, 9},
+  {{ 3, -3}, { 3,  3}, 10},
+  {{-3,  3}, {-1,  3}, 11},
+  {{-1,  3}, {-1,  4}, 13},
+  {{-1,  4}, { 1,  4}, 14},
+  {{ 1,  4}, { 1,  3}, 15},
+  {{ 1,  3}, { 3,  3}, 16},
+}
+
+-- Raycaster
+local aspect = _w / _h
+local vfov = fov / aspect
+local fontW = gpu.font.data.w
+
+local class = require("class")
+
+local Point = class(nil, "Point")
+do
+  function Point:__init(x, y)
+    self.x = x
+    self.y = y
+
+    local mt = getmetatable(self)
+    mt.__tostring = Point.toString
+  end
+
+  function Point:sqDist(other)
+    local dx = (other.x - self.x)
+    local dy = (other.y - self.y)
+
+    return dx*dx + dy*dy
+  end
+
+  function Point:dist(other)
+    return math.sqrt(self:sqDist(other))
+  end
+
+  function Point:toString()
+    return string.format("{x=%d, y=%d}", self.x, self.y)
+  end
+end
+
+local Line = class(nil, "Line")
+do
+  function Line:__init(p1, p2)
+    self.pt1 = p1
+    self.pt2 = p2
+
+    if p1.x == p2.x then
+      self.vert = true
+      self.x = p1.x
+      self.y = p1.y
+      self.y1 = math.min(p1.y, p2.y)
+      self.y2 = math.max(p1.y, p2.y)
+    else
+      self.m = (p2.y - p1.y)/(p2.x - p1.x)
+      self.b = p1.y - self.m * p1.x
+      self.x1 = math.min(p1.x, p2.x)
+      self.x2 = math.max(p1.x, p2.x)
+    end
+
+    local mt = getmetatable(self)
+    mt.__tostring = Line.toString
+  end
+
+  local function getY(line, x)
+    if line.vert then
+      return line.y
+    else
+      return line.m * x + line.b
+    end
+  end
+
+  function Line:intersect(other)
+    if self.vert then
+      if other.vert then
+        if self.x == other.x then
+          if self.y >= other.y1 and self.y <= other.y2 then
+            return Point(self.x, self.y)
+          else
+            return nil
+          end
+        else
+          return nil
+        end
+      else
+        if self.x >= other.x1 and self.x <= other.x2 then
+          local y = getY(other, self.x)
+          if y >= self.y1 and y <= self.y2 then
+            return Point(self.x, y)
+          else
+            return nil
+          end
+        else
+          return nil
+        end
+      end
+    else
+      if other.vert then
+        if other.x >= self.x1 and other.x <= self.x2 then
+          local y = getY(self, other.x)
+          if y >= other.y1 and y <= other.y2 then
+            return Point(other.x, y)
+          else
+            return nil
+          end
+        else
+          return nil
+        end
+      else
+        local x = (other.b - self.b) / (self.m - other.m)
+        if  x >= self.x1  and x <= self.x2 and
+            x >= other.x1 and x <= other.x2 then
+          return Point(x, getY(self, x))
+        else
+          return nil
+        end
+      end
+    end
+  end
+
+  function Line:toString()
+    return string.format("{%s => %s}", tostring(self.pt1), tostring(self.pt2))
+  end
+end
+
+local Wall = class(nil, "Wall")
+do
+  function Wall:__init(line, color)
+    self.line = line
+    self.color = color
+  end
+end
+
+pos = Point(unpack(pos))
+
+for i = 1, #map do
+  map[i] = Wall(Line(Point(map[i][1][1], map[i][1][2]),
+                     Point(map[i][2][1], map[i][2][2])),
+                map[i][3])
+end
+
+local castDist = 100
+local function cast(dir)
+  local ray = Line(pos, Point(pos.x + math.cos(dir)*castDist,
+                              pos.y + math.sin(dir)*castDist))
+
+  local maxD, wall = math.huge, nil
+  for i = 1, #map do
+    local intersection = ray:intersect(map[i].line)
+    if intersection then
+      local dist = pos:dist(intersection)
+      if dist < maxD then
+        maxD = dist
+        wall = map[i]
+      end
+    end
+  end
+
+  -- Fisheye correction
+  if wall then
+    maxD = maxD * math.cos(dir - rotation)
+  end
+
+  return maxD, wall
+end
+
+local _h2 = _h / 2
+function _draw()
+  cls()
+
+  rectFill(0,  0, _w, _h2, 12)
+  rectFill(0, _h2, _w, _h2, 6)
+
+  for i = 0, _w - 1  do
+    local ang = rotation + fov*(i - (_w / 2))/(_w)
+    local dist, wall = cast(ang)
+
+    if wall then
+      local azi2 = math.atan(wallHeight / dist)*2
+      local scrnHeight = (azi2 / vfov) * _h
+
+      rectFill(i, _h2 - (scrnHeight / 2), 1, scrnHeight, wall.color)
+    end
+  end
+
+  local str = "WASD or Arrows to move"
+  for i = -1, 1 do
+    for j = -1, 1 do
+      write(str, (_w - #str*(fontW + 1)) / 2 + i, _h - 10 + j, 1)
+    end
+  end
+  write(str, (_w - #str*(fontW + 1)) / 2, _h - 10, 16)
+
+  swap()
+end
+
+local movDir, rotDir = 0, 0
+function _update(dt)
+  rotation = rotation + rotDir * dt
+  pos.x = pos.x + math.cos(rotation)*movDir*dt
+  pos.y = pos.y + math.sin(rotation)*movDir*dt
+end
+
+function _event(e, ...)
+  if e == "key" then
+    local k = ...
+    if k == "left" or k == "a" then
+      rotDir = -rotSpeed
+    elseif k == "right" or k == "d" then
+      rotDir = rotSpeed
+    elseif k == "up" or k == "w" then
+      movDir = movSpeed
+    elseif k == "down" or k == "s" then
+      movDir = -movSpeed
+    end
+  elseif e == "keyUp" then
+    local k = ...
+    if k == "left" or k == "right" or k == "a" or k == "d" then
+      rotDir = 0
+    elseif k == "up" or k == "down" or k == "w" or k == "s" then
+      movDir = 0
+    end
+  end
+end
