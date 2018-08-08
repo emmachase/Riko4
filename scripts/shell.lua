@@ -296,7 +296,7 @@ function shell.tabulate(...)
   print()
 end
 
-function shell.read(replaceChar, size, history, colorFn)
+function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
   local maxW = term.width - term.x + 1
   size = size and math.min(size, maxW) or maxW
 
@@ -364,6 +364,63 @@ function shell.read(replaceChar, size, history, colorFn)
         elseif k == "end" then
           strPos = #str + 1
           term.blink = 0
+        elseif k == "tab" and fileTabComplete then
+          local subStrPos = 1
+          local newStr = { }
+          for subStr in str:gmatch("%S+") do
+            if strPos >= subStrPos and strPos <= subStrPos + #subStr then
+              local bOk, baseDir = pcall(fs.getBaseDir, subStr)
+              if not bOk then
+                baseDir = subStr:sub(1, 1) == "/" and "/" or ""
+              end
+              -- If this is the first argument and not an absolute path,
+              -- look for programs in PATH and select the first one that matches
+              if not bOk and baseDir ~= "/" and subStrPos == 1 then
+                for _, pathDir in pairs(shell.config.path) do
+                  local listing = fs.list(pathDir)
+                  local found = false
+                  if listing then
+                    for _, program in pairs(listing) do
+                      local ext = program:match("^.+(%..+)$")
+                      for handlerExt, _ in pairs(handlers) do
+                        if ext == "." .. handlerExt then
+                          if program:sub(1, #subStr) == subStr then
+                            subStr = program:sub(1, -(#ext + 1))
+                            strPos = subStrPos + #subStr
+                            found = true
+                            break
+                          end
+                        end
+                      end
+                      if found then
+                        break
+                      end
+                    end
+                  end
+                  if found then
+                    break
+                  end
+                end
+              else -- Normal path tab completion
+                local file = baseDir == "" and subStr
+                          or baseDir == "/" and subStr:sub(2)
+                          or subStr:sub(#baseDir + 2)
+                local listing = fs.list(baseDir)
+                if listing and file ~= "" then
+                  for _, lfile in pairs(listing) do
+                    if lfile:sub(1, #file) == file then
+                      subStr = baseDir .. ((baseDir == "" or baseDir == "/") and "" or "/") .. lfile
+                      strPos = subStrPos + #subStr
+                      break
+                    end
+                  end
+                end
+              end
+            end
+            table.insert(newStr, subStr)
+            subStrPos = subStrPos + #subStr + 1
+          end
+          str = table.concat(newStr, " ")
         elseif k == "return" then
           alive = false
         end
@@ -678,7 +735,7 @@ while true do
   shell.write(getDir(), 13)
   shell.write("> ", 10)
 
-  local input = shell.read(nil, nil, shellHistory)
+  local input = shell.read(nil, nil, shellHistory, nil, true)
   if input:match("%S") then
     shellHistory[#shellHistory + 1] = input
 
