@@ -163,18 +163,18 @@ local function slide(dir)
 
   -- Now we have to extrapolate moves from the combines and slides
   for i = 1, #slides do
-    local slide = slides[i]
+    local slideMove = slides[i]
     local fComp = false
     for j = #mani, 1, -1 do
       local man = mani[j]
-      if slide[3] == man[3] then
+      if slideMove[3] == man[3] then
         -- Possible
-        if slide[1] == man[2] then
+        if slideMove[1] == man[2] then
           -- Complex move
           fComp = true
 
-          moves[#moves + 1] = {man[1],   slide[2], slide[3]}
-          moves[#moves + 1] = {slide[1], slide[2], slide[3]}
+          moves[#moves + 1] = {man[1],   slideMove[2], slideMove[3]}
+          moves[#moves + 1] = {slideMove[1], slideMove[2], slideMove[3]}
 
           -- Remove man
           table.remove(mani, j)
@@ -185,7 +185,7 @@ local function slide(dir)
     end
 
     if not fComp then
-      moves[#moves + 1] = {slide[1], slide[2], slide[3]}
+      moves[#moves + 1] = {slideMove[1], slideMove[2], slideMove[3]}
     end
   end
 

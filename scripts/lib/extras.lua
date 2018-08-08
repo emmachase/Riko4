@@ -1,3 +1,5 @@
+-- luacheck: ignore 231 211
+
 local rnd, range, elip, elipFill, circ, circFill, line, poly, class, all
 local PI, cos, sin, tan, atan2
 local flr, ceil
@@ -37,7 +39,7 @@ do
     cls.__super = superclass
     cls.__index = cls
     return setmetatable(cls, {__call = function (c, ...)
-     self = setmetatable({}, cls)
+     local self = setmetatable({}, cls)
      local super = cls.__super
      while (super~=nil) do
       if super.__init then

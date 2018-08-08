@@ -1,4 +1,7 @@
+-- luacheck: ignore 231 211
+
 local pix, rectFill, rect, cls, pal, pixb, cam, push, sheet, spr, pop, pget, swap, trans, _eventDefault, _cleanup
+local _init, _event, _update, _draw
 local _w, _h = gpu.width, gpu.height
 local _running = true
 
