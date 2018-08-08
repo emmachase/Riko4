@@ -15,6 +15,8 @@ namespace riko::gfx {
 }
 
 namespace riko::shader {
+    int glslOverride = 0;
+
     // Loads a shader and prepends version/compatibility info before compiling it.
     // Normally, you can just use GPU_LoadShader() for shader source files or GPU_CompileShader() for strings.
     // However, some hardware (certain ATI/AMD cards) does not let you put non-#version pre-processing at the top of the file.
@@ -39,12 +41,30 @@ namespace riko::shader {
 
         // Get size from header
         if (renderer->shader_language == GPU_LANGUAGE_GLSL) {
-            std::cout << "Using GLSL " << renderer->max_shader_version << std::endl;
+            if (glslOverride == -1) {
+                std::cout << "Maximum GLSL version is " << renderer->max_shader_version << std::endl;
+            }
 
+            int glslVersion;
             if (renderer->max_shader_version >= 120)
-                header = "#version " + std::to_string(renderer->max_shader_version) + "\n";
+                glslVersion = 120;
             else
-                header = "#version 110\n";  // Maybe this is good enough?
+                glslVersion = 110; // Maybe this is good enough?
+
+            if (glslOverride > 0) {
+                if (glslOverride > renderer->max_shader_version) {
+                    std::cout << "Specified GLSL version '" << glslOverride
+                        << "' is greater than maximum of " << renderer->max_shader_version << std::endl;
+                    std::cout << "Defaulting to maximum value..." << std::endl;
+
+                    glslVersion = renderer->max_shader_version;
+                } else {
+                    std::cout << "Using GLSL version " << glslOverride << std::endl;
+                    glslVersion = glslOverride;
+                }
+            }
+
+            header = "#version " + std::to_string(glslVersion) + "\n";
         } else if (renderer->shader_language == GPU_LANGUAGE_GLSLES)
             header = "#version 100\nprecision mediump int;\nprecision mediump float;\n";
 

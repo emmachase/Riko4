@@ -1,5 +1,7 @@
 #include <cstring>
 #include <ftw.h>
+#include <getopt.h>
+#include <iostream>
 
 #include "SDL_gpu/SDL_gpu.h"
 
@@ -48,9 +50,39 @@ namespace riko::process {
 #endif
 
     void parseCommands(int argc, char * argv[]) {
-        if (argc > 1) {
-            if (!strcmp("--noaud", argv[1])) {
-                riko::audio::audioEnabled = false;
+        while (true) {
+            int optionIndex = 0;
+            static option longOptions[] = {
+                    {"noaud", no_argument,       nullptr, 0},
+                    {"glsl",  optional_argument, nullptr, 'g'},
+                    {nullptr,  0,                 nullptr, 0 }
+            };
+
+            int c = getopt_long(argc, argv, "g::", longOptions, &optionIndex);
+            if (c == -1) break;
+
+            switch (c) {
+                case 0:
+                    if (std::string(longOptions[optionIndex].name) == "noaud") {
+                        riko::audio::audioEnabled = false;
+                    }
+                    break;
+                case 'g':
+                    if (optarg == nullptr) {
+                        riko::shader::glslOverride = -1;
+                    } else {
+                        int newGLSLVersion = static_cast<int>(strtol(optarg, nullptr, 0));
+                        if (newGLSLVersion == 0) {
+                            riko::shader::glslOverride = -1;
+                        } else if (newGLSLVersion > 0) {
+                            riko::shader::glslOverride = newGLSLVersion;
+                        } else {
+                            std::cout << "Value '" << newGLSLVersion << "' is not a valid GLSL version number" << std::endl;
+                        }
+                    }
+                    break;
+                default:
+                    break;
             }
         }
     }

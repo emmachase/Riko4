@@ -83,7 +83,7 @@ SET(SDL2_gpu_SEARCH_PATHS
 FIND_PATH(SDL2_gpu_INCLUDE_DIR SDL_gpu.h
     HINTS
     $ENV{SDL2GPUDIR}
-    PATH_SUFFIXES include/SDL2_gpu include
+    PATH_SUFFIXES include/SDL2_gpu include/SDL2 include
     PATHS ${SDL2_gpu_SEARCH_PATHS}
 )
 
