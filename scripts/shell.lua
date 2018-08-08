@@ -7,7 +7,14 @@ do
   if not riko4 then riko4 = {} end
   riko4.exit = os.exit
 
-  os.exit = function() coroutine.yield("killme") end
+  os.exit = function()
+    local r = coroutine.yield("killme")
+    if r ~= "killed" then
+      error("Failed to gracefully exit", 0)
+    end
+
+    coroutine.yield("done")
+  end
 end
 
 
@@ -177,10 +184,52 @@ function shell.write(text, fg, bg, x, y)
         term.scroll(y - (term.height + term.scrollAmt))
       end
 
-      remainder, nl = term.write(remainder, fg, bg, x, y)
+      local code, codeEnd = remainder:find("\27%[[%d;]+m")
 
-      x = 1
-      y = y + 1
+      if code == 1 then
+        local instructionStr = remainder:sub(3, codeEnd - 1)
+        remainder = remainder:sub(codeEnd + 1)
+
+        for instruction in instructionStr:gmatch("(%d*);?") do
+          instruction = tonumber(instruction)
+          if instruction == 1 then bg = 1; fg = 16
+          elseif instruction == 30 then fg = 1  elseif instruction == 40 then bg = 1
+          elseif instruction == 31 then fg = 8  elseif instruction == 41 then bg = 8
+          elseif instruction == 32 then fg = 4  elseif instruction == 42 then bg = 4
+          elseif instruction == 33 then fg = 9  elseif instruction == 43 then bg = 9
+          elseif instruction == 34 then fg = 2  elseif instruction == 44 then bg = 2
+          elseif instruction == 35 then fg = 3  elseif instruction == 45 then bg = 3
+          elseif instruction == 36 then fg = 12 elseif instruction == 46 then bg = 12
+          elseif instruction == 37 then fg = 7  elseif instruction == 47 then bg = 16
+
+          elseif instruction == 90 then fg = 6  elseif instruction == 100 then bg = 6
+          elseif instruction == 91 then fg = 14 elseif instruction == 101 then bg = 14
+          elseif instruction == 92 then fg = 11 elseif instruction == 102 then bg = 11
+          elseif instruction == 93 then fg = 10 elseif instruction == 103 then bg = 10
+          elseif instruction == 94 then fg = 12 elseif instruction == 104 then bg = 12
+          elseif instruction == 95 then fg = 13 elseif instruction == 105 then bg = 13
+          elseif instruction == 96 then fg = 13 elseif instruction == 106 then bg = 13
+          elseif instruction == 97 then fg = 16 elseif instruction == 107 then bg = 16 end
+        end
+      elseif code then
+        local rem = remainder:sub(1, code - 1)
+
+        local arem
+        arem, nl = term.write(rem, fg, bg, x, y)
+        if nl or #arem > 0 then
+          x = 1
+          y = y + 1
+        else
+          x = x + #rem
+        end
+
+        remainder = arem .. remainder:sub(code)
+      else
+        remainder, nl = term.write(remainder, fg, bg, x, y)
+
+        x = 1
+        y = y + 1
+      end
     until remainder == ""
   end
 
@@ -593,6 +642,7 @@ function shell.erun(cenv, name, ...)
     while coroutine.status(routine) ~= "dead" do
       local out, e, e2 = coroutine.resume(routine, unpack(resumeArgs))
       if e == "killme" then
+        coroutine.resume(routine, "killed")
         break
       end
 
