@@ -308,22 +308,52 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
         elseif k == "tab" and fileTabComplete then
           local subStrPos = 1
           local newStr = { }
-          for subStr in string.gmatch(str, "[^%s]+") do
+          for subStr in str:gmatch("%S+") do
             if strPos >= subStrPos and strPos <= subStrPos + #subStr then
               local bOk, baseDir = pcall(fs.getBaseDir, subStr)
               if not bOk then
-                baseDir = string.sub(subStr, 1, 1) == "/" and "/" or ""
+                baseDir = subStr:sub(1, 1) == "/" and "/" or ""
               end
-              local file = baseDir == "" and subStr
-                        or baseDir == "/" and string.sub(subStr, 2)
-                        or string.sub(subStr, #baseDir + 2)
-              local listing = fs.list(baseDir)
-              if listing and file ~= "" then
-                for _, lfile in pairs(listing) do
-                  if string.sub(lfile, 1, #file) == file then
-                    subStr = baseDir .. ((baseDir == "" or baseDir == "/") and "" or "/") .. lfile
-                    strPos = subStrPos + #subStr
+              -- If this is the first argument and not an absolute path,
+              -- look for programs in PATH and select the first one that matches
+              if not bOk and baseDir ~= "/" and subStrPos == 1 then
+                for _, pathDir in pairs(shell.config.path) do
+                  local listing = fs.list(pathDir)
+                  local found = false
+                  if listing then
+                    for _, program in pairs(listing) do
+                      local ext = program:match("^.+(%..+)$")
+                      for handlerExt, _ in pairs(handlers) do
+                        if ext == "." .. handlerExt then
+                          if program:sub(1, #subStr) == subStr then
+                            subStr = program:sub(1, -(#ext + 1))
+                            strPos = subStrPos + #subStr
+                            found = true
+                            break
+                          end
+                        end
+                      end
+                      if found then
+                        break
+                      end
+                    end
+                  end
+                  if found then
                     break
+                  end
+                end
+              else -- Normal path tab completion
+                local file = baseDir == "" and subStr
+                          or baseDir == "/" and subStr:sub(2)
+                          or subStr:sub(#baseDir + 2)
+                local listing = fs.list(baseDir)
+                if listing and file ~= "" then
+                  for _, lfile in pairs(listing) do
+                    if lfile:sub(1, #file) == file then
+                      subStr = baseDir .. ((baseDir == "" or baseDir == "/") and "" or "/") .. lfile
+                      strPos = subStrPos + #subStr
+                      break
+                    end
                   end
                 end
               end
