@@ -369,13 +369,14 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
           local newStr = { }
           for subStr in str:gmatch("%S+") do
             if strPos >= subStrPos and strPos <= subStrPos + #subStr then
-              local bOk, baseDir = pcall(fs.getBaseDir, subStr)
-              if not bOk then
-                baseDir = subStr:sub(1, 1) == "/" and "/" or ""
+              local baseDir = fs.getBaseDir(subStr)
+              if baseDir == "." and subStr:sub(1, 1) ~= "." then
+                baseDir = ""
               end
+
               -- If this is the first argument and not an absolute path,
               -- look for programs in PATH and select the first one that matches
-              if not bOk and baseDir ~= "/" and subStrPos == 1 then
+              if baseDir == "" and subStrPos == 1 then
                 for _, pathDir in pairs(shell.config.path) do
                   local listing = fs.list(pathDir)
                   local found = false
