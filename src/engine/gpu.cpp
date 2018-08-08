@@ -317,7 +317,8 @@ namespace riko::gpu {
             riko::gfx::drawOffY = translateStack[tStackUsed + 1];
 
             lua_pushboolean(L, true);
-            return 1;
+            lua_pushinteger(L, tStackUsed / 2);
+            return 2;
         } else {
             lua_pushboolean(L, false);
             return 1;

@@ -1,6 +1,8 @@
 return function(context)
   local menu = {}
 
+  local originalPalette = gpu.getPalette()
+
   local fontW = gpu.font.data.w
   -- local fontH = gpu.font.data.h
 
@@ -92,6 +94,10 @@ return function(context)
         tmpWrite(...)
         written = true
       end
+
+      gpu.push()
+      local _, currentStackLevel = gpu.pop()
+
       local ok, err = shell.run(tmpFilename)
       if not ok then
         shell.write(err .. "\n", 8)
@@ -102,9 +108,21 @@ return function(context)
         shell.write("Program exited. Press return to continue.", 12)
         shell.read()
       end
-      shell.run("reset") -- to reset colors that might've been changed
 
-      fs.delete(tmpFilename)
+      do -- Reset things
+        gpu.blitPalette(originalPalette) -- To reset colors that might've been changed
+
+        gpu.push() -- Don't accidentally break a transform that we didn't intend to
+        repeat
+          local _, newStackLevel = gpu.pop() -- Pop any unfinished transform frames
+        until newStackLevel <= currentStackLevel
+
+        gpu.clip() -- Reset unresolved stencils
+
+        fs.delete(tmpFilename)
+      end
+
+      mediator:publish({"editor"}, "startBlink")
     end,
     function() -- EXIT
       quitFunc()
