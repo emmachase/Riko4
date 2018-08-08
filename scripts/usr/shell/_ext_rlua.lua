@@ -11,36 +11,37 @@ return function(filename, args, env)
       if e then
         local xt = e:match("%[.+%]:(.+)")
         if xt then
-          print("Error: " .. xt, 8)
+          return false, "Error: " .. xt
         else
-          print("Error: " .. e, 8)
+          return false, "Error: " .. e
         end
       else
-        print("Unknown Error Occurred", 8)
+        return false, "Unknown Error Occurred"
       end
-
-      return
     end
 
     setfenv(func, env)
-    local s, e = pcall(func, unpack(args))
+    local ret = {pcall(func, unpack(args))}
+    s, e = ret[1], ret[2]
     if not s then
       if e then
         local xt = e:match("%[.+%](.+)")
         if xt then
-          print("Error: [" .. filename .. "]" .. xt, 8)
+          return false, "Error: [" .. filename .. "]" .. xt
         else
-          print("Error: " .. e, 8)
+          return false, "Error: " .. e
         end
       else
-        print("Unknown Error Occurred", 8)
+        return false, "Unknown Error Occurred"
       end
     end
+
+    return unpack(ret)
   else
     if retFile then
-      print(retFile, 8)
+      return false, retFile
     else
-      print("Unknown Error Occurred", 8)
+      return false, "Unknown Error Occurred"
     end
   end
 end

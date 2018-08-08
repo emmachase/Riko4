@@ -541,6 +541,44 @@ local function newEnv(workingDir)
   return setmetatable(env, {__index = _G})
 end
 
+function shell.run(name, ...)
+  local ex = name:reverse():match("([^%.]+)%.")
+
+  local handlerFunc
+  if ex and fs.exists(name) then
+    ex = ex:reverse()
+    handlerFunc = handlers[ex]
+  end
+
+  if not handlerFunc then
+    for i = 1, #config.path do
+      local pre = config.path[i]
+      for ext, handler in pairs(handlers) do
+        local tname = pre .. "/" .. name .. "." .. ext
+
+        if fs.exists(tname) then
+          handlerFunc = handler
+          name = tname
+          break
+        end
+      end
+
+      if handlerFunc then break end
+    end
+  end
+
+  if not handlerFunc then
+    return false, "Cannot find file `" .. name .. "`"
+  else
+    local words = {...}
+    for i = 1, #words do
+      words[i] = words[i + 1]
+    end
+
+    return handlerFunc(name, words, newEnv(fs.getBaseDir(fs.combine(fs.getCWD(), name))))
+  end
+end
+
 local shellHistory = {}
 
 print("rikoOS 1.0", 13)
@@ -554,39 +592,9 @@ while true do
 
     local words = shellSplit(input)
     local name = words[1]
-    local ex = name:reverse():match("([^%.]+)%.")
-
-    local handlerFunc
-    if ex and fs.exists(name) then
-      ex = ex:reverse()
-      handlerFunc = handlers[ex]
-    end
-
-    if not handlerFunc then
-      for i = 1, #config.path do
-        local pre = config.path[i]
-        for ext, handler in pairs(handlers) do
-          local tname = pre .. "/" .. name .. "." .. ext
-
-          if fs.exists(tname) then
-            handlerFunc = handler
-            name = tname
-            break
-          end
-        end
-
-        if handlerFunc then break end
-      end
-    end
-
-    if not handlerFunc then
-      print("Cannot find file `" .. name .. "`", 8)
-    else
-      for i = 1, #words do
-        words[i] = words[i + 1]
-      end
-
-      handlerFunc(name, words, newEnv(fs.getBaseDir(fs.combine(fs.getCWD(), name))))
+    local s, e = shell.run(name, unpack(words))
+    if not s then
+      print(e, 8)
     end
   end
 end

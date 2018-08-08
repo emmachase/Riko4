@@ -1,3 +1,5 @@
+-- luacheck: globals os getfenv setfenv net table.pack loadfile dofile bit32
+
 local ffi
 if jit then
   ffi = require("ffi")
@@ -152,27 +154,25 @@ fs.combine = function(path1, path2, hardJoin)
   local negativeDepth = 0
   local builtPath = {}
   for pathPart in path1:gmatch("[^/]+") do
-    if pathPart == "." then
-    elseif pathPart == ".." then
+    if pathPart == ".." then
       if #builtPath > 0 then
         builtPath[#builtPath] = nil
       else
         negativeDepth = negativeDepth + 1
       end
-    else
+    elseif pathPart ~= "." then
       builtPath[#builtPath + 1] = pathPart
     end
   end
 
   for pathPart in path2:gmatch("[^/]+") do
-    if pathPart == "." then
-    elseif pathPart == ".." then
+    if pathPart == ".." then
       if #builtPath > 0 then
         builtPath[#builtPath] = nil
       else
         negativeDepth = negativeDepth + 1
       end
-    else
+    elseif pathPart ~= "." then
       builtPath[#builtPath + 1] = pathPart
     end
   end
@@ -200,20 +200,20 @@ loadfile = function(inp)
 
   handle:close()
 
-  local chunk = strload(cont, "@" .. fs.combine(fs.getCWD(), inp))
+  local chunk, e = strload(cont, "@" .. fs.combine(fs.getCWD(), inp))
   if chunk then
     setfenv(chunk, getfenv(2))
   end
 
-  return chunk
+  return chunk, e
 end
 
 dofile = function(inp)
-  local f = loadfile(inp)
+  local f, e = loadfile(inp)
   if f then
     return f()
   else
-    error("cannot open " .. inp .. ": No such file", 2)
+    return false, e
   end
 end
 
@@ -269,5 +269,24 @@ function sleep(s)
     end
   end
 end
+
+local function deleteRecursive(dir)
+  for k, v in ipairs(fs.list(dir)) do
+    if v ~= "." and v ~= ".." then
+      local path = fs.combine(dir, v)
+      if fs.isDir(path) then
+        deleteRecursive(path)
+      end
+
+      fs.delete(path)
+    end
+  end
+end
+
+if fs.exists("/tmp") then
+  deleteRecursive("/tmp")
+end
+
+fs.mkdir("/tmp")
 
 dofile("shell.lua")
