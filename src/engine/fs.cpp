@@ -34,6 +34,7 @@
 #include <cerrno>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <string>
 
 #include "SDL_gpu/SDL_gpu.h"
 
@@ -247,8 +248,39 @@ namespace riko::fs {
             return luaL_error(L, "invalid file mode");
         }
 
-        if (fileHandle_o == nullptr)
-            return 0;
+        if (fileHandle_o == nullptr) {
+            lua_pushboolean(L, false);
+            std::string error;
+            switch (errno) {
+#define s(s) error = std::string(s)
+#define b break
+                case EINVAL: s("Invalid mode '") + mode + "'"; b;
+                case EACCES: s("Permission denied"); b;
+                case EDQUOT: s("File does not exist, and quota of disk blocks or inodes has been exhausted"); b;
+                case EEXIST: s("File aready exists"); b;
+                case EFAULT: s("File is outside accessible address space"); b;
+                case EOVERFLOW:
+                case EFBIG:  s("File is too large to be opened"); b;
+                case EINTR:  s("Open was interrupted by a signal handler"); b;
+                case EISDIR: s("") + luaL_checkstring(L, 1) + " is a directory"; b;
+                case ELOOP:  s("Too many symbolic links in path resolution"); b;
+                case ENFILE:
+                case EMFILE: s("File descriptor limit has been reached"); b;
+                case ENAMETOOLONG: s("Pathname is too long"); b;
+                case ENOENT: s("File does not exist"); b;
+                case ENOMEM: s("Insufficient kernel memory avaliable"); b;
+                case ENOSPC: s("No room for new file"); b;
+                case ENOTDIR: s("A component used as a directory in path is not"); b;
+                case EROFS:  s("File on a read-only filesystem"); b;
+                default: s("Unknown error occurred"); b;
+#undef s
+#undef b
+            }
+
+            lua_pushlstring(L, error.c_str(), error.size());
+
+            return 2;
+        }
 
         strcpy((char *) &lastOpenedPath, filePath + strlen(scriptsPath));
         for (int i = 0; lastOpenedPath[i] != '\0'; i++) {

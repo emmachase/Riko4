@@ -7,7 +7,7 @@ do
   if not riko4 then riko4 = {} end
   riko4.exit = os.exit
 
-  os.exit = function() error("User requested programmatic exit", 2) end
+  os.exit = function() coroutine.yield("killme") end
 end
 
 
@@ -474,18 +474,24 @@ local function newEnv(workingDir)
     for i = 1, #paths do
       local path = paths[i]
 
+      if fs.isDir(path) and fs.exists(path .. "/init.lua") then
+        path = path .. "/init.lua"
+      end
+
       if requireCache[path] then
         return requireCache[path]
       elseif fs.exists(path) then
-        local chunk, err = env.loadfile(path, env)
+        if not fs.isDir(path) then
+          local chunk, err = env.loadfile(path, env)
 
-        if chunk == nil then
-          return error("Error loading file " .. path .. ":\n" .. (err or "N/A"), 0)
+          if chunk == nil then
+            return error("Error loading file " .. path .. ":\n" .. (err or "N/A"), 0)
+          end
+
+          requireCache[path] = chunk()
+
+          return requireCache[path]
         end
-
-        requireCache[path] = chunk()
-
-        return requireCache[path]
       end
     end
 
@@ -541,7 +547,7 @@ local function newEnv(workingDir)
   return setmetatable(env, {__index = _G})
 end
 
-function shell.run(name, ...)
+function shell.erun(cenv, name, ...)
   local ex = name:reverse():match("([^%.]+)%.")
 
   local handlerFunc
@@ -575,8 +581,34 @@ function shell.run(name, ...)
       words[i] = words[i + 1]
     end
 
-    return handlerFunc(name, words, newEnv(fs.getBaseDir(fs.combine(fs.getCWD(), name))))
+    local env = newEnv(fs.getBaseDir(fs.combine(fs.getCWD(), name)))
+    for k, v in pairs(cenv) do
+      env[k] = v
+    end
+
+    env.arg = words
+
+    local routine = coroutine.create(handlerFunc)
+    local resumeArgs = {name, words, env}
+    while coroutine.status(routine) ~= "dead" do
+      local out, e, e2 = coroutine.resume(routine, unpack(resumeArgs))
+      if e == "killme" then
+        break
+      end
+
+      if not e and e2 then
+        return false, e2
+      end
+
+      resumeArgs = table.pack(coroutine.yield())
+    end
+
+    return true
   end
+end
+
+function shell.run(...)
+  return shell.erun({}, ...)
 end
 
 local shellHistory = {}

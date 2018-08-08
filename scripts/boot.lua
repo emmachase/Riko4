@@ -180,6 +180,119 @@ fs.combine = function(path1, path2, hardJoin)
   return (fromRoot and "/" or "") .. ("../"):rep(negativeDepth) .. table.concat(builtPath, "/")
 end
 
+io = setmetatable({}, {__index = fs})
+local pipeMeta = {__index = io}
+
+io.write = function(file, ...)
+  if type(file) ~= "userdata" then
+    if type(file) == "table" and getmetatable(file) == pipeMeta then
+      return file.writeToStream("inStream", ...)
+    else
+      local method = shell.write
+      if getfenv(2).outPipe then
+        method = getfenv(2).outPipe
+      end
+
+      if file == io then
+        method(...)
+      else
+        method(file, ...)
+      end
+    end
+  else
+    file:write(...)
+  end
+end
+io.read = function(file, ...)
+  if type(file) ~= "userdata" then
+    if type(file) == "table" and getmetatable(file) == pipeMeta then
+      return file.readFromStream("outStream", ...)
+    else
+      local method = shell.read
+      if getfenv(2).inPipe then
+        method = getfenv(2).inPipe
+      end
+
+      if file == io then
+        return method(...)
+      else
+        return method(file, ...)
+      end
+    end
+  else
+    file:read(...)
+  end
+end
+io.close = function(handle)
+  if type(handle) == "table" and getmetatable(handle) == pipeMeta then
+    return true
+  elseif type(handle) == "userdata" then
+    handle:close()
+  end
+end
+io.popen = function(fstr, mode)
+  mode = mode or "r"
+
+  local pipe = setmetatable({inStream = "", outStream = ""}, pipeMeta)
+  local function readFromStream(streamKey, mode)
+    if tonumber(mode) then
+      local n = tonumber(mode)
+      local data = pipe[streamKey]:sub(1, n)
+      pipe[streamKey] = pipe[streamKey]:sub(n + 1)
+
+      return data
+    else
+      mode = mode:match("%*?(.+)")
+      if mode:sub(1, 1) == "a" then
+        local data = pipe[streamKey]
+        pipe[streamKey] = ""
+
+        return data
+      elseif mode:sub(1, 1) == "l" then
+        local data, rest = pipe[streamKey]:match("(^[^\n]+)(.+)")
+        pipe[streamKey] = rest
+        
+        return data
+      end
+    end
+  end
+
+  local function writeToStream(streamKey, ...)
+    local dataV = table.pack(...)
+    local data = ""
+    for i = 1, dataV.n do
+      data = data .. tostring(dataV[i]) .. " "
+    end
+
+    data = data:sub(1, -2)
+
+    pipe[streamKey] = pipe[streamKey] .. data
+  end
+
+  pipe.writeToStream = writeToStream
+  pipe.readFromStream = readFromStream
+
+  local fargs, fname = {}
+  fname, fstr = fstr:match("(%S+)%s*(.+)$")
+  for arg in fstr:gmatch("%S+") do
+    fargs[#fargs + 1] = arg
+  end
+  
+
+  shell.erun({
+    inPipe = function(m)
+      readFromStream("inStream", m)
+    end,
+    outPipe = function(...)
+      writeToStream("outStream", ...)
+    end
+  }, fname, unpack(fargs))
+
+  return pipe
+end
+io.stderr = io
+io.stdout = io
+
 table.pack = function(...)
   local t = {...}
   t.n = select("#", ...)
