@@ -162,15 +162,15 @@ local function processEvent(e, ...)
     mouseX = x
     mouseY = y
     if mouse2Down then
-	  if bigX then
-		doX = doX + dx
-		doX = doX > 0 and 0 or (doX < -(gridWidth * 11 - scrnWidth) and -(gridWidth * 11 - scrnWidth) or doX)
-	  end
-	  
-	  if bigY then
-		doY = doY + dy
-		doY = doY > 0 and 0 or (doY < -(gridHeight * 11 - scrnHeight) and -(gridHeight * 11 - scrnHeight) or doY)
-	  end
+      if bigX then
+        doX = doX + dx
+        doX = doX > 0 and 0 or (doX < -(gridWidth * 11 - scrnWidth) and -(gridWidth * 11 - scrnWidth) or doX)
+      end
+
+      if bigY then
+        doY = doY + dy
+        doY = doY > 0 and 0 or (doY < -(gridHeight * 11 - scrnHeight) and -(gridHeight * 11 - scrnHeight) or doY)
+      end
     end
     dirty = true
   elseif e == "mousePressed" then
