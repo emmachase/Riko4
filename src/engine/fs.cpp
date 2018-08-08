@@ -327,6 +327,22 @@ namespace riko::fs {
         return 1;
     }
 
+    static int fsObjFlush(lua_State *L) {
+        fileHandleType *data = checkFsObj(L);
+
+        if (!data->open)
+            return luaL_error(L, "file handle was closed");
+
+        if (!data->canWrite)
+            return luaL_error(L, "file is not open for writing");
+
+        int ret = fflush(data->fileStream);
+
+        lua_pushboolean(L, ret == 0);
+
+        return 1;
+    }
+
     long lineStrLen(const char *s, long max) {
         for (long i = 0; i < max; i++) {
             if (s[i] == '\n' || s[i] == '\r') {
@@ -686,6 +702,7 @@ namespace riko::fs {
             {"read",  fsObjRead},
             {"write", fsObjWrite},
             {"close", fsObjCloseHandle},
+            {"flush", fsObjFlush},
             {nullptr, nullptr}
     };
 

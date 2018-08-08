@@ -208,7 +208,9 @@ io.read = function(file, ...)
     if type(file) == "table" and getmetatable(file) == pipeMeta then
       return file.readFromStream("outStream", ...)
     else
-      local method = shell.read
+      local method = function()
+        return shell.read()
+      end
       if getfenv(2).inPipe then
         method = getfenv(2).inPipe
       end
@@ -289,6 +291,14 @@ io.popen = function(fstr, mode)
   }, fname, unpack(fargs))
 
   return pipe
+end
+io.open = function(name, mode)
+  return fs.open(name, mode or "r")
+end
+io.flush = function(file)
+  if type(file) == "userdata" then
+    file:flush()
+  end
 end
 io.stderr = io
 io.stdout = io
