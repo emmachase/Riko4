@@ -129,6 +129,7 @@ function term.scroll(n)
   end
 end
 
+local lastBG, lastfb = 1, 16
 function term.write(text, fg, bg, x, y)
   text = tostring(text)
   x = x or term.x
@@ -148,8 +149,8 @@ function term.write(text, fg, bg, x, y)
       if term.buffer[y] then
         local ind = term.buffer[y][x]
         ind[1] = c
-        ind[2] = bg or ind[2]
-        ind[3] = fg or ind[3]
+        ind[2] = bg or lastBG
+        ind[3] = fg or lastFG
       else
         endC = text:sub(i)
         break
@@ -160,6 +161,9 @@ function term.write(text, fg, bg, x, y)
   end
 
   term.x = x
+
+  lastBG = bg or lastBG
+  lastFG = fg or lastFG
 
   return endC, nl
 end
@@ -192,7 +196,7 @@ function shell.write(text, fg, bg, x, y)
 
         for instruction in instructionStr:gmatch("(%d*);?") do
           instruction = tonumber(instruction)
-          if instruction == 1 then bg = 1; fg = 16
+          if instruction == 0 then bg = 1; fg = 16
           elseif instruction == 30 then fg = 1  elseif instruction == 40 then bg = 1
           elseif instruction == 31 then fg = 8  elseif instruction == 41 then bg = 8
           elseif instruction == 32 then fg = 4  elseif instruction == 42 then bg = 4
@@ -209,7 +213,10 @@ function shell.write(text, fg, bg, x, y)
           elseif instruction == 94 then fg = 12 elseif instruction == 104 then bg = 12
           elseif instruction == 95 then fg = 13 elseif instruction == 105 then bg = 13
           elseif instruction == 96 then fg = 13 elseif instruction == 106 then bg = 13
-          elseif instruction == 97 then fg = 16 elseif instruction == 107 then bg = 16 end
+          elseif instruction == 97 then fg = 16 elseif instruction == 107 then bg = 16
+
+          elseif instruction == 39 then fg = 16
+          elseif instruction == 49 then bg = 1 end
         end
       elseif code then
         local rem = remainder:sub(1, code - 1)
@@ -237,6 +244,9 @@ function shell.write(text, fg, bg, x, y)
     term.x = x
     term.y = y
   end
+
+  lastBG = bg or lastBG
+  lastFG = fg or lastFG
 end
 
 function shell.tabulate(...)
