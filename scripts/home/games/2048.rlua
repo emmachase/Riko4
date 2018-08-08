@@ -1,9 +1,6 @@
 -- vim: set ft=lua:
 
-#include "/lib/header.lua"
-#include "/lib/extras.lua"
-
-#define DEBUG false
+local DEBUG = false
 
 local function rgb(...) return {...} end
 

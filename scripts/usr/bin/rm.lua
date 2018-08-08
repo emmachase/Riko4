@@ -75,6 +75,8 @@ local function performDelete(path)
     else
       return print(("Cannot remove '%s': Is a directory"):format(path), 8)
     end
+  else
+    fs.delete(path)
   end
 end
 

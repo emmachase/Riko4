@@ -2,7 +2,7 @@ if _init then
   _init()
 end
 
-#ifndef NOLOOP
+--#ifndef NOLOOP
 
 local eq = {}
 local last = os.clock()
@@ -36,4 +36,4 @@ if _cleanup then
   _cleanup()
 end
 
-#endif
+--#endif
