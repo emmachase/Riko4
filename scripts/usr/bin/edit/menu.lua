@@ -60,7 +60,7 @@ return function(context)
   end
 
   local inMenu = false
-  local menuItems = { "Save", "Find", "Goto", "Exit" }
+  local menuItems = { "Save", "Find", "Goto", "Run", "Exit" }
   local menuFunctions = {
     function() -- SAVE
       editor.trimLines()
@@ -77,6 +77,34 @@ return function(context)
     end,
     function() -- GOTO
       constructWidget("gotoLine", true)
+    end,
+    function() -- RUN
+      local ext = filename:match("^.+(%..+)$")
+      local tmpFilename = os.tmpname() .. ext
+
+      local handle = fs.open(tmpFilename, "w")
+      handle:write(ccat(editor.getText(), "\n"))
+      handle:close()
+
+      local written = false
+      local tmpWrite = shell.write
+      shell.write = function(...)
+        tmpWrite(...)
+        written = true
+      end
+      local ok, err = shell.run(tmpFilename)
+      if not ok then
+        shell.write(err .. "\n", 8)
+      end
+      shell.write = tmpWrite
+
+      if written then
+        shell.write("Program exited. Press return to continue.", 12)
+        shell.read()
+      end
+      shell.run("reset") -- to reset colors that might've been changed
+
+      fs.delete(tmpFilename)
     end,
     function() -- EXIT
       quitFunc()
