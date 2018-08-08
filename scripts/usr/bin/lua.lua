@@ -135,16 +135,16 @@ local function prettyImpl(obj, tracking, width, height, indent, tupleLength)
   elseif objType ~= "table" or tracking[obj] then
     return shell.write(tostring(obj), 7)
   elseif (getmetatable(obj) or {}).__tostring then
-    return shell.write(tostring(obj))
+    return shell.write(tostring(obj), 16)
   end
 
   local open, close = "{", "}"
   if tupleLength then open, close = "(", ")" end
 
   if (tupleLength == nil or tupleLength == 0) and next(obj) == nil then
-    return shell.write(open .. close)
+    return shell.write(open .. close, 16)
   elseif width <= 7 then
-    shell.write(open) shell.write(" ... ", 6) shell.write(close)
+    shell.write(open, 16) shell.write(" ... ", 6) shell.write(close, 16)
     return
   end
 
@@ -170,7 +170,7 @@ local function prettyImpl(obj, tracking, width, height, indent, tupleLength)
   end
 
   if shouldNewline and height <= 1 then
-    shell.write(open) shell.write(" ... ", 6) shell.write(close)
+    shell.write(open, 16) shell.write(" ... ", 6) shell.write(close, 16)
     return
   end
 
@@ -191,21 +191,21 @@ local function prettyImpl(obj, tracking, width, height, indent, tupleLength)
     childWidth, childHeight = math.ceil(width / children), 1
   end
 
-  shell.write(open .. (shouldNewline and "\n" or " "))
+  shell.write(open .. (shouldNewline and "\n" or " "), 16)
 
   tracking[obj] = true
   local seen = {}
   local first = true
   for k = 1, length do
-    if not first then shell.write(nextNewline) else first = false end
-    shell.write(subIndent)
+    if not first then shell.write(nextNewline, 16) else first = false end
+    shell.write(subIndent, 16)
 
     seen[k] = true
     prettyImpl(obj[k], tracking, childWidth, childHeight, subIndent)
 
     children = children - 1
     if children < 0 then
-      if not first then shell.write(nextNewline) else first = false end
+      if not first then shell.write(nextNewline, 16) else first = false end
       shell.write(subIndent .. "...", 6)
       break
     end
@@ -214,16 +214,16 @@ local function prettyImpl(obj, tracking, width, height, indent, tupleLength)
   for i = 1, kn do
     local k, v = keys[i], obj[keys[i]]
     if not seen[k] then
-      if not first then shell.write(nextNewline) else first = false end
-      shell.write(subIndent)
+      if not first then shell.write(nextNewline, 16) else first = false end
+      shell.write(subIndent, 16)
 
       if type(k) == "string" and not keywords[k] and k:match("^[%a_][%a%d_]*$") then
-        shell.write(k .. " = ")
+        shell.write(k .. " = ", 16)
         prettyImpl(v, tracking, childWidth, childHeight, subIndent)
       else
-        shell.write("[")
+        shell.write("[", 16)
         prettyImpl(k, tracking, childWidth, childHeight, subIndent)
-        shell.write("] = ")
+        shell.write("] = ", 16)
         prettyImpl(v, tracking, childWidth, childHeight, subIndent)
       end
 
@@ -237,7 +237,7 @@ local function prettyImpl(obj, tracking, width, height, indent, tupleLength)
   end
   tracking[obj] = nil
 
-  shell.write((shouldNewline and "\n" .. indent or " ") .. (tupleLength and ")" or "}"))
+  shell.write((shouldNewline and "\n" .. indent or " ") .. (tupleLength and ")" or "}"), 16)
 end
 
 local function pretty(t, n)
