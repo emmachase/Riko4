@@ -10,11 +10,11 @@ getopt({...}, "-so", {
     ["operating-system"] = {hasArg = getopt.noArgument, val = "o"}
 }) {
     s = function()
-        io.write("Riko4")
+        io.write("Riko4 ")
     end,
     o = function()
         io.write("rikoOS ")
     end
 }
 
--- io.write("\n")
+io.write("\n")
