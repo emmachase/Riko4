@@ -14,7 +14,8 @@ return {
     "speaker",
 
     "write",
-    "addRequirePath"
+    "addRequirePath",
+    "sleep"
   },
 
   ignore = {
