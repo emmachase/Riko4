@@ -125,10 +125,20 @@ fs.isDir = function(file)
 end
 
 fs.getBaseDir = function(path)
+  path:gsub("\\", "/")
   if fs.isDir(path) then
     return path
   else
-    return path:reverse():match("/(.+)"):reverse()
+    local reversed = path:reverse():match("/(.+)")
+    if reversed then
+      return reversed:reverse()
+    else
+      if path:sub(1, 1) == "/" then
+        return "/"
+      else
+        return "."
+      end
+    end
   end
 end
 
