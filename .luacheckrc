@@ -38,7 +38,7 @@ local config = {
 
         "PI", "cos", "sin", "tan", "atan2",
 
-        "flr", "ceil"
+        "flr", "ceil", "abs"
       }
     },
     ["scripts/lib/loops.lua"] = {
