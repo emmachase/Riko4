@@ -1,6 +1,8 @@
 -- Credit to @SquidDev for the beautiful pretty printer
 -- Taken from MBS and ported to Riko4
 
+addRequirePath(fs.getCWD())
+
 if select('#', ...) > 0 then
   print("This is an interactive Lua prompt.")
   print("To run a lua program, just type its name.")
