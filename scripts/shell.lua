@@ -129,7 +129,7 @@ function term.scroll(n)
   end
 end
 
-local lastBG, lastfb = 1, 16
+local lastBG, lastFG = 1, 16
 function term.write(text, fg, bg, x, y)
   text = tostring(text)
   x = x or term.x

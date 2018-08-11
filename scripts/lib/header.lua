@@ -35,7 +35,11 @@ do
     sheetMargin = m or 0
 
     local sw, sh
-    sprSheet, sw, sh = rif.createImage(file)
+    if type(file) == "userdata" then
+      sprSheet, sw, sh = file, file:getWidth(), file:getHeight()
+    else
+      sprSheet, sw, sh = rif.createImage(file)
+    end
     sheetWidth = (sw - sheetMargin * 2 + sprSpacing) / (sprArea + sprSpacing)
   end
 

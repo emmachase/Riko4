@@ -2,7 +2,7 @@
 
 local rnd, range, elip, elipFill, circ, circFill, line, poly, class, all
 local PI, cos, sin, tan, atan2
-local flr, ceil
+local flr, ceil, abs
 
 do
   local gpp = dofile("/lib/gpp.lua")
@@ -49,6 +49,8 @@ do
      end
      if cls.__init then
       cls.__init(self, ...)
+     elseif cls.init then
+      cls.init(self, ...)
      end
      return self
     end})
@@ -75,9 +77,11 @@ do
   ceil = function(...)
     local src = {...}
     for i = 1, #src do
-      src[i] = math.ceil(src)
+      src[i] = math.ceil(src[i])
     end
 
     return unpack(src)
   end
+
+  abs = math.abs
 end
