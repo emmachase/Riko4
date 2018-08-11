@@ -1227,6 +1227,7 @@ end
 
 local eventQueue = {}
 
+repaintCanv()
 drawContent()
 while running do
   while true do
