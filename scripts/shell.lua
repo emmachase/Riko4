@@ -129,7 +129,7 @@ function term.scroll(n)
   end
 end
 
-local lastBG, lastfb = 1, 16
+local lastBG, lastFG = 1, 16
 function term.write(text, fg, bg, x, y)
   text = tostring(text)
   x = x or term.x
@@ -296,6 +296,66 @@ function shell.tabulate(...)
   print()
 end
 
+local function completeRead(str, strPos)
+  local subStrPos = 1
+  local newStr = { }
+  for subStr in str:gmatch("%S+") do
+    if strPos >= subStrPos and strPos <= subStrPos + #subStr then
+      local baseDir = fs.getBaseDir(subStr)
+      if baseDir == "." and subStr:sub(1, 1) ~= "." then
+        baseDir = ""
+      end
+
+      -- If this is the first argument and not an absolute path,
+      -- look for programs in PATH and select the first one that matches
+      if baseDir == "" and subStrPos == 1 then
+        for _, pathDir in pairs(shell.config.path) do
+          local listing = fs.list(pathDir)
+          local found = false
+          if listing then
+            for _, program in pairs(listing) do
+              local ext = program:match("^.+(%..+)$")
+              for handlerExt, _ in pairs(handlers) do
+                if ext == "." .. handlerExt then
+                  if program:sub(1, #subStr) == subStr then
+                    subStr = program:sub(1, -(#ext + 1))
+                    strPos = subStrPos + #subStr
+                    found = true
+                    break
+                  end
+                end
+              end
+              if found then
+                break
+              end
+            end
+          end
+          if found then
+            break
+          end
+        end
+      else -- Normal path tab completion
+        local file = baseDir == "" and subStr
+                  or baseDir == "/" and subStr:sub(2)
+                  or subStr:sub(#baseDir + 2)
+        local listing = fs.list(baseDir)
+        if listing and file ~= "" then
+          for _, lfile in pairs(listing) do
+            if lfile:sub(1, #file) == file then
+              subStr = baseDir .. ((baseDir == "" or baseDir == "/") and "" or "/") .. lfile
+              strPos = subStrPos + #subStr
+              break
+            end
+          end
+        end
+      end
+    end
+    table.insert(newStr, subStr)
+    subStrPos = subStrPos + #subStr + 1
+  end
+  return table.concat(newStr, " "), strPos
+end
+
 function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
   local maxW = term.width - term.x + 1
   size = size and math.min(size, maxW) or maxW
@@ -311,6 +371,10 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
   history = history or {}
   local historyPt = #history + 1
 
+  local alive = true
+  local evFunc
+  local cLine = {{""}}
+
   local function checkBounds()
     if strPos - strScrollAmt > size then
       strScrollAmt = strPos - size
@@ -319,9 +383,61 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
     end
   end
 
-  local alive = true
-  local evFunc
-  local cLine = {{""}}
+  local function drawRead(drawCompletion)
+    term.write((" "):rep(size), 16, 1, x, y)
+
+    if colorFn then
+      term.write((" "):rep(size), 16, 1, x, y)
+
+      if #cLine > 0 then
+        local cx = x
+        local index, eaten = 1, 0
+        while #cLine[index][1] < strScrollAmt + 1 - eaten and index < #cLine do
+          eaten = eaten + #cLine[index][1]
+          index = index + 1
+        end
+
+        local skipFirst = strScrollAmt - eaten + 1
+
+        for j = index, #cLine do
+          local chk = cLine[j]
+          local drawStr = chk[1]:sub(skipFirst, skipFirst + size - (cx - x) - 1)
+          term.write(drawStr, chk[2] or 16, chk[3] or 1, cx, y)
+
+          cx = cx + #drawStr
+          skipFirst = 1
+        end
+      end
+
+      term.x = strPos - strScrollAmt + x - 1
+    else
+      local drawingStr = str
+      if drawCompletion and strPos - 1 == #str then
+        drawingStr = completeRead(str, strPos)
+        for i = 1, drawCompletion and 2 or 1 do
+          local strToDraw = drawingStr:sub(strScrollAmt + 1, strScrollAmt + size)
+          if replaceChar then
+            strToDraw = (replaceChar):rep(#strToDraw)
+          end
+          if drawCompletion then
+            term.write(strToDraw, i == 1 and 6 or 16, 1, x, y)
+          else
+            term.write(strToDraw, 16, 1, x, y)
+          end
+          drawingStr = str
+          term.x = strPos - strScrollAmt + x - 1
+        end
+      else
+        local strToDraw = drawingStr:sub(strScrollAmt + 1, strScrollAmt + size)
+        if replaceChar then
+          strToDraw = (replaceChar):rep(#strToDraw)
+        end
+        term.write(strToDraw, 16, 1, x, y)
+        term.x = strPos - strScrollAmt + x - 1
+      end
+    end
+  end
+
   while alive do
     local fStr = str
 
@@ -365,63 +481,8 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
           strPos = #str + 1
           term.blink = 0
         elseif k == "tab" and fileTabComplete then
-          local subStrPos = 1
-          local newStr = { }
-          for subStr in str:gmatch("%S+") do
-            if strPos >= subStrPos and strPos <= subStrPos + #subStr then
-              local baseDir = fs.getBaseDir(subStr)
-              if baseDir == "." and subStr:sub(1, 1) ~= "." then
-                baseDir = ""
-              end
-
-              -- If this is the first argument and not an absolute path,
-              -- look for programs in PATH and select the first one that matches
-              if baseDir == "" and subStrPos == 1 then
-                for _, pathDir in pairs(shell.config.path) do
-                  local listing = fs.list(pathDir)
-                  local found = false
-                  if listing then
-                    for _, program in pairs(listing) do
-                      local ext = program:match("^.+(%..+)$")
-                      for handlerExt, _ in pairs(handlers) do
-                        if ext == "." .. handlerExt then
-                          if program:sub(1, #subStr) == subStr then
-                            subStr = program:sub(1, -(#ext + 1))
-                            strPos = subStrPos + #subStr
-                            found = true
-                            break
-                          end
-                        end
-                      end
-                      if found then
-                        break
-                      end
-                    end
-                  end
-                  if found then
-                    break
-                  end
-                end
-              else -- Normal path tab completion
-                local file = baseDir == "" and subStr
-                          or baseDir == "/" and subStr:sub(2)
-                          or subStr:sub(#baseDir + 2)
-                local listing = fs.list(baseDir)
-                if listing and file ~= "" then
-                  for _, lfile in pairs(listing) do
-                    if lfile:sub(1, #file) == file then
-                      subStr = baseDir .. ((baseDir == "" or baseDir == "/") and "" or "/") .. lfile
-                      strPos = subStrPos + #subStr
-                      break
-                    end
-                  end
-                end
-              end
-            end
-            table.insert(newStr, subStr)
-            subStrPos = subStrPos + #subStr + 1
-          end
-          str = table.concat(newStr, " ")
+          str, strPos = completeRead(str, strPos)
+          term.blink = 0
         elseif k == "return" then
           alive = false
         end
@@ -433,8 +494,8 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
           term.scroll(dir)
         end
       elseif e == "mouseMoved" then
-        local x, y = ...
-        mousePos = {x, y}
+        local mx, my = ...
+        mousePos = {mx, my}
       end
 
       checkBounds()
@@ -446,39 +507,12 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
     end
 
     -- Draw
-    if colorFn then
-      term.write((" "):rep(size), 16, 1, x, y)
+    drawRead(true)
 
-      if #cLine > 0 then
-        local cx = x
-        local index, eaten = 1, 0
-        while #cLine[index][1] < strScrollAmt + 1 - eaten and index < #cLine do
-          eaten = eaten + #cLine[index][1]
-          index = index + 1
-        end
-
-        local skipFirst = strScrollAmt - eaten + 1
-
-        for j = index, #cLine do
-          local chk = cLine[j]
-          local drawStr = chk[1]:sub(skipFirst, skipFirst + size - (cx - x) - 1)
-          term.write(drawStr, chk[2] or 16, chk[3] or 1, cx, y)
-
-          cx = cx + #drawStr
-          skipFirst = 1
-        end
-      end
-    else
-      local strToDraw = str:sub(strScrollAmt + 1, strScrollAmt + size)
-      if replaceChar then
-        strToDraw = (replaceChar):rep(#strToDraw)
-      end
-      term.write(strToDraw .. (" "):rep(size - #strToDraw), 16, 1, x, y)
-    end
-
-    term.x = strPos - strScrollAmt + x - 1
     shell.draw()
   end
+
+  drawRead(false)
 
   term.blink = -math.huge
   term.x = 1
