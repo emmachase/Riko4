@@ -312,6 +312,13 @@ io.flush = function(file)
 end
 io.stderr = io
 io.stdout = io
+io.type = function(obj)
+  if type(obj) == "userdata" then
+    return "file"
+  end
+
+  return nil
+end
 
 table.pack = function(...)
   local t = {...}
