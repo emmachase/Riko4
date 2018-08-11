@@ -12,11 +12,28 @@ longOpts format:
   name = {
     hasArg = 0|1|2,
     val = <something>
+    argumentLabel = "label"   -- Required for printHelp when hasArg ~= 0
+    description = "text",     -- Optional, used for printHelp
+    section = "sectionTitle", -- Optional, used for printHelp
   }...
 }
+
+config:
+{
+  description = "text"
+  sections = {
+    {
+      title = "sectionTitle",
+      description = "text"
+    }
+  }
+}
 ]]
-function api.getopt(argTbl, optString, longOpts, noErrors)
-  local printerrors = not noErrors
+function api.getopt(argTbl, optString, longOpts, config)
+  config = config or {}
+  config.sections = config.sections or {}
+
+  local printErrors = config.printErrors or (not config.noErrors)
   longOpts = longOpts or {}
 
   local toParse = {}
@@ -26,7 +43,7 @@ function api.getopt(argTbl, optString, longOpts, noErrors)
 
   local parseMode
   local shortOpts = {}
-  parseMode, optString = optString:match("^([-+]?)(.+)")
+  parseMode, optString = optString:match("^([-+]?)(.*)")
   while #optString > 0 do
     local char, args
     char, args, optString = optString:match("^(.)([:]?[:]?)(.*)")
@@ -82,7 +99,7 @@ function api.getopt(argTbl, optString, longOpts, noErrors)
             end
           end
         else
-          if printerrors then
+          if printErrors then
             print(("Unknown option '--%s'"):format(opt), 8)
           end
 
@@ -137,7 +154,7 @@ function api.getopt(argTbl, optString, longOpts, noErrors)
             end
           end
         else
-          if printerrors then
+          if printErrors then
             print(("Unknown option '-%s'"):format(char), 8)
           end
 
@@ -154,6 +171,27 @@ function api.getopt(argTbl, optString, longOpts, noErrors)
         return api.notOpt
       end
     end
+  end
+
+  function instance.printHelp(usageStr)
+    local sections = {{
+      title = "Options"
+    }}
+
+    for i = 1, #config.sections do
+      sections[i + 1] = config.sections[i]
+      sections[i + 1].elements = {}
+    end
+
+    for k, v in pairs(shortOpts) do
+      
+    end
+
+    if usageStr then
+      print(usageStr)
+    end
+
+    print(config.description)
   end
 
   setmetatable(instance, {
