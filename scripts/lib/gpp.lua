@@ -181,7 +181,7 @@ function gpp.drawLine(x1, y1, x2, y2, c)
       deltaY = y2 - y1
     end
 
-    local ddY = deltaY > 1 and 1 or -1
+    local ddY = deltaY > 0 and 1 or -1
 
     local deltaErr = 2 * deltaY * ddY - deltaX
 
@@ -210,7 +210,7 @@ function gpp.drawLine(x1, y1, x2, y2, c)
       deltaY = y2 - y1
     end
 
-    local ddX = deltaX > 1 and 1 or -1
+    local ddX = deltaX > 0 and 1 or -1
 
     local deltaErr = 2 * deltaX * ddX - deltaY
 
@@ -242,7 +242,7 @@ function gpp.fillPolygon(poly, c)
     if pp[2] < imgTop then
       imgTop = pp[2]
     end
-    
+
     if pp[2] > imgBot then
       imgBot = pp[2]
     end
@@ -270,11 +270,11 @@ function gpp.fillPolygon(poly, c)
     i = 1;
     while (i < nodes) do
       if (nodeX[i] > nodeX[i+1]) then
-        swap = nodeX[i]; 
-        nodeX[i] = nodeX[i+1]; 
-        nodeX[i+1] = swap; 
+        swap = nodeX[i];
+        nodeX[i] = nodeX[i+1];
+        nodeX[i+1] = swap;
         if i > 1 then i = i - 1 end
-      else 
+      else
         i = i + 1
       end
     end
