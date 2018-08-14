@@ -80,6 +80,8 @@ namespace riko::net {
                 request.setOpt<cURLpp::options::PostFieldSize>(postData->length());
             }
 
+            request.setOpt<cURLpp::options::UserAgent>("curl/7.61.0");
+
             request.setOpt<cURLpp::options::FollowLocation>(true);
             request.setOpt<cURLpp::options::MaxRedirs>(16L);
 

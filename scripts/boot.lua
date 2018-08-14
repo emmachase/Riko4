@@ -95,7 +95,7 @@ net.get = function(url)
     if e == "netSuccess" and eUrl == url then
       return handle
     elseif e == "netFailure" and eUrl == url then
-      return
+      return false,  handle
     end
   end
 end
