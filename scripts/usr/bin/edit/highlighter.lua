@@ -169,7 +169,7 @@ local luaParsers = {
   parseString = function(toParse, curLine)
     local beginner = toParse:match("^[\"']")
     if beginner then
-      insertColor(curLine, "\"", syntaxTheme.string)
+      insertColor(curLine, beginner, syntaxTheme.string)
       toParse = toParse:sub(2)
 
       repeat
