@@ -38,7 +38,6 @@ local display, keys, keypress, RAM, stack, DT, ST, PC, SP, V, I
 
 -- Load ROM into RAM
 
-
 local function load()
   display = { }
   keys = { }
@@ -201,9 +200,7 @@ local function doCycle()
       DT = V[x]
     elseif opcode3 == 1 and opcode4 == 8 then
       ST = V[x]
-      if ST > 0 and commands then
-        commands.execAsync("/playsound note.pling @a ~ ~ ~")
-      end
+      speaker.play({channel = 1, frequency = 523, time = ST / 60, shift = 0, volume = 0.1, attack = 0, release = 0})
     elseif opcode3 == 1 and opcode4 == 0xE then
       I = I + V[x]
     elseif opcode3 == 2 and opcode4 == 9 then
