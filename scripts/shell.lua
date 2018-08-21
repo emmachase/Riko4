@@ -173,6 +173,10 @@ end
 shell = {config = config, term = term}
 local shell = shell -- For performance
 
+function shell.updateMouse(mx, my)
+  mousePos = {mx, my}
+end
+
 function shell.write(text, fg, bg, x, y)
   x = x or term.x
   y = y or term.y
@@ -740,8 +744,15 @@ function shell.erun(cenv, name, ...)
     env.arg = words
 
     local routine = coroutine.create(handlerFunc)
+    local preEvents = {
+      {"mouseMoved", mousePos[1], mousePos[2], 0, 0}
+    }
     local resumeArgs = {name, words, env}
     while coroutine.status(routine) ~= "dead" do
+      if resumeArgs[1] == "mouseMoved" then
+        shell.updateMouse(resumeArgs[2], resumeArgs[3])
+      end
+
       local out, e, e2 = coroutine.resume(routine, unpack(resumeArgs))
       if e == "killme" then
         coroutine.resume(routine, "killed")
@@ -752,7 +763,11 @@ function shell.erun(cenv, name, ...)
         return false, e2
       end
 
-      resumeArgs = table.pack(coroutine.yield())
+      if #preEvents > 0 then
+        resumeArgs = table.remove(preEvents, 1)
+      else
+        resumeArgs = table.pack(coroutine.yield())
+      end
     end
 
     return true
