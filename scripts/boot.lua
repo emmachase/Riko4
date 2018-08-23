@@ -125,7 +125,7 @@ fs.isDir = function(file)
 end
 
 fs.getBaseDir = function(path)
-  path:gsub("\\", "/")
+  path = path:gsub("\\", "/")
   if fs.isDir(path) then
     return path
   else
