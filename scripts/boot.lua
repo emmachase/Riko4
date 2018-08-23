@@ -1,4 +1,4 @@
--- luacheck: globals os getfenv setfenv net table.pack loadfile dofile bit32
+-- luacheck: globals os io getfenv setfenv net table.pack loadfile dofile bit32
 
 local ffi
 if jit then
@@ -263,7 +263,7 @@ io.popen = function(fstr, mode)
       elseif mode:sub(1, 1) == "l" then
         local data, rest = pipe[streamKey]:match("(^[^\n]+)(.+)")
         pipe[streamKey] = rest
-        
+
         return data
       end
     end
