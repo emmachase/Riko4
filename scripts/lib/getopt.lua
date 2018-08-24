@@ -12,28 +12,22 @@ longOpts format:
   name = {
     hasArg = 0|1|2,
     val = <something>
-    argumentLabel = "label"   -- Required for printHelp when hasArg ~= 0
-    description = "text",     -- Optional, used for printHelp
-    section = "sectionTitle", -- Optional, used for printHelp
   }...
 }
 
 config:
 {
-  description = "text"
-  sections = {
-    {
-      title = "sectionTitle",
-      description = "text"
-    }
-  }
+  printErrors = true,
+  noErrors = not printErrors
 }
 ]]
 function api.getopt(argTbl, optString, longOpts, config)
   config = config or {}
-  config.sections = config.sections or {}
 
-  local printErrors = config.printErrors or (not config.noErrors)
+  local printErrors = true
+  if config.printErrors == false or (not config.noErrors) then
+    printErrors = false
+  end
   longOpts = longOpts or {}
 
   local toParse = {}
@@ -171,27 +165,6 @@ function api.getopt(argTbl, optString, longOpts, config)
         return api.notOpt
       end
     end
-  end
-
-  function instance.printHelp(usageStr)
-    local sections = {{
-      title = "Options"
-    }}
-
-    for i = 1, #config.sections do
-      sections[i + 1] = config.sections[i]
-      sections[i + 1].elements = {}
-    end
-
-    for k, v in pairs(shortOpts) do
-
-    end
-
-    if usageStr then
-      print(usageStr)
-    end
-
-    print(config.description)
   end
 
   setmetatable(instance, {
