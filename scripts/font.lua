@@ -1,4 +1,4 @@
-local btest = bit32 and bit32.btest or false
+local btest = bit32 and bit32.btest or false -- luacheck: globals bit32
 local sbyte = string.byte
 local schar = string.char
 
@@ -20,29 +20,6 @@ if not btest then
 end
 
 local font = {}
-
-local startf = 33
-local endf = 127
-local function parseFontdata(fontdata)
-  local res = {}
-
-  for i = startf, endf  do
-    res[i] = {}
-
-    for j = 1, 7 do
-      local char = fontdata:sub(1, 1)
-      fontdata = fontdata:sub(2)
-
-      res[i][j] = {}
-      local pos = res[i][j]
-      for k = 1, 7 do
-        pos[k] = btest(sbyte(char), 2^(k-1))
-      end
-    end
-  end
-
-  return res
-end
 
 function font.parseFontdata2(fontdata)
   if fontdata:sub(1, 3) ~= "FNT" then

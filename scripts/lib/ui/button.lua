@@ -20,11 +20,11 @@ function button.new(data, x, y, w, h)
       display = "text",
       text = data
     }
-    
+
     for k, v in pairs(button.defaults) do
       meta[k] = v
     end
-    
+
     if not w then
       w = #data * 7 + 6
     end
@@ -38,13 +38,13 @@ function button.new(data, x, y, w, h)
   elseif type(data) == "table" then
     meta = data
   end
-  
+
   local t = {x = x, y = y, w = w, h = h, meta = meta,
     state = {
       hover = false,
       active = false
     }}
-  
+
   setmetatable(t, {__index = button})
   return t
 end
@@ -91,11 +91,11 @@ function button:event(e, ...)
     if checkBounds(self.x, self.y, self.w, self.h, mx, my) then
       self.state.active = false
       self.state.hover = true
-      
+
       if self.callback then
         self.callback(self)
       end
-      
+
       return true
     else
       self.state.active = false
@@ -103,7 +103,7 @@ function button:event(e, ...)
       return false
     end
   end
-  
+
   return false
 end
 

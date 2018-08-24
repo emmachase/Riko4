@@ -7,7 +7,7 @@ do
   if not riko4 then riko4 = {} end
   riko4.exit = os.exit
 
-  os.exit = function()
+  os.exit = function() -- luacheck: globals os
     local r = coroutine.yield("killme")
     if r ~= "killed" then
       error("Failed to gracefully exit", 0)
@@ -33,7 +33,6 @@ end
 
 -- Localizations
 local write = write
-local floor = math.floor
 local font  = gpu.font.data
 local fontW = font.w + 1 -- TODO: This must be changed after fonts overhaul
 local fontH = font.h + 1
@@ -58,10 +57,6 @@ do
 end
 
 -- Utility Functions
-local function round(n, p)
-  return floor(n / p) * p
-end
-
 local function shellSplit(str)
   local tab = {""}
 
@@ -69,16 +64,16 @@ local function shellSplit(str)
   for i = 1, #str do
     local c = str:sub(i, i)
 
-    if c == "\\" and str:sub(i + 1, i + 1) == "\"" then
-      -- Do nothing
-    elseif c == "\"" and str:sub(i - 1, i - 1) ~= "\\" then
-      inStr = not inStr
-    elseif inStr then
-      tab[#tab] = tab[#tab] .. c
-    elseif c:match("%s") and #(tab[#tab]) > 0 then
-      tab[#tab + 1] = ""
-    else
-      tab[#tab] = tab[#tab] .. c
+    if not (c == "\\" and str:sub(i + 1, i + 1) == "\"") then
+      if c == "\"" and str:sub(i - 1, i - 1) ~= "\\" then
+        inStr = not inStr
+      elseif inStr then
+        tab[#tab] = tab[#tab] .. c
+      elseif c:match("%s") and #(tab[#tab]) > 0 then
+        tab[#tab + 1] = ""
+      else
+        tab[#tab] = tab[#tab] .. c
+      end
     end
   end
 
@@ -595,7 +590,7 @@ function shell.clear()
   term.scroll(-term.scrollAmt)
 end
 
-function print(text, fg, bg, x, y)
+function print(text, fg, bg, x, y) -- luacheck: ignore
   shell.write(text, fg, bg, x, y)
 
   term.x = 1
@@ -753,7 +748,7 @@ function shell.erun(cenv, name, ...)
         shell.updateMouse(resumeArgs[2], resumeArgs[3])
       end
 
-      local out, e, e2 = coroutine.resume(routine, unpack(resumeArgs))
+      local _, e, e2 = coroutine.resume(routine, unpack(resumeArgs))
       if e == "killme" then
         coroutine.resume(routine, "killed")
         break

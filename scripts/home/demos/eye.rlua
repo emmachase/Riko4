@@ -18,7 +18,6 @@ function _draw()
 
   for i = 1, 750 do
     local x, y = rnd(-_w/2, _w/2), rnd(-_h/2, _h/2)
-    local yy = (2*math.abs(y) + 2*scale/10)^2
     if (x/2)^2 + (math.abs(y) + 2*math.sqrt(scale)/6)^2 <= scale then
       local c = rnd(0, 1) == 1 and 16 or 7
       if (x + offX)^2 + (y + offY)^2 <= scale then

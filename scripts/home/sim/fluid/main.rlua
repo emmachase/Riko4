@@ -144,23 +144,23 @@ local function reflectBC()
   end
 end
 
-local function leapfrogStart(dt)
-  for i = 1, 2*n do _vh[i] = _v[i]  +  _a[i] * dt / 2 end
-  for i = 1, 2*n do _v[i]  = _v[i]  +  _a[i] * dt end
-  for i = 1, 2*n do _x[i]  = _x[i]  + _vh[i] * dt end
+local function leapfrogStart(dtt)
+  for i = 1, 2*n do _vh[i] = _v[i]  +  _a[i] * dtt / 2 end
+  for i = 1, 2*n do _v[i]  = _v[i]  +  _a[i] * dtt end
+  for i = 1, 2*n do _x[i]  = _x[i]  + _vh[i] * dtt end
   reflectBC()
 end
 
-local function leapfrogStep(dt)
-  for i = 1, 2*n do _vh[i] = _vh[i] +  _a[i] * dt end
-  for i = 1, 2*n do _v[i]  = _vh[i] +  _a[i] * dt / 2 end
-  for i = 1, 2*n do _x[i]  = _x[i]  + _vh[i] * dt end
+local function leapfrogStep(dtt)
+  for i = 1, 2*n do _vh[i] = _vh[i] +  _a[i] * dtt end
+  for i = 1, 2*n do _v[i]  = _vh[i] +  _a[i] * dtt / 2 end
+  for i = 1, 2*n do _x[i]  = _x[i]  + _vh[i] * dtt end
   reflectBC()
 end
 
 -- Initialization
 
-local function boxIndicator(x, y)
+local function boxIndicator(x, y) -- luacheck: ignore
   return x < 0.5 and y < 0.5
 end
 
@@ -239,12 +239,12 @@ function _draw()
     --rect(_x[i] * _w, _x[i + 1] * _h, 8, 8, 8)
 
     for j = 6, 11 do
-      for k = -j, j do
-        local ak = math.abs(k)
-        local ep = math.sqrt(j * j - ak * ak)
+      for kk = -j, j do
+        local akk = math.abs(kk)
+        local ep = math.sqrt(j * j - akk * akk)
         for l = j - ep, j + ep do
-          local c = cnv:getPixel(xp * (_w / 2) + k, yp * (_h / 2) - j + l)
-          cnv:drawPixel(xp * (_w / 2) + k, yp * (_h / 2) - j + l, c + 1)
+          local c = cnv:getPixel(xp * (_w / 2) + kk, yp * (_h / 2) - j + l)
+          cnv:drawPixel(xp * (_w / 2) + kk, yp * (_h / 2) - j + l, c + 1)
         end
       end
     end
@@ -262,10 +262,10 @@ function _draw()
   swap()
 end
 
-function _update(dt)
+function _update(dtt)
   for i = 1, npframe do
     computeAccel()
-    leapfrogStep(dt / 5)
+    leapfrogStep(dtt / 5)
   end
 end
 

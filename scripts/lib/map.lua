@@ -25,12 +25,12 @@ function maputils.parse(filename, sheets)
     if tlItem.name == "tileset" then
       idLookup[#idLookup + 1] = {firstgid = tonumber(tlItem.properties.firstgid), source = tlItem.properties.source}
     elseif tlItem.name == "layer" then
-      local data = tlItem.children[1].children[1].content
+      local mdata = tlItem.children[1].children[1].content
       local layerData = {}
 
       local i = 0
       local j = 1
-      for word in data:gmatch("%d+") do
+      for word in mdata:gmatch("%d+") do
         i = i + 1
         if i > mapMeta.mapWidth then
           i = 1

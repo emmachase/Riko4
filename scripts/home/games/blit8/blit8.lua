@@ -34,7 +34,7 @@ end
 local filename = parseInstance.notOptions[1]
 
 local speed = 10 -- Instructions per frame (60Hz)
-local display, keys, keypress, RAM, stack, DT, ST, PC, SP, V, I
+local display, keys, keypress, RAM, stack, DT, ST, PC, SP, V, I -- luacheck: ignore
 
 -- Load ROM into RAM
 

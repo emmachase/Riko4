@@ -2,8 +2,7 @@ local running = true
 
 local sw, sh = gpu.width, gpu.height
 
-local Vector = dofile("../lib/vector.lua")
-local class = dofile("../lib/class.lua")
+local class = require("class")
 
 local Particle = class(nil, "part")
 

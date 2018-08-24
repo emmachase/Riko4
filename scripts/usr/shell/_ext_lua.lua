@@ -15,7 +15,9 @@ return function(filename, args, env)
 
   setfenv(func, env)
   local ret = {pcall(func, unpack(args))}
-  local s, e = ret[1], ret[2]
+  local s
+  s, e = ret[1], ret[2]
+
   if not s then
     if e then
       local xt = e:match("%[.+%](.+)")

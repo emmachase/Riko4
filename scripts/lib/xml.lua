@@ -48,11 +48,11 @@ function xmlutils.parse(buffer)
       buffer = buffer:sub(nxtLoc)
     elseif nxtLoc == 1 and capt == "</" then
       -- Closing tag
-      local _, endC, closingName = buffer:find("%<%/%s*([a-zA-Z0-9%_%-%:]+)")
+      local _, _, closingName = buffer:find("%<%/%s*([a-zA-Z0-9%_%-%:]+)")
       if closingName == parsePoint.name then
         -- All good!
         parsePoint = parsePoint.parent
-        
+
         local _, endTagPos = buffer:find("%s*>")
         if not endTagPos then
           -- Improperly terminated terminating tag... how?
@@ -111,7 +111,8 @@ function xmlutils.parse(buffer)
 
             buffer = buffer:sub(eqP + 1)
 
-            local nextNtWhite, _, propMatch = buffer:find("(%S)")
+            local propMatch
+            nextNtWhite, _, propMatch = buffer:find("(%S)")
 
             if tonumber(propMatch) then
               -- Gon be a num
@@ -126,7 +127,7 @@ function xmlutils.parse(buffer)
               buffer = buffer:sub(endNP + 1)
             elseif propMatch == "\"" or propMatch == "'" then
               -- Gon be a string
-              
+
               buffer = buffer:sub(nextNtWhite)
 
               local terminationPt = buffer:find("[^%\\]%" .. propMatch) + 1

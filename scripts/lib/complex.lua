@@ -33,10 +33,10 @@ do
   end
 
   function complex.add(a, b)
-    return scalarDiff(a, b, function(a, b)
-      return complex(a.real + b.real, a.imag + b.imag)
-    end, function(a, b)
-      return complex(a.real + b, a.imag)
+    return scalarDiff(a, b, function(c, d)
+      return complex(c.real + d.real, c.imag + d.imag)
+    end, function(c, d)
+      return complex(c.real + d, c.imag)
     end)
   end
 
@@ -45,10 +45,10 @@ do
   end
 
   function complex.mul(a, b)
-    return scalarDiff(a, b, function(a, b)
-      return complex(a.real * b.real - a.imag * b.imag, a.real * b.imag + a.imag * b.real)
-    end, function(a, b)
-      return complex(a.real * b, a.imag * b)
+    return scalarDiff(a, b, function(c, d)
+      return complex(c.real * d.real - c.imag * d.imag, c.real * d.imag + c.imag * d.real)
+    end, function(c, d)
+      return complex(c.real * d, c.imag * d)
     end)
   end
 

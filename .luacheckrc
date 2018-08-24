@@ -12,10 +12,22 @@ local config = {
     "image",
     "shell",
     "speaker",
+    "net",
 
     "write",
     "addRequirePath",
-    "sleep"
+    "sleep",
+    "debugTrace",
+
+    "riko4"
+  },
+
+  read_globals = {
+    ["table"] = {
+      fields = {
+        "pack"
+      }
+    }
   },
 
   ignore = {

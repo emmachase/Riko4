@@ -1,4 +1,4 @@
-local gpp = dofile("/lib/gpp.lua")
+local gpp = require("gpp")
 local vec = dofile("../lib/vector.lua")
 
 local rope = {

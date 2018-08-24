@@ -21,10 +21,10 @@ return function(context)
     self.popout.drawCallback = self.internalDraw
     self.popout.bind = self
 
-    self.input.completeCallback = function(text)
+    self.input.completeCallback = function(ntext)
       self:die()
-      
-      mediator:publish({"editor"}, "findNext", text)
+
+      mediator:publish({"editor"}, "findNext", ntext)
     end
 
     return self

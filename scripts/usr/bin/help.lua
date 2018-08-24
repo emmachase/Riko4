@@ -3,7 +3,7 @@
 
 local args = {...}
 
-local w, h = gpu.width, gpu.height
+local w = gpu.width
 
 local function writeICWrap(str, preserveWordsQ, strLitQ, start, hang)
   local color = 16
@@ -22,7 +22,7 @@ local function writeICWrap(str, preserveWordsQ, strLitQ, start, hang)
     local nextB, bEnd, nCol = str:find("\b([%d]+)")
 
     local sect
-    local newL = false
+    local newL
 
     if nextB and nextB <= maxW() then
       sect = str:sub(1, nextB - 1)
@@ -65,7 +65,7 @@ local function writeICWrap(str, preserveWordsQ, strLitQ, start, hang)
         shell.write(sect, color)
       end
     end
-    
+
     if newL then
       shell.write((" "):rep(hang))
       start = hang * (gpu.font.data.w + 1)
@@ -109,7 +109,7 @@ else
         end
       end
     end
-    
+
     if DONE then
       break
     end
@@ -127,7 +127,7 @@ else
     return
   end
   local first = handle:read("*line")
-  
+
   if first:sub(1, 7) == "--HELP:" then
     first = "--" .. first:sub(8)
     while true do

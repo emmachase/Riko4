@@ -233,8 +233,8 @@ function gpp.drawLine(x1, y1, x2, y2, c)
 end
 
 function gpp.fillPolygon(poly, c)
-  local pixelX, pixelY, i, j, swap
-  local nodes, nodeX = 0, {}
+  local j, swap, nodes
+  local nodeX = {}
 
   local imgTop, imgBot = gpuHeight, 0
   for i = 1, #poly do
@@ -267,15 +267,17 @@ function gpp.fillPolygon(poly, c)
     end
 
     -- Bubble Sort the nodes
-    i = 1;
-    while (i < nodes) do
-      if (nodeX[i] > nodeX[i+1]) then
-        swap = nodeX[i];
-        nodeX[i] = nodeX[i+1];
-        nodeX[i+1] = swap;
-        if i > 1 then i = i - 1 end
-      else
-        i = i + 1
+    do
+      local i = 1;
+      while (i < nodes) do
+        if (nodeX[i] > nodeX[i+1]) then
+          swap = nodeX[i];
+          nodeX[i] = nodeX[i+1];
+          nodeX[i+1] = swap;
+          if i > 1 then i = i - 1 end
+        else
+          i = i + 1
+        end
       end
     end
 

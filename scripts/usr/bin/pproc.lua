@@ -1,6 +1,7 @@
 --HELP: \b6Usage: \b16pproc \b7<\b16inputFile\b7> [\b16outputFile\b7] \n
 -- \b6Description: \b7Runs \b16inputFile \b7through the \b12Riko4 \b7preprocessor. It will output to \b16outputFile \b7if given, or \b16inputFile .. ".lua"\b7 otherwise.
 
+-- luacheck: globals printError
 
 local args = { ... }
 
@@ -222,8 +223,8 @@ local function attemptSub(line)
 
                   lineP = lineP .. attemptSub(scope[i][2])
 
-                  for p = 1, #modded do
-                    local indER = modded[p]
+                  for pp = 1, #modded do
+                    local indER = modded[pp]
                     if tempHold[indER] then
                       scope[indER] = tempHold[indER]
                     else
@@ -300,10 +301,12 @@ while #lines > 0 do
       if endS then
         final = final .. line:sub(1, endS + 1)
         line = line:sub(endS + 2)
+        table.insert(lines, 1, line)
+        lineI = lineI - 1 -- So the line number stays consistent on the next pass
+
         multiline = false
       else
         final = final .. line .. "\n"
-        line = ""
       end
     else
       local trim = trimS(line) or ""
@@ -315,8 +318,8 @@ while #lines > 0 do
           local command = trimS(inst:sub(12))
           local inStr = command:match("%b\"\"")
           if inStr then
-            local fn = inStr:sub(2, #inStr - 1)
-            local Ihandle = outAPI.open(fn, "rb")
+            local fun = inStr:sub(2, #inStr - 1)
+            local Ihandle = outAPI.open(fun, "rb")
             if Ihandle then
               local Idata = Ihandle:read("*all") .. "\n"
               local Ilines = {"[["}
@@ -333,7 +336,7 @@ while #lines > 0 do
 
               lines = Ilines
             else
-              erf("Preprocessor parse error: (Line " .. lineI .. ")\nCannot find `" .. fn .. "'\n")
+              erf("Preprocessor parse error: (Line " .. lineI .. ")\nCannot find `" .. fun .. "'\n")
             end
           else
             erf("Preprocessor parse error: (Line " .. lineI .. ")\nUnknown include strategy\n")
@@ -342,8 +345,8 @@ while #lines > 0 do
           local command = trimS(inst:sub(8))
           local inStr = command:match("%b\"\"")
           if inStr then
-            local fn = inStr:sub(2, #inStr - 1)
-            local Ihandle = outAPI.open(fn, "rb")
+            local fun = inStr:sub(2, #inStr - 1)
+            local Ihandle = outAPI.open(fun, "rb")
             if Ihandle then
               local Idata = Ihandle:read("*all") .. "\n"
               local Ilines = {}
@@ -358,7 +361,7 @@ while #lines > 0 do
 
               lines = Ilines
             else
-              erf("Preprocessor parse error: (Line " .. lineI .. ")\nCannot find `" .. fn .. "'\n")
+              erf("Preprocessor parse error: (Line " .. lineI .. ")\nCannot find `" .. fun .. "'\n")
             end
           else
             erf("Preprocessor parse error: (Line " .. lineI .. ")\nUnknown include strategy\n")
@@ -368,10 +371,10 @@ while #lines > 0 do
           local inStr = command:match("%b\"\"")
 
           if inStr then
-            local fn = inStr:sub(2, #inStr - 1)
-            local asStr = command:match("[aA][sS] (%S+)") or fn:match("[^%.]+")
+            local fun = inStr:sub(2, #inStr - 1)
+            local asStr = command:match("[aA][sS] (%S+)") or fun:match("[^%.]+")
 
-            local Ihandle = outAPI.open(fn, "rb")
+            local Ihandle = outAPI.open(fun, "rb")
             if Ihandle then
               local Idata = Ihandle:read("*all") .. "\n"
               local Ilines = {
@@ -391,7 +394,7 @@ while #lines > 0 do
 
               lines = Ilines
             else
-              erf("Preprocessor parse error: (Line " .. lineI .. ")\nCannot find `" .. fn .. "'\n")
+              erf("Preprocessor parse error: (Line " .. lineI .. ")\nCannot find `" .. fun .. "'\n")
             end
           else
             erf("Preprocessor parse error: (Line " .. lineI .. ")\nUnknown require strategy\n")
@@ -474,9 +477,9 @@ while #lines > 0 do
             erf("Preprocessor parse error: (Line " .. lineI .. ")\n`if' ppc is disabled\n")
           else
             local command = trimS(inst:sub(3))
-            local fn, er = loadStr("return (" .. command .. ")")
+            local fun, er = loadStr("return (" .. command .. ")")
 
-            if not fn then
+            if not fun then
               er = er and er:sub(er:find(":") + 4) or "Invalid conditional"
               erf("Preprocessor parse error: (Line " .. lineI .. ")\n" .. er .. "\n")
             else
@@ -486,9 +489,9 @@ while #lines > 0 do
                 if tonumber(val) then val = tonumber(scope[i][2]) end
                 fscope[scope[i][1]] = val
               end
-              setfenv(fn, fscope)
+              setfenv(fun, fscope)
 
-              local succ, sret = pcall(fn)
+              local succ, sret = pcall(fun)
 
               if not succ then
                 sret = sret and sret:sub(sret:find(":") + 4) or "Invalid conditional"
@@ -501,7 +504,7 @@ while #lines > 0 do
           end
         elseif sw(inst, "else") then
           skipBlock = skipBlock + 1
-        elseif sw(inst, "endif") then
+        elseif sw(inst, "endif") then -- luacheck: ignore
           -- Doesn't affect flow, only applicable to helping blocks
         else
           erf("Preprocessor parse error: (Line " .. lineI .. ")\nUnknown instruction `" .. inst:match("%S+") .. "'\n")

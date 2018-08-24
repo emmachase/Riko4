@@ -60,7 +60,7 @@ local function getFunctionArgs(func)
       if info.name ~= "pcall" then return end
 
       for i = 1, math.huge do
-        local name, value = debug.getlocal(2, i)
+        local name = debug.getlocal(2, i)
 
         if name == "(*temporary)" or not name then
           debug.sethook(hook)

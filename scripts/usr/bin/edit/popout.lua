@@ -4,7 +4,7 @@ local padding = 10
 local animSpeed = 15
 
 local floor, ceil = math.floor, math.ceil
-local scrnWidth, scrnHeight = gpu.width, gpu.height
+local scrnWidth = gpu.width
 
 local function round(n)
   if n % 1 >= 0.5 then

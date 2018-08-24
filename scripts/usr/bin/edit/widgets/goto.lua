@@ -19,7 +19,7 @@ return function(context)
 
     self.input.completeCallback = function(text)
       self:die()
-      
+
       mediator:publish({"editor"}, "goto", tonumber(text))
     end
 

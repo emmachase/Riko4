@@ -184,7 +184,7 @@ function api.getopt(argTbl, optString, longOpts, config)
     end
 
     for k, v in pairs(shortOpts) do
-      
+
     end
 
     if usageStr then

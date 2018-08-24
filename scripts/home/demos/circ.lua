@@ -14,7 +14,7 @@ local w, h = gpu.width, gpu.height
 
 local gpp = dofile("/lib/gpp.lua")
 
-local sin, cos = math.sin, math.cos
+local sin = math.sin
 
 local timer = 0
 local vel = 0
@@ -34,8 +34,6 @@ local function round(n)
     return n % 1
   end
 end
-
-local gr = 50
 
 local function cfunc(i, j)
   if round(i / (math.pi / 2)) % 2 == 0 then

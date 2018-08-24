@@ -23,10 +23,6 @@ pal(npal)
 
 cls()
 
-local scale = 50 * 50
-local offX = 0
-local offY = 0
-
 local mx, my = -5, -5
 
 local function circ(x, y, c)
@@ -94,14 +90,6 @@ end
 local timer = 0
 function _update(dt)
   timer = timer + dt
-
-  if mx >= 0 then
-    offX = -(mx - _w/2)/(_w/2) * 40
-    offY = -(my - _h/2)/(_h/2) * 10
-  else
-    offX = math.sin(timer) * 40
-    offY = math.sin(timer / 4) * 10
-  end
 end
 
 function _event(e, ...)

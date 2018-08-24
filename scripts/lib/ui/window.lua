@@ -1,3 +1,5 @@
+local button = require("ui.button")
+
 local window = {}
 
 window.defaults = {

@@ -242,9 +242,7 @@ io.close = function(handle)
     handle:close()
   end
 end
-io.popen = function(fstr, mode)
-  mode = mode or "r"
-
+io.popen = function(fstr)
   local pipe = setmetatable({inStream = "", outStream = ""}, pipeMeta)
   local function readFromStream(streamKey, mode)
     if tonumber(mode) then
@@ -289,7 +287,6 @@ io.popen = function(fstr, mode)
   for arg in fstr:gmatch("%S+") do
     fargs[#fargs + 1] = arg
   end
-  
 
   shell.erun({
     inPipe = function(m)

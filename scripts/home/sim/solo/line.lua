@@ -15,8 +15,8 @@ local size = 64
 local sw, sh = gpu.width, gpu.height
 
 local Vector = dofile("../lib/vector.lua")
-local class = dofile("../lib/class.lua")
-local gpp = dofile("/lib/gpp.lua")
+local class = require("class")
+local gpp = require("gpp")
 
 local function cons(x, y)
   local dist = Vector(x, y):norm()
