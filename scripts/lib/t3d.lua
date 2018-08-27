@@ -8,12 +8,14 @@ local t3d = {}
 
 local version = 1
 
+local screenWidth, screenHeight = gpu.width, gpu.height
+
 local function drawHLine(x1, x2, y, c)
-  if x1 > x2 then
-    local temp = x1
-    x1 = x2
-    x2 = temp
-  end
+  -- this assumes x2 >= x1
+  if x2 < 0 then return end
+  if x1 > screenWidth - 1 then return end
+  if x1 < 0 then x1 = 0 end
+  if x2 > screenWidth - 1 then x2 = screenWidth - 1 end
   for x = x1, x2 do
     gpu.drawPixel(x, y, c)
   end
@@ -65,22 +67,25 @@ local function fillTriangle(x1, y1, x2, y2, x3, y3, c)
 
   local xstart, xend
   for y = math.ceil(y1 + 0.5) - 0.5, math.floor(y3 - 0.5) + 0.5, 1 do
-    if y <= y2 then -- first half
-      xstart = x1 + finvslope1 * (y - y1)
-      xend = x1 + finvslope2 * (y - y1)
-    else -- second half
-      xstart = x3 - linvslope1 * (y3 - y)
-      xend = x3 - linvslope2 * (y3 - y)
-    end
+    local ys = y - 0.5
+    if ys >= 0 and ys < screenHeight then
+      if y <= y2 then -- first half
+        xstart = x1 + finvslope1 * (y - y1)
+        xend = x1 + finvslope2 * (y - y1)
+      else -- second half
+        xstart = x3 - linvslope1 * (y3 - y)
+        xend = x3 - linvslope2 * (y3 - y)
+      end
 
-    if xstart > xend then
-      local temp = xstart
-      xstart = xend
-      xend = temp
-    end
-    local dxstart, dxend = math.ceil(xstart - 0.5), math.floor(xend - 0.5)
-    if dxstart <= dxend then
-      drawHLine(dxstart, dxend, y - 0.5, c)
+      if xstart > xend then
+        local temp = xstart
+        xstart = xend
+        xend = temp
+      end
+      local dxstart, dxend = math.ceil(xstart - 0.5), math.floor(xend - 0.5)
+      if dxstart <= dxend then
+        drawHLine(dxstart, dxend, ys, c)
+      end
     end
   end
 end
@@ -135,10 +140,26 @@ function t3d.cloneTs(ts)
   return newTs
 end
 
+function t3d.concatTs(ts1, ts2, destructive)
+  if destructive then
+    for i = 1, #ts2 do
+      ts1[#ts1 + 1] = ts2[i]
+    end
+    return ts1
+  else
+    local newTs = t3d.cloneTs(ts1)
+    local newTs2 = t3d.cloneTs(ts2)
+    for i = 1, #newTs2 do
+      newTs[#newTs + 1] = newTs2[i]
+    end
+    return newTs
+  end
+end
+
 function t3d.drawTs(triangles)
   table.sort(triangles, compareT)
-  local scale = gpu.width / 2
-  local sx, sy = gpu.width / 2, gpu.height / 2
+  local scale = screenWidth / 2
+  local sx, sy = screenWidth / 2, screenHeight / 2
   for i = 1, #triangles do
     local z1, z2, z3 = triangles[i][3], triangles[i][6], triangles[i][9]
     local x1, y1 = (triangles[i][1] / z1) * scale + sx, (triangles[i][2] / z1) * scale + sy
