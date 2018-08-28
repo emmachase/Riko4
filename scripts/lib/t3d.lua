@@ -162,10 +162,12 @@ function t3d.drawTs(triangles)
   local sx, sy = screenWidth / 2, screenHeight / 2
   for i = 1, #triangles do
     local z1, z2, z3 = triangles[i][3], triangles[i][6], triangles[i][9]
-    local x1, y1 = (triangles[i][1] / z1) * scale + sx, (triangles[i][2] / z1) * scale + sy
-    local x2, y2 = (triangles[i][4] / z2) * scale + sx, (triangles[i][5] / z2) * scale + sy
-    local x3, y3 = (triangles[i][7] / z3) * scale + sx, (triangles[i][8] / z3) * scale + sy
-    fillTriangle(x1, y1, x2, y2, x3, y3, triangles[i][10])
+    if z1 > 0 and z2 > 0 and z3 > 0 then
+      local x1, y1 = (triangles[i][1] / z1) * scale + sx, (triangles[i][2] / z1) * scale + sy
+      local x2, y2 = (triangles[i][4] / z2) * scale + sx, (triangles[i][5] / z2) * scale + sy
+      local x3, y3 = (triangles[i][7] / z3) * scale + sx, (triangles[i][8] / z3) * scale + sy
+      fillTriangle(x1, y1, x2, y2, x3, y3, triangles[i][10])
+    end
   end
 end
 

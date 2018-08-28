@@ -1,4 +1,5 @@
 local t3d = dofile("/lib/t3d.lua")
+local rif = dofile("/lib/rif.lua")
 local cubeMesh = { { 0.0, 0.0, 0.0,
                      1.0, 0.0, 0.0,
                      0.0, 0.0, 1.0, 2 },
@@ -47,7 +48,9 @@ local function waveSimulation(x, y, curTime)
   return math.sin(math.sqrt(x * x + y * y) - curTime * 2)
 end
 
-local demoNames = { "Spinning Cubes", "Waves" }
+local demoNames = { "Spinning Cubes", "Waves", "Image" }
+
+local demoImage, demoImageWidth, demoImageHeight = rif.createImage("ghost.rif")
 
 local running = true
 local currentDemo = 2
@@ -106,6 +109,21 @@ while running do
       end
     end
     t3d.scaleTs(triangles, 0.5, 0.5, 0.5)
+  elseif currentDemo == 3 then
+    for j = 0, demoImageWidth - 1 do
+      for i = 0, demoImageHeight - 1 do
+        local color = demoImage:getPixel(i, j)
+        color = color == 0 and 1 or color
+        local quad = t3d.cloneTs(quadMesh)
+        quad[1][10] = color
+        quad[2][10] = color
+        t3d.translateTs(quad, i, j, 0)
+        t3d.concatTs(triangles, quad, true)
+      end
+    end
+    t3d.translateTs(triangles, -demoImageWidth / 2, -demoImageHeight / 2, 0)
+    t3d.scaleTs(triangles, 10 / demoImageWidth, 10 / demoImageHeight, 1)
+    t3d.rotateTs(triangles, 0, 0, math.pi)
   end
   t3d.rotateTs(triangles, 0, 0, xRotation)
   t3d.rotateTs(triangles, yRotation + math.pi / 2, 0, 0)
@@ -114,6 +132,6 @@ while running do
   gpu.clear(0)
   t3d.drawTs(triangles)
   write("3D " .. (demoNames[currentDemo] or "Nothing"), 8, 8, 16)
-  write(("%.2f"):format((os.clock() - curTime) * 1000) .. " ms", 8, 16, 7)
+  write(("%d Tris, %.2f ms"):format(#triangles, (os.clock() - curTime) * 1000), 8, 16, 7)
   gpu.swap()
 end
