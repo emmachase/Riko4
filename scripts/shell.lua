@@ -295,9 +295,11 @@ function shell.tabulate(...)
   print()
 end
 
-local function completeRead(str, strPos)
+local function completeRead(str, strPos, forceFull)
   local subStrPos = 1
-  local newStr = { }
+  local newStr = {}
+  local matches = {}
+
   for subStr in str:gmatch("%S+") do
     if strPos >= subStrPos and strPos <= subStrPos + #subStr then
       local baseDir = fs.getBaseDir(subStr)
@@ -317,10 +319,16 @@ local function completeRead(str, strPos)
               for handlerExt, _ in pairs(handlers) do
                 if ext == "." .. handlerExt then
                   if program:sub(1, #subStr) == subStr then
-                    subStr = program:sub(1, -(#ext + 1))
-                    strPos = subStrPos + #subStr
-                    found = true
-                    break
+                    local newSubStr = program:sub(1, -(#ext + 1))
+
+                    if forceFull then
+                      subStr = newSubStr
+                      strPos = subStrPos + #subStr
+                      found = true
+                      break
+                    else
+                      matches[#matches + 1] = newSubStr
+                    end
                   end
                 end
               end
@@ -341,18 +349,48 @@ local function completeRead(str, strPos)
         if listing and file ~= "" then
           for _, lfile in pairs(listing) do
             if lfile:sub(1, #file) == file then
-              subStr = baseDir .. ((baseDir == "" or baseDir == "/") and "" or "/") .. lfile
-              strPos = subStrPos + #subStr
+              local newSubStr = baseDir .. ((baseDir == "" or baseDir == "/") and "" or "/") .. lfile
+
+              if forceFull then
+                subStr = newSubStr
+                strPos = subStrPos + #subStr
+                break
+              else
+                matches[#matches + 1] = newSubStr
+              end
+            end
+          end
+        end
+      end
+
+      if not forceFull then
+        if #matches > 1 then
+          for i = 1, math.huge do
+            local char = matches[1]:sub(i, i)
+            local bad = false
+            for j = 2, #matches do
+              if matches[j]:sub(i, i) ~= char then
+                subStr = matches[1]:sub(1, i - 1)
+                strPos = subStrPos + #subStr
+                bad = true
+                break
+              end
+            end
+
+            if bad then
               break
             end
           end
+        elseif #matches == 1 then
+          subStr = matches[1]
+          strPos = subStrPos + #subStr
         end
       end
     end
     table.insert(newStr, subStr)
     subStrPos = subStrPos + #subStr + 1
   end
-  return table.concat(newStr, " "), strPos
+  return table.concat(newStr, " "), strPos, matches
 end
 
 function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
@@ -412,7 +450,7 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
     else
       local drawingStr = str
       if drawCompletion and strPos - 1 == #str then
-        drawingStr = completeRead(str, strPos)
+        drawingStr = completeRead(str, strPos, true)
         for i = 1, drawCompletion and 2 or 1 do
           local strToDraw = drawingStr:sub(strScrollAmt + 1, strScrollAmt + size)
           if replaceChar then
@@ -451,9 +489,16 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
         if k == "left" and strPos > 1 then
           strPos = strPos - 1
           term.blink = 0
-        elseif k == "right" and strPos <= #str then
-          strPos = strPos + 1
-          term.blink = 0
+        elseif k == "right" then
+          if strPos <= #str then
+            strPos = strPos + 1
+            term.blink = 0
+          else
+            if fileTabComplete then
+              str, strPos = completeRead(str, strPos, true)
+              term.blink = 0
+            end
+          end
         elseif k == "up" then
           if history and historyPt > 1 then
             historyPt = historyPt - 1
@@ -480,7 +525,7 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
           strPos = #str + 1
           term.blink = 0
         elseif k == "tab" and fileTabComplete then
-          str, strPos = completeRead(str, strPos)
+          str, strPos = completeRead(str, strPos, false)
           term.blink = 0
         elseif k == "return" then
           alive = false
