@@ -394,6 +394,8 @@ write = function(t, x, y, col, target)
     end
     xoff = xoff + fnt.w + 1
   end
+
+  return x + (fnt.w + 1) * #t, y
 end
 
 function sleep(s)
