@@ -477,6 +477,7 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
 
   while alive do
     local fStr = str
+    local modi = {ctrl = false}
 
     evFunc = evFunc or function(e, ...)
       if e == "char" then
@@ -484,9 +485,23 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
         str = str:sub(1, strPos - 1) .. c .. str:sub(strPos)
         strPos = strPos + 1
         term.blink = 0
+      elseif e == "keyUp" then
+        local k = ...
+        if k == "leftCtrl" then
+          modi.ctrl = false
+        end
       elseif e == "key" then
         local k = ...
-        if k == "left" and strPos > 1 then
+        if k == "leftCtrl" then
+          modi.ctrl = true
+        elseif k == "v" then
+          if modi.ctrl then
+            local val = fs.getClipboard() or ""
+            str = str:sub(1, strPos - 1) .. val .. str:sub(strPos)
+            strPos = strPos + #val
+            term.blink = 0
+          end
+        elseif k == "left" and strPos > 1 then
           strPos = strPos - 1
           term.blink = 0
         elseif k == "right" then
