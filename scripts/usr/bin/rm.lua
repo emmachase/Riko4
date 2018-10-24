@@ -1,5 +1,8 @@
 --HELP: \b6Usage: \b16rm \b7[\b16option\b7]... <\b16file\b7>... \n
--- \b6Description: \b7Deletes \b16file\b7(s)
+-- \b6Description: \b7Deletes \b16file\b7(s) \n
+-- \b6Options: \n
+--   \b16-d \b6- \b7Delete empty directories \n
+--   \b16-r \b6- \b7Recursively delete
 
 local getopt = require("getopt")
 

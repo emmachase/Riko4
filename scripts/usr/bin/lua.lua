@@ -1,3 +1,6 @@
+--HELP: \b6Usage: \b16lua \n
+-- \b6Description: \b7Opens an interactive lua prompt
+
 -- Credit to @SquidDev for the beautiful pretty printer
 -- Taken from MBS and ported to Riko4
 

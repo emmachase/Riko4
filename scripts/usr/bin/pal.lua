@@ -1,3 +1,6 @@
+--HELP: \b6Usage: \b16pal \n
+-- \b6Description: \b7Displays the current palette
+
 gpu.clear()
 
 for i = 1, 16 do
