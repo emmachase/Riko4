@@ -3,7 +3,7 @@ with import <nixpkgs> {};
 let
   sdl_gpu = stdenv.mkDerivation rec {
     name = "sdl_gpu-${version}";
-    version = "2018-07-26";
+    version = "2018-07-28";
     src = fetchFromGitHub {
       owner = "grimfang4";
       repo = "sdl-gpu";
@@ -29,7 +29,7 @@ in
 
 stdenv.mkDerivation rec {
   name = "riko4-${version}";
-  version = "2018-08-05";
+  version = "2018-11-03";
   src = ./.;
 
   buildInputs = [ SDL2 luajit cmake curl sdl_gpu libcurlpp ];
@@ -47,7 +47,7 @@ stdenv.mkDerivation rec {
     cat > $out/bin/riko4 <<EOF
     #!/bin/sh
     pushd $out/lib/riko4 > /dev/null
-    ../../bin/.riko4-unwrapped
+    ../../bin/.riko4-unwrapped "\$@"
     popd > /dev/null
     EOF
     chmod +x $out/bin/riko4

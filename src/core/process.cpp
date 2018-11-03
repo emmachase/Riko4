@@ -55,10 +55,11 @@ namespace riko::process {
             static option longOptions[] = {
                     {"noaud", no_argument,       nullptr, 0},
                     {"glsl",  optional_argument, nullptr, 'g'},
+                    {"dir",   required_argument, nullptr, 'd'},
                     {nullptr,  0,                 nullptr, 0 }
             };
 
-            int c = getopt_long(argc, argv, "g::", longOptions, &optionIndex);
+            int c = getopt_long(argc, argv, "g::d:", longOptions, &optionIndex);
             if (c == -1) break;
 
             switch (c) {
@@ -67,6 +68,20 @@ namespace riko::process {
                         riko::audio::audioEnabled = false;
                     }
                     break;
+                case 'd': {
+                    strcat(optarg, "/.");
+                    riko::fs::appPath = getFullPath(optarg, nullptr);
+                    if (riko::fs::appPath) {
+                        strcat(riko::fs::appPath, "/");
+                        struct stat path_stat{};
+                        stat(riko::fs::appPath, &path_stat);
+                        if (!S_ISDIR(path_stat.st_mode)) {
+                            delete riko::fs::appPath;
+                            riko::fs::appPath = nullptr;
+                        }
+                    }
+                    break;
+                }
                 case 'g':
                     if (optarg == nullptr) {
                         riko::shader::glslOverride = -1;
@@ -82,6 +97,8 @@ namespace riko::process {
                     }
                     break;
                 default:
+                    fprintf(stderr, "Usage: %s [--noaud] [--glsl/-g [version]] [--dir/-d dir] \n", argv[0]);
+                    exit(1);
                     break;
             }
         }
@@ -151,10 +168,12 @@ namespace riko::process {
 #ifdef __EMSCRIPTEN__
         riko::fs::appPath = "/";
 #else
-        if (riko::useBundle) {
-            riko::fs::appPath = SDL_GetBasePath();
-        } else {
-            riko::fs::appPath = SDL_GetPrefPath("riko4", "app");
+        if (riko::fs::appPath == nullptr) {
+            if (riko::useBundle) {
+                riko::fs::appPath = SDL_GetBasePath();
+            } else {
+                riko::fs::appPath = SDL_GetPrefPath("riko4", "app");
+            }
         }
 #endif
 

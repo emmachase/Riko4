@@ -24,13 +24,6 @@
 #  define f_mkdir(a, b) _mkdir(a)
 #endif
 
-#ifdef __WINDOWS__
-#  define getFullPath(a, b) GetFullPathName(a, MAX_PATH, b, NULL)
-#  define rmdir(a) _rmdir(a)
-#else
-#  define getFullPath(a, b) realpath(a, b)
-#endif
-
 #include <cerrno>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -87,7 +80,7 @@
     } while (0);
 
 namespace riko::fs {
-    char* appPath;
+    char* appPath = nullptr;
     char* scriptsPath;
 
     char currentWorkingDirectory[MAX_PATH];
