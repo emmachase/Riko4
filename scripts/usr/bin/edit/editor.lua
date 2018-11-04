@@ -658,7 +658,7 @@ return function(context)
       checkDrawBounds()
       local y = -(viewportHeight / (fontH + 1) - 1)
       local opos = cursorPos
-      for _=1, math.abs(y) do
+      for i = 1, math.abs(y) do
         if scrollY < #editorContent - 1 then
           scrollY = scrollY + 1
           updateCursor(opos, cursorLine + 1)
@@ -674,7 +674,7 @@ return function(context)
       checkDrawBounds()
       local y = viewportHeight / (fontH + 1) - 1
       local opos = cursorPos
-      for _=1, math.abs(y) do
+      for i = 1, math.abs(y) do
         if scrollY > 0 then
           scrollY = scrollY - 1
           updateCursor(opos, cursorLine - 1)
@@ -701,6 +701,7 @@ return function(context)
             highlighter.removeLine(cursorLine)
             updateCursor(ox, cursorLine - 1)
             highlighter.setLine(cursorLine, editorContent[cursorLine])
+            explicitCursorPos = cursorPos
             return
           end
 
@@ -756,6 +757,7 @@ return function(context)
             editorContent[cursorLine] = editorContent[cursorLine] .. tableRemove(editorContent, cursorLine + 1)
             highlighter.removeLine(cursorLine + 1)
             highlighter.setLine(cursorLine, editorContent[cursorLine])
+            explicitCursorPos = cursorPos
             return
           end
 
@@ -828,7 +830,11 @@ return function(context)
           highlighter.setLine(cursorLine, editorContent[cursorLine])
         end
       end
+    else
+      return -- Don't set explicitCursorPos for any other characters
     end
+
+    explicitCursorPos = cursorPos
   end
 
   local function handleMouse(move, modifiers, x, y)
