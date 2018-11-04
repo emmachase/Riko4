@@ -8,6 +8,7 @@
 #include "riko.h"
 #include "gpu.h"
 #include "../engine/userdata/ResponseHandle.h"
+#include "../engine/userdata/ProgressObject.h"
 
 #include "events.h"
 
@@ -146,6 +147,20 @@ namespace riko::events {
             pushedArgs = 3;
 
             delete errorStr;
+
+            return true;
+        } else if (event.type == NET_PROGRESS) {
+            lua_pushstring(riko::mainThread, "netProgress");
+
+            auto *url = (std::string *) event.user.data1;
+            lua_pushlstring(riko::mainThread, url->c_str(), url->length());
+
+            auto *progObj = (riko::net::ProgressObject*) event.user.data2;
+            lua_pushnumber(riko::mainThread, progObj->getCurrentAmt());
+            lua_pushnumber(riko::mainThread, progObj->getTotalAmt());
+            delete progObj;
+
+            pushedArgs = 4;
 
             return true;
         }

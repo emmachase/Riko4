@@ -8,6 +8,7 @@
 #  include <curlpp/Easy.hpp>
 #  include <curlpp/Multi.hpp>
 #  include <curlpp/Options.hpp>
+#  include <functional>
 #else
 #  include "emscripten.h"
 #endif
@@ -18,9 +19,11 @@
 
 #include "net.h"
 #include "userdata/ResponseHandle.h"
+#include "userdata/ProgressObject.h"
 
 Uint32 riko::events::NET_SUCCESS = 0;
 Uint32 riko::events::NET_FAILURE = 0;
+Uint32 riko::events::NET_PROGRESS = 0;
 
 namespace riko::net {
     std::atomic<int> openThreads;
@@ -31,8 +34,9 @@ namespace riko::net {
 #endif
         openThreads = 0;
 
-        riko::events::NET_SUCCESS = SDL_RegisterEvents(2);
+        riko::events::NET_SUCCESS = SDL_RegisterEvents(3);
         riko::events::NET_FAILURE = riko::events::NET_SUCCESS + 1;
+        riko::events::NET_PROGRESS = riko::events::NET_SUCCESS + 2;
         if (riko::events::NET_SUCCESS == ((Uint32) - 1)) {
             return 2;
         }
@@ -65,6 +69,16 @@ namespace riko::net {
         SDL_PushEvent(&failureEvent);
     }
 
+    int progressCallback(std::string *url, double total, double now, double, double) {
+        SDL_Event progressEvent;
+        SDL_memset(&progressEvent, 0, sizeof(progressEvent));
+        progressEvent.type = riko::events::NET_PROGRESS;
+        progressEvent.user.data1 = new std::string(*url);
+        progressEvent.user.data2 = new ProgressObject(now, total);
+        SDL_PushEvent(&progressEvent);
+        return 0;
+    }
+
     void getThread(std::string *url, std::string *postData) {
         auto *dataStream = new std::stringstream;
 
@@ -86,6 +100,15 @@ namespace riko::net {
             request.setOpt<cURLpp::options::MaxRedirs>(16L);
 
             request.setOpt<cURLpp::options::WriteStream>(dataStream);
+
+            using namespace std::placeholders;
+            cURLpp::types::ProgressFunctionFunctor progressFunctor(
+                    [=](auto a, auto b, auto c, auto d) {
+                        return progressCallback(url, a, b, c, d);
+                    });
+
+            request.setOpt<cURLpp::options::ProgressFunction>(progressFunctor);
+            request.setOpt<cURLpp::options::NoProgress>(false);
 
             request.perform();
 
