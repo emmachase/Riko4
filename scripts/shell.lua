@@ -651,7 +651,9 @@ function shell.clear()
 end
 
 function print(text, fg, bg, x, y) -- luacheck: ignore
-  shell.write(text, fg, bg, x, y)
+  if text ~= nil then
+    shell.write(tostring(text), fg, bg, x, y)
+  end
 
   term.x = 1
   term.y = term.y + 1
