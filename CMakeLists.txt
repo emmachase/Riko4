@@ -53,3 +53,5 @@ endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/libs/include)
 include_directories(${CMAKE_SOURCE_DIR}/src/include)
+
+install(TARGETS riko4 RUNTIME DESTINATION bin)

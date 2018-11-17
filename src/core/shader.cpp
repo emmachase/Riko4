@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <cstring>
+#include <string>
 
 #include "SDL_gpu/SDL_gpu.h"
 
@@ -54,7 +55,7 @@ namespace riko::shader {
             if (glslOverride > 0) {
                 if (glslOverride > renderer->max_shader_version) {
                     std::cout << "Specified GLSL version '" << glslOverride
-                        << "' is greater than maximum of " << renderer->max_shader_version << std::endl;
+                              << "' is greater than maximum of " << renderer->max_shader_version << std::endl;
                     std::cout << "Defaulting to maximum value..." << std::endl;
 
                     glslVersion = renderer->max_shader_version;
@@ -71,17 +72,18 @@ namespace riko::shader {
         header_size = header.size();
 
         // Allocate source buffer
-        char source[header_size + file_size + 1];
+        std::string source;
+        source.reserve(header_size + file_size + 1);
 
         // Prepend header
-        strcpy(source, header.c_str());
+        source += header;
 
         // Read in source code
-        SDL_RWread(rwops, source + strlen(source), 1, file_size);
+        SDL_RWread(rwops, (void *) (source.c_str() + strlen(source.c_str())), 1, file_size);
         source[header_size + file_size] = '\0';
 
         // Compile the shader
-        shader = GPU_CompileShader(shader_type, source);
+        shader = GPU_CompileShader(shader_type, source.c_str());
 
         // Clean up
         SDL_RWclose(rwops);
@@ -127,7 +129,8 @@ namespace riko::shader {
 
     void initShader() {
         screenBlock = loadShaderProgram(&screenShader, "data/shaders/common.vert", "data/shaders/common.frag");
-        float res[] = {static_cast<float>(riko::gfx::renderer->base_w), static_cast<float>(riko::gfx::renderer->base_h)};
+        float res[] = {static_cast<float>(riko::gfx::renderer->base_w),
+                       static_cast<float>(riko::gfx::renderer->base_h)};
         GPU_SetUniformfv(GPU_GetUniformLocation(screenShader, "resolution"), 2, 1, &res[0]);
         GPU_SetUniformi(GPU_GetUniformLocation(screenShader, "crteffect"), riko::gfx::shaderOn);
     }

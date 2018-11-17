@@ -10,6 +10,10 @@
 
 #include "audio.h"
 
+#ifdef __WINDOWS__
+#define random() rand()
+#endif
+
 namespace riko::audio {
     bool audioEnabled = true;
     bool audioInitialized = false;
