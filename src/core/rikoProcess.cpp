@@ -179,6 +179,7 @@ namespace riko::process {
         }
     }
 
+#ifdef __WINDOWS__
     bool is_dir(const char* path) {
         struct stat buf {};
         stat(path, &buf);
@@ -233,6 +234,7 @@ namespace riko::process {
             closedir(pDIR);
         }
     }
+#endif
 
     int openScripts() {
 #ifdef __EMSCRIPTEN__
@@ -263,18 +265,6 @@ namespace riko::process {
 #ifdef __WINDOWS__
             mkdir(riko::fs::scriptsPath);
             copyDir_(".\\scripts", riko::fs::scriptsPath);
-
-//            SHFILEOPSTRUCT s = { 0 };
-//            s.wFunc = FO_COPY;
-//            s.pTo = riko::fs::scriptsPath;
-//            s.pFrom = ".\\scripts";
-//            s.fFlags = FOF_SILENT | FOF_NOCONFIRMMKDIR | FOF_NOCONFIRMATION | FOF_NOERRORUI;
-//            int res = SHFileOperationA(&s);
-//
-//            if (res != 0) {
-//                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Was unable to perform first-time scripts setup, quitting..");
-//                return 4;
-//            }
 #else
             nftw("./scripts/", &fileCopyCallback, OPEN_FS_DESC, 0);
 #endif
