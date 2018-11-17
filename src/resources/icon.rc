@@ -14,7 +14,7 @@ BEGIN
       VALUE "LegalCopyright", "Bryan Becar"
       VALUE "OriginalFilename", "riko4.exe"
       VALUE "ProductName", "Riko4"
-      VALUE "ProductVersion", "0.0.1"
+      VALUE "ProductVersion", "0.0.3"
     END
   END
   BLOCK "VarFileInfo"
