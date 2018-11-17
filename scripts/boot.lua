@@ -1,4 +1,4 @@
--- luacheck: globals os io getfenv setfenv net table.pack loadfile dofile bit32
+-- luacheck: globals os io getfenv setfenv net table.pack loadfile dofile bit32 jit debug
 
 local ffi, bit
 if jit then
