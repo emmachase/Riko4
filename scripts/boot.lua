@@ -1,9 +1,11 @@
 -- luacheck: globals os io getfenv setfenv net table.pack loadfile dofile bit32
 
-local ffi
+local ffi, bit
 if jit then
   ffi = require("ffi")
+  bit = require("bit")
   _G.ffi = ffi
+  _G.bit = bit
   _G.require = nil
 end
 

@@ -716,6 +716,11 @@ local function newEnv(workingDir)
       end
     end
 
+    -- Maybe it's a library?
+    if _G[file] then
+      return _G[file]
+    end
+
     local errStr = "module '" .. file .. "' not found:"
     for i = 1, #paths do
       errStr = errStr .. "\n no file '" .. paths[i] .. "'"

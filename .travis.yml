@@ -15,7 +15,7 @@ addons:
       - libsdl2-dev
       - libluajit-5.1-dev
       - libcurl4-openssl-dev
-      - libcurlpp-dev
+#     - libcurlpp-dev
       - git
 
 install: true
@@ -29,12 +29,18 @@ script:
   - export CXX=/usr/bin/g++-8
   # Check versions of gcc, g++ and cmake
   - gcc -v && g++ -v && cmake --version
+  # Get and build curlpp
+  - git clone https://github.com/jpbarrette/curlpp.git
+  - cd curlpp
+  - cmake .
+  - sudo make install
+  - cd ..
   # Get and build SDL_gpu
   - git clone https://github.com/grimfang4/sdl-gpu.git sdlgpu
   - cd sdlgpu
   - cmake .
-  - make
+  - sudo make install
   - cd ..
   # Build Riko4
-  - cmake -DSDL2_gpu_PATH="$PWD/sdlgpu/lib" .
+  - cmake .
   - make
