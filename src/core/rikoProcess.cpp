@@ -21,10 +21,8 @@
 #include <sys/stat.h>
 #include <shellapi.h>
 #include <dirent.h>
-
 #else
 #include <ftw.h>
-#include <afxres.h>
 #endif
 
 namespace riko::process {
