@@ -4,15 +4,15 @@
 #include <vector>
 
 #include "SDL_gpu/SDL_gpu.h"
-#include "luaIncludes.h"
+#include "misc/luaIncludes.h"
 
-#include "consts.h"
+#include "misc/consts.h"
 
-#include "fs.h"
-#include "gpu.h"
-#include "audio.h"
-#include "image.h"
-#include "net.h"
+#include "engine/fs.h"
+#include "engine/gpu.h"
+#include "engine/audio.h"
+#include "engine/image.h"
+#include "engine/net.h"
 
 #include "luaMachine.h"
 

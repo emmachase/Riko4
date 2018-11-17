@@ -2,7 +2,7 @@
 
 #define RIKO_FS_NAME "fs"
 
-#include "luaIncludes.h"
+#include "misc/luaIncludes.h"
 
 #ifdef __WINDOWS__
 #  define getFullPath(a, b) GetFullPathName(a, MAX_PATH, b, NULL)

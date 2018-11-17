@@ -4,7 +4,7 @@
 
 #include "SDL_gpu/SDL_gpu.h"
 
-#include "luaIncludes.h"
+#include "misc/luaIncludes.h"
 
 namespace riko::gfx {
     extern bool shaderOn;

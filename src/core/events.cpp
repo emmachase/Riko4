@@ -3,10 +3,10 @@
 #include "SDL_gpu/SDL_gpu.h"
 
 #include "luaMachine.h"
-#include "consts.h"
+#include "misc/consts.h"
 
 #include "riko.h"
-#include "gpu.h"
+#include "engine/gpu.h"
 #include "../engine/userdata/ResponseHandle.h"
 #include "../engine/userdata/ProgressObject.h"
 

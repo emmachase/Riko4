@@ -2,7 +2,7 @@
 
 #define RIKO_AUD_NAME "speaker"
 
-#include "luaIncludes.h"
+#include "misc/luaIncludes.h"
 
 namespace riko::audio {
     extern bool audioEnabled;

@@ -33,11 +33,11 @@
 #include <cstring>
 #include <string>
 
-#include "events.h"
-#include "fs.h"
-#include "luaIncludes.h"
-#include "luaMachine.h"
-#include "rikoProcess.h"
+#include "core/events.h"
+#include "engine/fs.h"
+#include "misc/luaIncludes.h"
+#include "core/luaMachine.h"
+#include "core/rikoProcess.h"
 
 #include "riko.h"
 

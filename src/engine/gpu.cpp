@@ -13,10 +13,10 @@
 
 #include "SDL_gpu/SDL_gpu.h"
 
-#include "consts.h"
-#include "luaIncludes.h"
+#include "misc/consts.h"
+#include "misc/luaIncludes.h"
 #include "riko.h"
-#include "shader.h"
+#include "core/shader.h"
 
 #include "gpu.h"
 

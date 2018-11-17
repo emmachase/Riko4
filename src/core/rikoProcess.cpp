@@ -4,12 +4,12 @@
 
 #include "SDL_gpu/SDL_gpu.h"
 
-#include "audio.h"
-#include "consts.h"
-#include "fs.h"
-#include "gpu.h"
+#include "engine/audio.h"
+#include "misc/consts.h"
+#include "engine/fs.h"
+#include "engine/gpu.h"
 #include "luaMachine.h"
-#include "net.h"
+#include "engine/net.h"
 #include "riko.h"
 #include "shader.h"
 

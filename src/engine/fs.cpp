@@ -36,8 +36,8 @@
 
 #include "SDL_gpu/SDL_gpu.h"
 
-#include "consts.h"
-#include "luaIncludes.h"
+#include "misc/consts.h"
+#include "misc/luaIncludes.h"
 
 #include "fs.h"
 

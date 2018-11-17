@@ -6,10 +6,10 @@
 
 #include "SDL_gpu/SDL_gpu.h"
 
-#include "luaIncludes.h"
+#include "misc/luaIncludes.h"
 
 #include "audio.h"
-#include "../util/TableInterface.h"
+#include "util/TableInterface.h"
 
 #ifdef __WINDOWS__
 #define random() rand()

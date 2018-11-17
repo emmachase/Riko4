@@ -2,7 +2,7 @@
 
 #include <sstream>
 
-#include "luaIncludes.h"
+#include "misc/luaIncludes.h"
 
 namespace riko::net {
     class ResponseHandle {

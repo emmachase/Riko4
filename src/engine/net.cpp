@@ -14,8 +14,8 @@
 #endif
 #include <riko.h>
 
-#include "events.h"
-#include "luaIncludes.h"
+#include "core/events.h"
+#include "misc/luaIncludes.h"
 
 #include "net.h"
 #include "userdata/ResponseHandle.h"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "luaIncludes.h"
+#include "misc/luaIncludes.h"
 
 namespace riko::lua {
     void printLuaError(lua_State *L, int result);

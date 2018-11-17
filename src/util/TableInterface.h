@@ -2,7 +2,7 @@
 #define RIKO4_TABLEINTERFACE_H
 
 
-#include "luaIncludes.h"
+#include "misc/luaIncludes.h"
 
 #include "LuaError.h"
 
