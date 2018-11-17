@@ -18,27 +18,27 @@
 
 namespace riko::lua {
     static const luaL_Reg lj_lib_load[] = {
-        { "",              luaopen_base },
-        { LUA_TABLIBNAME,  luaopen_table },
-        { LUA_OSLIBNAME,   luaopen_os },
-        { LUA_STRLIBNAME,  luaopen_string },
-        { LUA_MATHLIBNAME, luaopen_math },
-        { LUA_DBLIBNAME,   luaopen_debug },
+            {"", luaopen_base},
+            {LUA_TABLIBNAME, luaopen_table},
+            {LUA_OSLIBNAME, luaopen_os},
+            {LUA_STRLIBNAME, luaopen_string},
+            {LUA_MATHLIBNAME, luaopen_math},
+            {LUA_DBLIBNAME, luaopen_debug},
 #ifndef __EMSCRIPTEN__
-        { LUA_LOADLIBNAME, luaopen_package },
-        { LUA_BITLIBNAME,  luaopen_bit },
-        { LUA_JITLIBNAME,  luaopen_jit },
+            {LUA_LOADLIBNAME, luaopen_package},
+            {LUA_BITLIBNAME, luaopen_bit},
+            {LUA_JITLIBNAME, luaopen_jit},
 #else
-        { LUA_COLIBNAME,   luaopen_coroutine },
-        { LUA_BITLIBNAME,  luaopen_bit32 },
+    { LUA_COLIBNAME,   luaopen_coroutine },
+    { LUA_BITLIBNAME,  luaopen_bit32 },
 #endif
-        { nullptr,  nullptr }
+            {nullptr, nullptr}
     };
 
 #ifndef __EMSCRIPTEN__
     static const luaL_Reg lj_lib_preload[] = {
-        { LUA_FFILIBNAME,  luaopen_ffi },
-        { nullptr,  nullptr }
+            {LUA_FFILIBNAME, luaopen_ffi},
+            {nullptr,        nullptr}
     };
 #endif
 
@@ -66,12 +66,12 @@ namespace riko::lua {
         }
     }
 
-    lua_State* createConfigInstance(const char* filename) {
+    lua_State *createConfigInstance(const char *filename) {
         lua_State *state = luaL_newstate();
 
         // Meh, io is probably safe
         luaL_openlibs(state);
-        
+
 
         lua_State *L = lua_newthread(state);
 
@@ -89,12 +89,12 @@ namespace riko::lua {
         return L;
     }
 
-    lua_State *createLuaInstance(const char* filename, const char* innerFilename) {
+    lua_State *createLuaInstance(const char *filename, const char *innerFilename) {
         lua_State *state = luaL_newstate();
 
         // Make standard libraries available in the Lua object
         const luaL_Reg *lib;
-#ifdef __EMSCRIPTEN__        
+#ifdef __EMSCRIPTEN__
         for (lib = lj_lib_load; lib->func; lib++) {
             luaL_requiref(state, lib->name, lib->func, 1);
             lua_pop(state, 1);  /* remove lib */
@@ -109,7 +109,7 @@ namespace riko::lua {
 
 #ifndef __EMSCRIPTEN__
         luaL_findtable(state, LUA_REGISTRYINDEX, "_PRELOAD",
-                sizeof(lj_lib_preload) / sizeof(lj_lib_preload[0]) - 1);
+                       sizeof(lj_lib_preload) / sizeof(lj_lib_preload[0]) - 1);
         for (lib = lj_lib_preload; lib->func; lib++) {
             lua_pushcfunction(state, lib->func);
             lua_setfield(state, -2, lib->name);
@@ -132,16 +132,17 @@ namespace riko::lua {
 
         int result;
 
-        std::ifstream bootFile(filename, std::ios::ate);
-        std::streamsize size = bootFile.tellg();
+        std::ifstream bootFile(filename);
+        std::string fileContents;
+
+        bootFile.seekg(0, std::ios::end);
+        fileContents.reserve(static_cast<unsigned long long int>(bootFile.tellg()));
         bootFile.seekg(0, std::ios::beg);
 
-        std::vector<char> fileContents(static_cast<unsigned long>(size));
-        if (!bootFile.read(fileContents.data(), size)) {
-            return nullptr;
-        }
+        fileContents.assign((std::istreambuf_iterator<char>(bootFile)),
+                            std::istreambuf_iterator<char>());
 
-        result = luaL_loadbuffer(thread, fileContents.data(), static_cast<size_t>(size), innerFilename);
+        result = luaL_loadbuffer(thread, fileContents.data(), fileContents.length(), innerFilename);
 
         if (result != 0) {
             riko::lua::printLuaError(thread, result);

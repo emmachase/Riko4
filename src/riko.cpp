@@ -8,7 +8,9 @@
 #  ifndef __WINDOWS__
 #    define __WINDOWS__
 #  endif
+
 #  include <windows.h>
+
 #endif/* Predefined Windows macros */
 
 #ifndef CALLBACK
@@ -27,13 +29,15 @@
 #  include <ftw.h>
 #endif
 
+#include <iostream>
 #include <cstring>
+#include <string>
 
 #include "events.h"
 #include "fs.h"
 #include "luaIncludes.h"
 #include "luaMachine.h"
-#include "process.h"
+#include "rikoProcess.h"
 
 #include "riko.h"
 
@@ -47,8 +51,11 @@ namespace riko {
     SDL_Window *window;
 }
 
+#ifdef __WINDOWS__
+#undef main
+#endif
 
-int main(int argc, char * argv[]) {
+int main(int argc, char *argv[]) {
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(riko::events::loop, 0, 0);
 #endif
@@ -66,11 +73,11 @@ int main(int argc, char * argv[]) {
     int windowStatus = riko::process::setupWindow();
     if (windowStatus != 0) return windowStatus;
 
-    char bootLoc[strlen(riko::fs::scriptsPath) + 10];
-    sprintf(bootLoc, "%s/boot.lua", riko::fs::scriptsPath);
-    riko::mainThread = riko::lua::createLuaInstance(bootLoc, "@boot.lua");
+    std::string bootLoc = riko::fs::scriptsPath + std::string("/boot.lua");
+    riko::mainThread = riko::lua::createLuaInstance(bootLoc.c_str(), "@boot.lua");
 
     if (riko::mainThread == nullptr) {
+        std::cerr << "Could not create main Lua Thread" << std::endl;
         return 7;
     }
 
@@ -84,7 +91,7 @@ int main(int argc, char * argv[]) {
         int time = SDL_GetTicks() - start;
         if (time < 0) continue;
 
-        int sleepTime = 100/6 - time;
+        int sleepTime = 100 / 6 - time;
         if (sleepTime > 0) {
             SDL_Delay(sleepTime);
         }

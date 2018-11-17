@@ -8,8 +8,11 @@
 #ifndef __WINDOWS__
 #define __WINDOWS__
 #endif
+
 #  include <Windows.h>
+
 #endif /* Predefined Windows macros */
+
 
 #include <cstdlib>
 #include <cstdio>
@@ -20,7 +23,9 @@
 #  include <dirent.h>
 #  define f_mkdir mkdir
 #else
+
 #  include <direct.h>
+
 #  define f_mkdir(a, b) _mkdir(a)
 #endif
 
@@ -36,52 +41,10 @@
 
 #include "fs.h"
 
-#define checkPath(luaInput, varName)                                                                                      \
-    do {                                                                                                                  \
-        char* workingFront = ((luaInput)[0] == '\\' || (luaInput)[0] == '/') ? scriptsPath : currentWorkingDirectory;     \
-                                                                                                                          \
-        auto scriptsPathLen = (int)strlen(scriptsPath);                                                                   \
-                                                                                                                          \
-        auto ln = (int)(strlen(luaInput) + strlen(workingFront) + 2);                                                     \
-        char concatStr[ln];                                                                                               \
-        sprintf(concatStr, "%s/%s", workingFront, luaInput);                                                              \
-                                                                                                                          \
-        auto* ptrz = (char*)getFullPath(concatStr, varName);                                                              \
-        if (ptrz == NULL && errno == ENOENT) {                                                                            \
-            sprintf(varName, "%s", concatStr);                                                                            \
-        } else {                                                                                                          \
-            auto varNameLen = (int)strlen(varName);                                                                       \
-                                                                                                                          \
-            if (varNameLen + 1 == scriptsPathLen) {                                                                       \
-                char tmp = scriptsPath[scriptsPathLen - 1];                                                               \
-                scriptsPath[scriptsPathLen - 1] = 0;                                                                      \
-                if (strcmp(varName, scriptsPath) == 0) {                                                                  \
-                    scriptsPath[scriptsPathLen - 1] = tmp;                                                                \
-                } else {                                                                                                  \
-                    scriptsPath[scriptsPathLen - 1] = tmp;                                                                \
-                    return luaL_error(L, "attempt to access file beneath root");                                          \
-                }                                                                                                         \
-            } else if (varNameLen > scriptsPathLen) {                                                                     \
-                char tmp = (varName)[scriptsPathLen];                                                                     \
-                (varName)[scriptsPathLen] = 0;                                                                            \
-                if (strcmp(varName, scriptsPath) == 0) {                                                                  \
-                    (varName)[scriptsPathLen] = tmp;                                                                      \
-                } else {                                                                                                  \
-                    return luaL_error(L, "attempt to access file beneath root");                                          \
-                }                                                                                                         \
-            } else if (varNameLen == scriptsPathLen) {                                                                    \
-                if (strcmp(varName, scriptsPath) != 0) {                                                                  \
-                    return luaL_error(L, "attempt to access file beneath root");                                          \
-                }                                                                                                         \
-            } else {                                                                                                      \
-                return luaL_error(L, "attempt to access file beneath root");                                              \
-            }                                                                                                             \
-        }                                                                                                                 \
-    } while (0);
 
 namespace riko::fs {
-    char* appPath = nullptr;
-    char* scriptsPath;
+    char *appPath = nullptr;
+    char *scriptsPath;
 
     char currentWorkingDirectory[MAX_PATH];
     char lastOpenedPath[MAX_PATH];
@@ -93,6 +56,49 @@ namespace riko::fs {
         bool eof;
     };
 
+    int checkPath(const char *luaInput, char *varName, lua_State *L) {
+        char *workingFront = ((luaInput)[0] == '\\' || (luaInput)[0] == '/') ? scriptsPath : currentWorkingDirectory;
+
+        auto scriptsPathLen = (int) strlen(scriptsPath);
+
+        auto ln = (int) (strlen(luaInput) + strlen(workingFront) + 2);
+        std::string concatStr = workingFront + std::string("/") + luaInput;
+
+        auto *ptrz = (char *) getFullPath(concatStr.c_str(), varName);
+        if (ptrz == nullptr && errno == ENOENT) {
+            sprintf(varName, "%s", concatStr.c_str());
+        } else {
+            auto varNameLen = (int) strlen(varName);
+
+            if (varNameLen + 1 == scriptsPathLen) {
+                char tmp = scriptsPath[scriptsPathLen - 1];
+                scriptsPath[scriptsPathLen - 1] = 0;
+                if (strcmp(varName, scriptsPath) == 0) {
+                    scriptsPath[scriptsPathLen - 1] = tmp;
+                } else {
+                    scriptsPath[scriptsPathLen - 1] = tmp;
+                    return luaL_error(L, "attempt to access file beneath root");
+                }
+            } else if (varNameLen > scriptsPathLen) {
+                char tmp = (varName)[scriptsPathLen];
+                (varName)[scriptsPathLen] = 0;
+                if (strcmp(varName, scriptsPath) == 0) {
+                    (varName)[scriptsPathLen] = tmp;
+                } else {
+                    return luaL_error(L, "attempt to access file beneath root");
+                }
+            } else if (varNameLen == scriptsPathLen) {
+                if (strcmp(varName, scriptsPath) != 0) {
+                    return luaL_error(L, "attempt to access file beneath root");
+                }
+            } else {
+                return luaL_error(L, "attempt to access file beneath root");
+            }
+        }
+
+        return 0;
+    }
+
     static fileHandleType *checkFsObj(lua_State *L) {
         void *ud = luaL_checkudata(L, 1, "Riko4.fsObj");
         luaL_argcheck(L, ud != nullptr, 1, "`FileHandle` expected");
@@ -101,7 +107,7 @@ namespace riko::fs {
 
     static int fsGetAttr(lua_State *L) {
         char filePath[MAX_PATH + 1];
-        checkPath(luaL_checkstring(L, 1), filePath);
+        checkPath(luaL_checkstring(L, 1), filePath, L);
 
         if (filePath[0] == 0) {
             lua_pushinteger(L, 0b11111111);
@@ -117,7 +123,7 @@ namespace riko::fs {
             return 1;
         }
 
-        int attrOut = ((attr & FILE_ATTRIBUTE_READONLY)  != 0) * 0b00000001 +
+        int attrOut = ((attr & FILE_ATTRIBUTE_READONLY) != 0) * 0b00000001 +
                       ((attr & FILE_ATTRIBUTE_DIRECTORY) != 0) * 0b00000010;
 
         lua_pushinteger(L, attrOut);
@@ -140,7 +146,7 @@ namespace riko::fs {
 
     static int fsList(lua_State *L) {
         char filePath[MAX_PATH + 1];
-        checkPath(luaL_checkstring(L, 1), filePath);
+        checkPath(luaL_checkstring(L, 1), filePath, L);
 
         if (filePath[0] == 0) {
             return 0;
@@ -182,8 +188,7 @@ namespace riko::fs {
                 lua_rawset(L, -3);
                 i++;
             }
-        }
-        while (FindNextFile(hFind, &fdFile)); //Find the next file.
+        } while (FindNextFile(hFind, &fdFile)); //Find the next file.
 
         FindClose(hFind); //Always, Always, clean things up!
 
@@ -214,7 +219,7 @@ namespace riko::fs {
 
     static int fsOpenFile(lua_State *L) {
         char filePath[MAX_PATH + 1];
-        checkPath(luaL_checkstring(L, 1), filePath);
+        checkPath(luaL_checkstring(L, 1), filePath, L);
 
         if (filePath[0] == 0) {
             return 0;
@@ -247,25 +252,57 @@ namespace riko::fs {
             switch (errno) {
 #define s(s) error = std::string(s)
 #define b break
-                case EINVAL: s("Invalid mode '") + mode + "'"; b;
-                case EACCES: s("Permission denied"); b;
-                case EDQUOT: s("File does not exist, and quota of disk blocks or inodes has been exhausted"); b;
-                case EEXIST: s("File aready exists"); b;
-                case EFAULT: s("File is outside accessible address space"); b;
-                case EOVERFLOW:
-                case EFBIG:  s("File is too large to be opened"); b;
-                case EINTR:  s("Open was interrupted by a signal handler"); b;
-                case EISDIR: s("") + luaL_checkstring(L, 1) + " is a directory"; b;
-                case ELOOP:  s("Too many symbolic links in path resolution"); b;
+                case EINVAL:
+                    s("Invalid mode '") + mode + "'";
+                    b;
+                case EACCES:
+                    s("Permission denied");
+                    b;
+                case EEXIST:
+                    s("File aready exists");
+                    b;
+                case EFAULT:
+                    s("File is outside accessible address space");
+                    b;
+                case EINTR:
+                    s("Open was interrupted by a signal handler");
+                    b;
+                case EISDIR:
+                    s("") + luaL_checkstring(L, 1) + " is a directory";
+                    b;
                 case ENFILE:
-                case EMFILE: s("File descriptor limit has been reached"); b;
-                case ENAMETOOLONG: s("Pathname is too long"); b;
-                case ENOENT: s("File does not exist"); b;
-                case ENOMEM: s("Insufficient kernel memory avaliable"); b;
-                case ENOSPC: s("No room for new file"); b;
-                case ENOTDIR: s("A component used as a directory in path is not"); b;
-                case EROFS:  s("File on a read-only filesystem"); b;
-                default: s("Unknown error occurred"); b;
+                case EMFILE:
+                    s("File descriptor limit has been reached");
+                    b;
+                case ENAMETOOLONG:
+                    s("Pathname is too long");
+                    b;
+                case ENOENT:
+                    s("File does not exist");
+                    b;
+                case ENOMEM:
+                    s("Insufficient kernel memory avaliable");
+                    b;
+                case ENOSPC:
+                    s("No room for new file");
+                    b;
+                case ENOTDIR:
+                    s("A component used as a directory in path is not");
+                    b;
+                case EROFS:
+                    s("File on a read-only filesystem");
+                    b;
+#ifndef __WINDOWS__
+                case EDQUOT: s("File does not exist, and quota of disk blocks or inodes has been exhausted"); b;
+                case ELOOP:  s("Too many symbolic links in path resolution"); b;
+                case EOVERFLOW:
+#endif
+                case EFBIG:
+                    s("File is too large to be opened");
+                    b;
+                default:
+                    s("Unknown error occurred");
+                    b;
 #undef s
 #undef b
             }
@@ -537,7 +574,7 @@ namespace riko::fs {
 
     static int fsMkDir(lua_State *L) {
         char filePath[MAX_PATH + 1];
-        checkPath(luaL_checkstring(L, 1), filePath);
+        checkPath(luaL_checkstring(L, 1), filePath, L);
 
         if (filePath[0] == 0) {
             lua_pushboolean(L, false);
@@ -550,7 +587,7 @@ namespace riko::fs {
 
     static int fsMv(lua_State *L) {
         char filePath[MAX_PATH + 1];
-        checkPath(luaL_checkstring(L, 1), filePath);
+        checkPath(luaL_checkstring(L, 1), filePath, L);
 
         if (filePath[0] == 0) {
             lua_pushboolean(L, false);
@@ -558,7 +595,7 @@ namespace riko::fs {
         }
 
         char endPath[MAX_PATH + 1];
-        checkPath(luaL_checkstring(L, 2), endPath);
+        checkPath(luaL_checkstring(L, 2), endPath, L);
 
         if (endPath[0] == 0) {
             lua_pushboolean(L, false);
@@ -571,7 +608,7 @@ namespace riko::fs {
 
     static int fsDelete(lua_State *L) {
         char filePath[MAX_PATH + 1];
-        checkPath(luaL_checkstring(L, 1), filePath);
+        checkPath(luaL_checkstring(L, 1), filePath, L);
 
         if (filePath[0] == 0) {
             lua_pushboolean(L, false);

@@ -68,66 +68,68 @@
 message("<FindSDL2_gpu.cmake>")
 
 SET(SDL2_gpu_SEARCH_PATHS
-    ~/Library/Frameworks
-    /Library/Frameworks
-    /usr/local/lib
-    /usr/local
-    /usr
-    /sw # Fink
-    /opt/local # DarwinPorts
-    /opt/csw # Blastwave
-    /opt
-    ${SDL2_gpu_PATH}
-)
+        ~/Library/Frameworks
+        /Library/Frameworks
+        /usr/local/lib
+        /usr/local
+        /usr
+        /sw # Fink
+        /opt/local # DarwinPorts
+        /opt/csw # Blastwave
+        /opt
+        ${SDL2_gpu_PATH}
+        ${PROJECT_SOURCE_DIR}/libs
+        ${PROJECT_SOURCE_DIR}/libs/SDL2
+        )
 
 FIND_PATH(SDL2_gpu_INCLUDE_DIR SDL_gpu.h
-    HINTS
-    $ENV{SDL2GPUDIR}
-    PATH_SUFFIXES include/SDL2_gpu include/SDL2 include
-    PATHS ${SDL2_gpu_SEARCH_PATHS}
-)
+        HINTS
+        $ENV{SDL2GPUDIR}
+        PATH_SUFFIXES include/SDL_gpu include/SDL2_gpu include/SDL2 include
+        PATHS ${SDL2_gpu_SEARCH_PATHS}
+        )
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 8) 
+if (CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(PATH_SUFFIXES lib64 lib/x64 lib)
-else() 
+else ()
     set(PATH_SUFFIXES lib/x86 lib)
-endif() 
+endif ()
 
 FIND_LIBRARY(SDL2_gpu_LIBRARY_TEMP
-    NAMES SDL2_gpu
-    HINTS
-    $ENV{SDL2GPUDIR}
-    PATH_SUFFIXES ${PATH_SUFFIXES}
-    PATHS ${SDL2_gpu_SEARCH_PATHS}
-)
+        NAMES SDL2_gpu
+        HINTS
+        $ENV{SDL2GPUDIR}
+        PATH_SUFFIXES ${PATH_SUFFIXES}
+        PATHS ${SDL2_gpu_SEARCH_PATHS}
+        )
 
 # MinGW needs an additional link flag, -mwindows
 # It's total link flags should look like -lmingw32 -lSDL2main -lSDL2 -mwindows
-IF(MINGW)
+IF (MINGW)
     SET(MINGW32_LIBRARY mingw32 "-mwindows" CACHE STRING "mwindows for MinGW")
-ENDIF(MINGW)
+ENDIF (MINGW)
 
-IF(SDL2_gpu_LIBRARY_TEMP)
+IF (SDL2_gpu_LIBRARY_TEMP)
     # For OS X, SDL2 uses Cocoa as a backend so it must link to Cocoa.
     # CMake doesn't display the -framework Cocoa string in the UI even
     # though it actually is there if I modify a pre-used variable.
     # I think it has something to do with the CACHE STRING.
     # So I use a temporary variable until the end so I can set the
     # "real" variable in one-shot.
-    IF(APPLE)
+    IF (APPLE)
         SET(SDL2_gpu_LIBRARY_TEMP ${SDL2_gpu_LIBRARY_TEMP} "-framework Cocoa")
-    ENDIF(APPLE)
+    ENDIF (APPLE)
 
     # For MinGW library
-    IF(MINGW)
+    IF (MINGW)
         SET(SDL2_gpu_LIBRARY_TEMP ${MINGW32_LIBRARY} ${SDL2_gpu_LIBRARY_TEMP})
-    ENDIF(MINGW)
+    ENDIF (MINGW)
 
     # Set the final string here so the GUI reflects the final state.
     SET(SDL2_gpu_LIBRARY ${SDL2_gpu_LIBRARY_TEMP} CACHE STRING "Where the SDL2_gpu Library can be found")
     # Set the temp variable to INTERNAL so it is not seen in the CMake GUI
     SET(SDL2_gpu_LIBRARY_TEMP "${SDL2_gpu_LIBRARY_TEMP}" CACHE INTERNAL "")
-ENDIF(SDL2_gpu_LIBRARY_TEMP)
+ENDIF (SDL2_gpu_LIBRARY_TEMP)
 
 message("</FindSDL2_gpu.cmake>")
 
