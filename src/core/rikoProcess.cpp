@@ -16,11 +16,13 @@
 #include "rikoProcess.h"
 
 #ifdef __WINDOWS__
-#include <Windows.h>
+
+#include <windows.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <shellapi.h>
 #include <dirent.h>
+
 #else
 #include <ftw.h>
 #endif
@@ -58,19 +60,19 @@ namespace riko::process {
 #pragma clang diagnostic pop
 #endif
 
-    void parseCommands(int argc, char * argv[]) {
+    void parseCommands(int argc, char *argv[]) {
         while (true) {
             int optionIndex = 0;
             static option longOptions[] = {
                     {"noaud", no_argument,       nullptr, 0},
                     {"glsl",  optional_argument, nullptr, 'g'},
                     {"dir",   required_argument, nullptr, 'd'},
-                    {nullptr,  0,                 nullptr, 0 }
+                    {nullptr, 0,                 nullptr, 0}
             };
 
             int c = getopt_long(argc, argv, "g::d:", longOptions, &optionIndex);
             if (c == -1) break;
-			
+
 
             switch (c) {
                 case 0:
@@ -87,7 +89,11 @@ namespace riko::process {
                     riko::fs::appPath = getFullPath(optarg, nullptr);
 #endif
                     if (riko::fs::appPath) {
+#ifdef __WINDOWS__
+                        strcat(riko::fs::appPath, "\\");
+#else
                         strcat(riko::fs::appPath, "/");
+#endif
                         struct stat path_stat{};
                         stat(riko::fs::appPath, &path_stat);
                         if (!S_ISDIR(path_stat.st_mode)) {
@@ -107,14 +113,14 @@ namespace riko::process {
                         } else if (newGLSLVersion > 0) {
                             riko::shader::glslOverride = newGLSLVersion;
                         } else {
-                            std::cout << "Value '" << newGLSLVersion << "' is not a valid GLSL version number" << std::endl;
+                            std::cout << "Value '" << newGLSLVersion << "' is not a valid GLSL version number"
+                                      << std::endl;
                         }
                     }
                     break;
                 default:
                     fprintf(stderr, "Usage: %s [--noaud] [--glsl/-g [version]] [--dir/-d dir] \n", argv[0]);
                     exit(1);
-                    break;
             }
         }
     }
@@ -180,18 +186,18 @@ namespace riko::process {
     }
 
 #ifdef __WINDOWS__
-    bool is_dir(const char* path) {
-        struct stat buf {};
+
+    bool is_dir(const char *path) {
+        struct stat buf{};
         stat(path, &buf);
         return S_ISDIR(buf.st_mode);
     }
 
-    void copyFile_(const std::string &inDir, const std::string &outDir) {
+    void copyFile(const std::string &inDir, const std::string &outDir) {
         CopyFile(inDir.c_str(), outDir.c_str(), 1);
-        DWORD Error = GetLastError();
     }
 
-    void copyDir_(const char *inputDir, const std::string &outDir) {
+    void copyDir(const char *inputDir, const std::string &outDir) {
 
         DIR *pDIR;
         struct dirent *entry;
@@ -203,37 +209,36 @@ namespace riko::process {
         }
 
 
-        if((pDIR = opendir(inputDir_str.c_str()))) {
-            while((entry = readdir(pDIR))) { // get folders and files names
+        if ((pDIR = opendir(inputDir_str.c_str()))) {
+            while ((entry = readdir(pDIR))) { // get folders and files names
                 tmpStr = entry->d_name;
-                if( strcmp(entry->d_name, ".")  != 0 && strcmp(entry->d_name, "..") != 0 ) {
+                if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
                     tmpStrPath = inputDir_str;
-                    tmpStrPath.append( "\\" );
-                    tmpStrPath.append( tmpStr );
+                    tmpStrPath.append("\\");
+                    tmpStrPath.append(tmpStr);
 
                     std::cout << entry->d_name;
                     if (is_dir(tmpStrPath.c_str())) {
-                        std::cout << "--> It's a folder" << "\n";
                         // Create Folder on the destination path
                         outStrPath = outDir;
-                        outStrPath.append( "\\" );
-                        outStrPath.append( tmpStr );
+                        outStrPath.append("\\");
+                        outStrPath.append(tmpStr);
                         mkdir(outStrPath.c_str());
 
-                        copyDir_(tmpStrPath.c_str(), outStrPath);
+                        copyDir(tmpStrPath.c_str(), outStrPath);
                     } else {
-                        std::cout << "--> It's a file"   << "\n";
                         // copy file on the destination path
                         outStrPath = outDir;
-                        outStrPath.append( "\\" );
-                        outStrPath.append( tmpStr );
-                        copyFile_(tmpStrPath, outStrPath);
+                        outStrPath.append("\\");
+                        outStrPath.append(tmpStr);
+                        copyFile(tmpStrPath, outStrPath);
                     }
                 }
             }
             closedir(pDIR);
         }
     }
+
 #endif
 
     int openScripts() {
@@ -250,7 +255,8 @@ namespace riko::process {
 #endif
 
         if (riko::fs::appPath == nullptr) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unable to open application directory, possibly out of free space?");
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                         "Unable to open application directory, possibly out of free space?");
             return 2;
         }
         printf("Riko4 path: '%s'\n", riko::fs::appPath);
@@ -259,12 +265,12 @@ namespace riko::process {
         riko::fs::scriptsPath = new char[strlen(riko::fs::appPath) + 8];
         sprintf(riko::fs::scriptsPath, "%sscripts", riko::fs::appPath);
 
-        struct stat statbuf{};
+        struct stat statbuf {};
         if (stat(riko::fs::scriptsPath, &statbuf) != 0) {
             // Create standard directory as first time setup
 #ifdef __WINDOWS__
             mkdir(riko::fs::scriptsPath);
-            copyDir_(".\\scripts", riko::fs::scriptsPath);
+            copyDir(".\\scripts", riko::fs::scriptsPath);
 #else
             nftw("./scripts/", &fileCopyCallback, OPEN_FS_DESC, 0);
 #endif

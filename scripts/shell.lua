@@ -1,12 +1,12 @@
 fs.setCWD("/home/")
 
--- os.exit is used as the exit method for some scripts,
--- most notably, the Urn compiler. This prevents such
--- scripts from exiting Riko4 entirely.
 do
   if not riko4 then riko4 = {} end
   riko4.exit = os.exit
 
+  -- os.exit is used as the exit method for some scripts,
+  -- most notably, the Urn compiler. This prevents such
+  -- scripts from exiting Riko4 entirely.
   os.exit = function() -- luacheck: globals os
     local r = coroutine.yield("killme")
     if r ~= "killed" then
@@ -15,6 +15,15 @@ do
 
     coroutine.yield("done")
   end
+
+  local counter = 0
+  os.tmpname = function()
+    counter = counter + 1
+    return "/tmp/lua_" .. counter .. ".lua"
+  end
+
+  os.remove = fs.delete
+  os.rename = fs.move
 end
 
 
@@ -789,9 +798,6 @@ function shell.erun(cenv, name, ...)
     return false, "Cannot find file `" .. name .. "`"
   else
     local words = {...}
-    for i = 1, #words do
-      words[i] = words[i + 1]
-    end
 
     local env = newEnv(fs.getBaseDir(fs.combine(fs.getCWD(), name)))
     for k, v in pairs(cenv) do
@@ -834,6 +840,7 @@ end
 function shell.run(...)
   return shell.erun({}, ...)
 end
+os.execute = shell.run
 
 local shellHistory = {}
 
@@ -848,6 +855,8 @@ while true do
 
     local words = shellSplit(input)
     local name = words[1]
+    table.remove(words, 1) -- Get the name out of the argument list
+
     local s, e = shell.run(name, unpack(words))
     if not s then
       print(e, 8)
