@@ -9,6 +9,7 @@
 #include "luaIncludes.h"
 
 #include "audio.h"
+#include "../util/TableInterface.h"
 
 #ifdef __WINDOWS__
 #define random() rand()
@@ -280,91 +281,48 @@ namespace riko::audio {
 #pragma clang diagnostic pop
 
     static int aud_play(lua_State *L) {
-        int off = lua_gettop(L);
-        if (off == 0) {
-            luaL_error(L, "Expected table as first argument");
-            return 0;
-        }
-        if (lua_type(L, -off) != LUA_TTABLE) {
-            luaL_error(L, "Expected table as first argument");
-            return 0;
-        }
+        try {
+            TableInterface interface(L, 1);
 
-        lua_pushstring(L, "channel");
-        lua_gettable(L, -1 - off);
-        auto chan = (int)luaL_checkinteger(L, -1);
+            int chan = interface.getInteger("channel");
+            int freq = interface.getInteger("frequency");
+            int freqShift = interface.getInteger("shift", 0);
+            double vol = interface.getNumber("volume", 0.1);
+            double time = interface.getNumber("time");
+            double atK = interface.getNumber("attack", 0);
+            double rls = interface.getNumber("release", 0);
 
-        if (chan <= 0 || chan > channelCount) {
-            luaL_error(L, "Channel must be between 1 and %d", channelCount);
-        }
+            if (chan <= 0 || chan > channelCount)
+                interface.throwError("channel must be between 1 and " + std::to_string(channelCount));
 
-        lua_pushstring(L, "volume");
-        lua_gettable(L, -2 - off);
-        double vol;
-        if (lua_isnil(L, -1)) {
-            vol = 1;
-        } else {
-            vol = lua_tonumber(L, -1);
-        }
+            if (time <= 0)
+                interface.throwError("time must be greater than 0");
 
-        lua_pushstring(L, "frequency");
-        lua_gettable(L, -3 - off);
-        auto freq = (int)luaL_checkinteger(L, -1);
+            if (atK < 0)
+                interface.throwError("attack must be greater than or equal to 0");
 
-        lua_pushstring(L, "shift");
-        lua_gettable(L, -4 - off);
-        int freqShift;
-        if (lua_isnil(L, -1)) {
-            freqShift = 0;
-        } else {
-            freqShift = (int)lua_tointeger(L, -1);
-        }
+            if (rls < 0)
+                interface.throwError("release must be greater than or equal to 0");
 
-        lua_pushstring(L, "time");
-        lua_gettable(L, -5 - off);
-        double time;
-        if (lua_type(L, -1) != LUA_TNUMBER) {
-            luaL_error(L, "bad argument 'time' to 'play' (number expected, got %s)", lua_typename(L, lua_type(L, -1)));
-            return 0;
-        } else {
-            time = lua_tonumber(L, -1);
-            if (time <= 0) {
-                luaL_error(L, "bad argument 'time' to 'play' (number must be greater than 0)");
-                return 0;
+            auto *pulse = new Sound;
+            if (chan == 5) {
+                pulse->frequency = (110 - (12 * (log(pow(2, 1.0 / 12) * freq / 16.35) / log(2))));
+                pulse->frequencyShift = ((110 - (12 * (log(pow(2, 1.0 / 12) * (freq + freqShift) / 16.35) / log(2)))) -
+                                         pulse->frequency) / (sampleRate * time);
+            } else {
+                pulse->frequency = freq;
+                pulse->frequencyShift = (double) freqShift / (sampleRate * time);
             }
-        }
 
-        lua_pushstring(L, "attack");
-        lua_gettable(L, -6 - off);
-        double atK = luaL_checknumber(L, -1);
-        if (atK < 0) {
-            luaL_error(L, "bad argument 'attack' to 'play' (number must be greater than or equal to 0)");
-            return 0;
+            pulse->volume = vol < 0 ? 0 : (vol > 1 ? 1 : (float) vol);
+            pulse->totalTime = time;
+            pulse->attack = atK;
+            pulse->release = rls;
+            pulse->remainingCycles = (unsigned long long) (time * sampleRate);
+            pushToQueue(audioQueues[chan - 1], pulse);
+        } catch (const LuaError &e) {
+            luaL_error(L, e.what());
         }
-
-        lua_pushstring(L, "release");
-        lua_gettable(L, -7 - off);
-        double rls = luaL_checknumber(L, -1);
-        if (rls < 0) {
-            luaL_error(L, "bad argument 'release' to 'play' (number must be greater than or equal to 0)");
-            return 0;
-        }
-
-        auto* pulse = new Sound;
-        if (chan == 5) {
-            pulse->frequency = (110 - (12 * (log(pow(2, 1.0 / 12) * freq / 16.35) / log(2))));
-            pulse->frequencyShift = ((110 - (12 * (log(pow(2, 1.0 / 12) * (freq + freqShift) / 16.35) / log(2)))) - pulse->frequency) / (sampleRate * time);
-        } else {
-            pulse->frequency = freq;
-            pulse->frequencyShift = (double)freqShift / (sampleRate * time);
-        }
-
-        pulse->volume = vol < 0 ? 0 : (vol > 1 ? 1 : (float)vol);
-        pulse->totalTime = time;
-        pulse->attack = atK;
-        pulse->release = rls;
-        pulse->remainingCycles = (unsigned long long)(time * sampleRate);
-        pushToQueue(audioQueues[chan - 1], pulse);
 
         return 0;
     }
