@@ -13,19 +13,30 @@ private:
     int arg;
 
     std::string lastKey = "unknown";
+    int lastArrayIndex = 0;
 
     void popToStack(std::string key);
+    void popToStack(int key);
 
 public:
     TableInterface(lua_State *state, int arg);
 
     void throwError(std::string desc = "");
 
+    size_t getSize();
+
     double getNumber(std::string key);
     double getNumber(std::string key, double defaultValue);
 
     int getInteger(std::string key);
     int getInteger(std::string key, int defaultValue);
+
+    bool getBoolean(std::string key);
+    bool getBoolean(std::string key, bool defaultValue);
+
+    double getNextNumber();
+    int getNextInteger();
+    bool getNextBoolean();
 };
 
 

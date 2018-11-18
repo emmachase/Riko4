@@ -10,6 +10,7 @@
 
 #include "audio.h"
 #include "util/TableInterface.h"
+#include "engine/userdata/sequence.h"
 
 #ifdef __WINDOWS__
 #define random() rand()
@@ -21,12 +22,21 @@ namespace riko::audio {
 
     struct Sound {
         double totalTime;
+        unsigned long long totalCycles;
         unsigned long long remainingCycles;
         double frequency;
         double frequencyShift;
         double attack;
         double release;
         float volume;
+        int arpSequence;
+        int pitchSequence;
+        int dutySequence;
+        int volumeSequence;
+        size_t arpIndex;
+        size_t pitchIndex;
+        size_t dutyIndex;
+        size_t volumeIndex;
     };
 
     struct Node {
@@ -109,11 +119,14 @@ namespace riko::audio {
     SDL_AudioDeviceID dev;
 
     static int sampleRate = 48000;
+    static int sequenceRate = sampleRate / 60;
     static Uint16 samples = 1024;
     static Uint8 audDevChanCount = 1;
 
     const int channelCount = 5;
+    const int sequenceCount = 64;
     // const int queueSize = 512;
+    static Sequence *sequenceMap[sequenceCount];
     static Queue* audioQueues[channelCount];
     static Sound* playingAudio[channelCount];
     static bool channelHasSnd[channelCount];
@@ -178,27 +191,109 @@ namespace riko::audio {
                     }
 
                     double vol = playingAudio[i]->volume * atC * rlC;
+                    if (playingAudio[i]->volumeSequence != -1) {
+                        Sequence *volumeSequence = sequenceMap[playingAudio[i]->volumeSequence];
+                        if (playingAudio[i]->totalCycles % sequenceRate == 0) {
+                            playingAudio[i]->volumeIndex++;
+                            if (playingAudio[i]->volumeIndex >= volumeSequence->getSize()) {
+                                if (volumeSequence->doesLoop()) {
+                                    playingAudio[i]->volumeIndex = volumeSequence->getLoopPoint();
+                                } else {
+                                    playingAudio[i]->volumeIndex--;
+                                }
+                            }
+                        }
+
+                        int bendValue = volumeSequence->getData()[playingAudio[i]->volumeIndex];
+                        bendValue = bendValue > 15 ? 15 : (bendValue < 0 ? 0 : bendValue);
+                        vol *= (static_cast<double>(bendValue) / 15);
+                    }
+
+                    double effectiveFrequency = playingAudio[i]->frequency;
+                    if (playingAudio[i]->arpSequence != -1) {
+                        Sequence *arpSequence = sequenceMap[playingAudio[i]->arpSequence];
+                        if (playingAudio[i]->totalCycles % sequenceRate == 0) {
+                            playingAudio[i]->arpIndex++;
+                            if (playingAudio[i]->arpIndex >= arpSequence->getSize()) {
+                                if (arpSequence->doesLoop()) {
+                                    playingAudio[i]->arpIndex = arpSequence->getLoopPoint();
+                                } else {
+                                    playingAudio[i]->arpIndex--;
+                                }
+                            }
+                        }
+
+                        int arpValue = arpSequence->getData()[playingAudio[i]->arpIndex];
+                        effectiveFrequency += arpValue;
+                    }
+
+                    if (playingAudio[i]->pitchSequence != -1) {
+                        Sequence *pitchSequence = sequenceMap[playingAudio[i]->pitchSequence];
+                        if (playingAudio[i]->totalCycles % sequenceRate == 0) {
+                            playingAudio[i]->pitchIndex++;
+                            if (playingAudio[i]->pitchIndex >= pitchSequence->getSize()) {
+                                if (pitchSequence->doesLoop()) {
+                                    playingAudio[i]->pitchIndex = pitchSequence->getLoopPoint();
+                                } else {
+                                    playingAudio[i]->pitchIndex--;
+                                }
+                            }
+
+                            int bendValue = pitchSequence->getData()[playingAudio[i]->pitchIndex];
+                            playingAudio[i]->frequency += bendValue;
+                        }
+                    }
+
+                    double dutyFactor = PI/4;
+                    if (playingAudio[i]->dutySequence != -1) {
+                        Sequence *dutySequence = sequenceMap[playingAudio[i]->dutySequence];
+                        if (playingAudio[i]->totalCycles % sequenceRate == 0) {
+                            playingAudio[i]->dutyIndex++;
+                            if (playingAudio[i]->dutyIndex >= dutySequence->getSize()) {
+                                if (dutySequence->doesLoop()) {
+                                    playingAudio[i]->dutyIndex = dutySequence->getLoopPoint();
+                                } else {
+                                    playingAudio[i]->dutyIndex--;
+                                }
+                            }
+                        }
+
+                        int arpValue = dutySequence->getData()[playingAudio[i]->dutyIndex];
+                        switch (arpValue) {
+                            case 0:
+                                dutyFactor = PI/8;
+                                break;
+                            case 2:
+                                dutyFactor = PI/2;
+                                break;
+                            case 3:
+                                dutyFactor = 3*PI/4;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
 
                     switch (i) {
                         case 0:
                         case 1:
                             // Pulse Wave
-                            floatStream[z] += (float)((fmod(streamPhase[i], TAO) > PI/4 ? -1 : 1) * vol);
-                            streamPhase[i] += TAO * playingAudio[i]->frequency / sampleRate;
+                            floatStream[z] += (float)((fmod(streamPhase[i], TAO) > dutyFactor ? -1 : 1) * vol);
+                            streamPhase[i] += TAO * effectiveFrequency / sampleRate;
                             break;
                         case 2:
                             // Triangle Wave
                             floatStream[z] += (float)((1 - 4 * fabs(fmod(streamPhase[i], 1) - 0.5)) * vol);
-                            streamPhase[i] += playingAudio[i]->frequency / sampleRate;
+                            streamPhase[i] += effectiveFrequency / sampleRate;
                             break;
                         case 3:
                             // Sawtooth Wave
                             floatStream[z] += (float)((2 * fmod(streamPhase[i] - 0.5, 1) - 1) * vol);
-                            streamPhase[i] += playingAudio[i]->frequency / sampleRate;
+                            streamPhase[i] += effectiveFrequency / sampleRate;
                             break;
                         case 4:
                             // Noise (Wave?)
-                            delta = fmod((streamPhase[i] + 1), playingAudio[i]->frequency);
+                            delta = fmod((streamPhase[i] + 1), effectiveFrequency);
                             if (streamPhase[i] > delta) {
                                 lstRnd = (float)((((float)random() / (float)RAND_MAX) * 2 - 1) * vol);
                             }
@@ -211,6 +306,7 @@ namespace riko::audio {
                     }
 
                     playingAudio[i]->remainingCycles--;
+                    playingAudio[i]->totalCycles++;
 
                     playingAudio[i]->frequency += playingAudio[i]->frequencyShift;
                 }
@@ -285,24 +381,60 @@ namespace riko::audio {
             TableInterface interface(L, 1);
 
             int chan = interface.getInteger("channel");
-            int freq = interface.getInteger("frequency");
-            int freqShift = interface.getInteger("shift", 0);
-            double vol = interface.getNumber("volume", 0.1);
-            double time = interface.getNumber("time");
-            double atK = interface.getNumber("attack", 0);
-            double rls = interface.getNumber("release", 0);
-
             if (chan <= 0 || chan > channelCount)
                 interface.throwError("channel must be between 1 and " + std::to_string(channelCount));
 
+            int freq = interface.getInteger("frequency");
+            int freqShift = interface.getInteger("shift", 0);
+            double vol = interface.getNumber("volume", 0.015);
+            double time = interface.getNumber("time");
             if (time <= 0)
                 interface.throwError("time must be greater than 0");
 
+            double atK = interface.getNumber("attack", 0);
             if (atK < 0)
                 interface.throwError("attack must be greater than or equal to 0");
 
+            double rls = interface.getNumber("release", 0);
             if (rls < 0)
                 interface.throwError("release must be greater than or equal to 0");
+
+            int arpSequence = interface.getInteger("arpeggio", 0) - 1;
+            if (arpSequence != -1) {
+                if (arpSequence < 0 || arpSequence >= sequenceCount)
+                    interface.throwError("arpeggio must be between 1 and " + std::to_string(sequenceCount));
+
+                if (!sequenceMap[arpSequence])
+                    interface.throwError("invalid sequence (loadSequence first)");
+            }
+
+            int pitchSequence = interface.getInteger("pitchBend", 0) - 1;
+            if (pitchSequence != -1) {
+                if (pitchSequence < 0 || pitchSequence >= sequenceCount)
+                    interface.throwError("pitchBend must be between 1 and " + std::to_string(sequenceCount));
+
+                if (!sequenceMap[pitchSequence])
+                    interface.throwError("invalid sequence (loadSequence first)");
+            }
+
+            int dutySequence = interface.getInteger("duty", 0) - 1;
+            if (dutySequence != -1) {
+                if (dutySequence < 0 || dutySequence >= sequenceCount)
+                    interface.throwError("duty must be between 1 and " + std::to_string(sequenceCount));
+
+                if (!sequenceMap[dutySequence])
+                    interface.throwError("invalid sequence (loadSequence first)");
+            }
+
+            int volumeSequence = interface.getInteger("volSlide", 0) - 1;
+            if (volumeSequence != -1) {
+                if (volumeSequence < 0 || volumeSequence >= sequenceCount)
+                    interface.throwError("volSlide must be between 1 and " + std::to_string(sequenceCount));
+
+                if (!sequenceMap[volumeSequence])
+                    interface.throwError("invalid sequence (loadSequence first)");
+            }
+
 
             auto *pulse = new Sound;
             if (chan == 5) {
@@ -318,6 +450,16 @@ namespace riko::audio {
             pulse->totalTime = time;
             pulse->attack = atK;
             pulse->release = rls;
+
+            pulse->arpSequence = arpSequence;
+            pulse->pitchSequence = pitchSequence;
+            pulse->dutySequence = dutySequence;
+            pulse->volumeSequence = volumeSequence;
+            pulse->arpIndex = 0;
+            pulse->pitchIndex = 0;
+            pulse->dutyIndex = 0;
+            pulse->volumeIndex = 0;
+
             pulse->remainingCycles = (unsigned long long) (time * sampleRate);
             pushToQueue(audioQueues[chan - 1], pulse);
         } catch (const LuaError &e) {
@@ -327,11 +469,34 @@ namespace riko::audio {
         return 0;
     }
 
+    static int loadSequence(lua_State *L) {
+        try {
+            auto *sequence = new Sequence(L, 1);
+
+            int index = luaL_checkint(L, 2) - 1;
+            if (index < 0 || index >= sequenceCount) {
+                delete sequence;
+
+                lua_pushboolean(L, false);
+                return 1;
+            }
+
+            delete sequenceMap[index];
+            sequenceMap[index] = sequence;
+        } catch (const LuaError &e) {
+            luaL_error(L, e.what());
+        }
+
+        lua_pushboolean(L, true);
+        return 1;
+    }
+
     static const luaL_Reg audLib[] = {
-            {"play",        aud_play},
-            {"stopChannel", aud_stopChan},
-            {"stopAll",     aud_stopAll},
-            {nullptr,       nullptr}
+            {"play",         aud_play},
+            {"stopChannel",  aud_stopChan},
+            {"stopAll",      aud_stopAll},
+            {"loadSequence", loadSequence},
+            {nullptr,        nullptr}
     };
 
     LUALIB_API int openLua(lua_State *L) {
@@ -357,6 +522,8 @@ namespace riko::audio {
                 SDL_Log("Failed to open audio: %s", SDL_GetError());
             } else {
                 sampleRate = have.freq;
+                sequenceRate = sampleRate / 60;
+
                 samples = have.samples;
                 audDevChanCount = have.channels;
 
