@@ -13,7 +13,7 @@ for i = 28, 36 do
 end
 speaker.loadSequence(a, 1)
 
-local b = {0, 0, 50, 50, 160, 160, loop = 1}
+local b = {0, 0, 1, 1, 3, 3, loop = 1}
 speaker.loadSequence(b, 2)
 
 local c = {3, 10, 15, 15, 6, 2, loop = 1}

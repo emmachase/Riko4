@@ -84,10 +84,18 @@ local function _update(dt)
   Items[x]:update()
  end
 
- write("Dots :" .. #Items, 8,9, 1)
- write("Dots :" .. #Items, 8,8, 8)
- write("FPS :" .. fps, 8,17, 1)
- write("FPS :" .. fps, 8,16, 8)
+ for i = -1, 1 do
+  for j = -1, 1 do
+   write("Dots: " .. #Items, 8+i,8+j, 1)
+  end
+ end
+ write("Dots: " .. #Items, 8,8, 8)
+ for i = -1, 1 do
+  for j = -1, 1 do
+   write("FPS: " .. fps, 8+i,16+j, 1)
+  end
+ end
+ write("FPS: " .. fps, 8,16, 8)
 
  -- add 500 more
  write("press A to add 500 more", 8, h - 12)

@@ -16,6 +16,9 @@
 #define random() rand()
 #endif
 
+// NOTE_POW is the twelfth root of 2
+#define NOTE_POW 1.059463094359
+
 namespace riko::audio {
     bool audioEnabled = true;
     bool audioInitialized = false;
@@ -224,7 +227,7 @@ namespace riko::audio {
                         }
 
                         int arpValue = arpSequence->getData()[playingAudio[i]->arpIndex];
-                        effectiveFrequency += arpValue;
+                        effectiveFrequency *= pow(NOTE_POW, arpValue);
                     }
 
                     if (playingAudio[i]->pitchSequence != -1) {
