@@ -37,6 +37,9 @@ typedef struct GPU_RendererImpl
 	/*! \see GPU_ResetRendererState() */
 	void (SDLCALL *ResetRendererState)(GPU_Renderer* renderer);
 	
+	/*! \see GPU_AddDepthBuffer() */
+	GPU_bool (SDLCALL *AddDepthBuffer)(GPU_Renderer* renderer, GPU_Target* target);
+	
 	/*! \see GPU_SetWindowResolution() */
 	GPU_bool (SDLCALL *SetWindowResolution)(GPU_Renderer* renderer, Uint16 w, Uint16 h);
 	
@@ -59,7 +62,7 @@ typedef struct GPU_RendererImpl
 	GPU_Image* (SDLCALL *CreateImage)(GPU_Renderer* renderer, Uint16 w, Uint16 h, GPU_FormatEnum format);
 	
     /*! \see GPU_CreateImageUsingTexture() */
-	GPU_Image* (SDLCALL *CreateImageUsingTexture)(GPU_Renderer* renderer, Uint32 handle, GPU_bool take_ownership);
+	GPU_Image* (SDLCALL *CreateImageUsingTexture)(GPU_Renderer* renderer, GPU_TextureHandle handle, GPU_bool take_ownership);
 	
     /*! \see GPU_CreateAliasImage() */
 	GPU_Image* (SDLCALL *CreateAliasImage)(GPU_Renderer* renderer, GPU_Image* image);
@@ -94,8 +97,8 @@ typedef struct GPU_RendererImpl
 	/*! \see GPU_FreeImage() */
 	void (SDLCALL *FreeImage)(GPU_Renderer* renderer, GPU_Image* image);
 	
-	/*! \see GPU_LoadTarget() */
-	GPU_Target* (SDLCALL *LoadTarget)(GPU_Renderer* renderer, GPU_Image* image);
+	/*! \see GPU_GetTarget() */
+	GPU_Target* (SDLCALL *GetTarget)(GPU_Renderer* renderer, GPU_Image* image);
 	
 	/*! \see GPU_FreeTarget() */
 	void (SDLCALL *FreeTarget)(GPU_Renderer* renderer, GPU_Target* target);
@@ -115,8 +118,8 @@ typedef struct GPU_RendererImpl
 	/*! \see GPU_BlitTransformX() */
 	void (SDLCALL *BlitTransformX)(GPU_Renderer* renderer, GPU_Image* image, GPU_Rect* src_rect, GPU_Target* target, float x, float y, float pivot_x, float pivot_y, float degrees, float scaleX, float scaleY);
 	
-	/*! \see GPU_TriangleBatchX() */
-	void (SDLCALL *TriangleBatchX)(GPU_Renderer* renderer, GPU_Image* image, GPU_Target* target, unsigned short num_vertices, void* values, unsigned int num_indices, unsigned short* indices, GPU_BatchFlagEnum flags);
+	/*! \see GPU_PrimitiveBatchV() */
+	void (SDLCALL *PrimitiveBatchV)(GPU_Renderer* renderer, GPU_Image* image, GPU_Target* target, GPU_PrimitiveEnum primitive_type, unsigned short num_vertices, void* values, unsigned int num_indices, unsigned short* indices, GPU_BatchFlagEnum flags);
 	
 	/*! \see GPU_GenerateMipmaps() */
 	void (SDLCALL *GenerateMipmaps)(GPU_Renderer* renderer, GPU_Image* image);
@@ -135,7 +138,10 @@ typedef struct GPU_RendererImpl
 	
 	/*! \see GPU_SetWrapMode() */
 	void (SDLCALL *SetWrapMode)(GPU_Renderer* renderer, GPU_Image* image, GPU_WrapEnum wrap_mode_x, GPU_WrapEnum wrap_mode_y);
-
+    
+    /*! \see GPU_GetTextureHandle() */
+    GPU_TextureHandle (SDLCALL *GetTextureHandle)(GPU_Renderer* renderer, GPU_Image* image);
+    
 	/*! \see GPU_ClearRGBA() */
 	void (SDLCALL *ClearRGBA)(GPU_Renderer* renderer, GPU_Target* target, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
 	/*! \see GPU_FlushBlitBuffer() */
@@ -303,6 +309,9 @@ typedef struct GPU_RendererImpl
     /*! \see GPU_Polygon() */
 	void (SDLCALL *Polygon)(GPU_Renderer* renderer, GPU_Target* target, unsigned int num_vertices, float* vertices, SDL_Color color);
 
+	/*! \see GPU_Polyline() */
+	void (SDLCALL *Polyline)(GPU_Renderer* renderer, GPU_Target* target, unsigned int num_vertices, float* vertices, SDL_Color color, GPU_bool close_loop);
+	
     /*! \see GPU_PolygonFilled() */
 	void (SDLCALL *PolygonFilled)(GPU_Renderer* renderer, GPU_Target* target, unsigned int num_vertices, float* vertices, SDL_Color color);
 	

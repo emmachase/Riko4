@@ -125,6 +125,23 @@ typedef struct GPU_RendererID
 } GPU_RendererID;
 
 
+/*! \ingroup TargetControls
+ * Comparison operations (for depth testing)
+ * \see GPU_SetDepthFunction()
+ * Values chosen for direct OpenGL compatibility.
+ */
+typedef enum {
+    GPU_NEVER = 0x0200,
+    GPU_LESS = 0x0201,
+    GPU_EQUAL = 0x0202,
+    GPU_LEQUAL = 0x0203,
+    GPU_GREATER = 0x0204,
+    GPU_NOTEQUAL = 0x0205,
+    GPU_GEQUAL = 0x0206,
+    GPU_ALWAYS = 0x0207
+} GPU_ComparisonEnum;
+
+
 /*! \ingroup ImageControls
  * Blend component functions
  * \see GPU_SetBlendFunction()
@@ -231,7 +248,10 @@ typedef enum {
     GPU_FORMAT_ALPHA = 5,
     GPU_FORMAT_RG = 6,
     GPU_FORMAT_YCbCr422 = 7,
-    GPU_FORMAT_YCbCr420P = 8
+    GPU_FORMAT_YCbCr420P = 8,
+    GPU_FORMAT_BGR = 9,
+    GPU_FORMAT_BGRA = 10,
+    GPU_FORMAT_ABGR = 11
 } GPU_FormatEnum;
 
 /*! \ingroup ImageControls
@@ -290,6 +310,13 @@ typedef struct GPU_Image
 	GPU_bool is_alias;
 } GPU_Image;
 
+/*! \ingroup ImageControls
+ * A backend-neutral type that is intended to hold a backend-specific handle/pointer to a texture.
+ * \see GPU_CreateImageUsingTexture()
+ * \see GPU_GetTextureHandle()
+ */
+typedef uintptr_t GPU_TextureHandle;
+
 
 /*! \ingroup TargetControls
  * Camera object that determines viewing transform.
@@ -301,7 +328,9 @@ typedef struct GPU_Camera
 {
 	float x, y, z;
 	float angle;
-	float zoom;
+	float zoom_x, zoom_y;
+	float z_near, z_far;  // z clipping planes
+	bool use_centered_origin;  // move rotation/scaling origin to the center of the camera's view
 } GPU_Camera;
 
 
@@ -327,16 +356,13 @@ typedef struct GPU_ShaderBlock
 #define GPU_MODELVIEW 0
 #define GPU_PROJECTION 1
 
-#ifndef GPU_MATRIX_STACK_MAX
-#define GPU_MATRIX_STACK_MAX 5
-#endif
-
 /*! \ingroup Matrix
  * Matrix stack data structure for global vertex transforms.  */
 typedef struct GPU_MatrixStack
 {
+    unsigned int storage_size;
     unsigned int size;
-    float matrix[GPU_MATRIX_STACK_MAX][16];
+    float** matrix;
 } GPU_MatrixStack;
 
 
@@ -417,6 +443,10 @@ struct GPU_Target
 	GPU_Camera camera;
 	GPU_bool use_camera;
 	
+	GPU_bool use_depth_test;
+	GPU_bool use_depth_write;
+	GPU_ComparisonEnum depth_function;
+	
 	/*! Renderer context data.  NULL if the target does not represent a window or rendering context. */
 	GPU_Context* context;
 	int refcount;
@@ -442,6 +472,7 @@ static const GPU_FeatureEnum GPU_FEATURE_FRAGMENT_SHADER = 0x200;
 static const GPU_FeatureEnum GPU_FEATURE_PIXEL_SHADER = 0x200;
 static const GPU_FeatureEnum GPU_FEATURE_GEOMETRY_SHADER = 0x400;
 static const GPU_FeatureEnum GPU_FEATURE_WRAP_REPEAT_MIRRORED = 0x800;
+static const GPU_FeatureEnum GPU_FEATURE_CORE_FRAMEBUFFER_OBJECTS = 0x1000;
 
 /*! Combined feature flags */
 #define GPU_FEATURE_ALL_BASE GPU_FEATURE_RENDER_TARGETS
@@ -465,6 +496,8 @@ static const GPU_InitFlagEnum GPU_INIT_DISABLE_VSYNC = 0x2;
 static const GPU_InitFlagEnum GPU_INIT_DISABLE_DOUBLE_BUFFER = 0x4;
 static const GPU_InitFlagEnum GPU_INIT_DISABLE_AUTO_VIRTUAL_RESOLUTION = 0x8;
 static const GPU_InitFlagEnum GPU_INIT_REQUEST_COMPATIBILITY_PROFILE = 0x10;
+static const GPU_InitFlagEnum GPU_INIT_USE_ROW_BY_ROW_TEXTURE_UPLOAD_FALLBACK = 0x20;
+static const GPU_InitFlagEnum GPU_INIT_USE_COPY_TEXTURE_UPLOAD_FALLBACK = 0x40;
 
 #define GPU_DEFAULT_INIT_FLAGS 0
 
@@ -472,9 +505,25 @@ static const GPU_InitFlagEnum GPU_INIT_REQUEST_COMPATIBILITY_PROFILE = 0x10;
 static const Uint32 GPU_NONE = 0x0;
 
 /*! \ingroup Rendering
- * Bit flags for geometry batching.
+ * Primitive types for rendering arbitrary geometry.  The values are intentionally identical to the GL_* primitives.
+ * \see GPU_PrimitiveBatch()
+ * \see GPU_PrimitiveBatchV()
+ */
+typedef Uint32 GPU_PrimitiveEnum;
+static const GPU_PrimitiveEnum GPU_POINTS = 0x0;
+static const GPU_PrimitiveEnum GPU_LINES = 0x1;
+static const GPU_PrimitiveEnum GPU_LINE_LOOP = 0x2;
+static const GPU_PrimitiveEnum GPU_LINE_STRIP = 0x3;
+static const GPU_PrimitiveEnum GPU_TRIANGLES = 0x4;
+static const GPU_PrimitiveEnum GPU_TRIANGLE_STRIP = 0x5;
+static const GPU_PrimitiveEnum GPU_TRIANGLE_FAN = 0x6;
+
+ 
+/*! Bit flags for geometry batching.
  * \see GPU_TriangleBatch()
  * \see GPU_TriangleBatchX()
+ * \see GPU_PrimitiveBatch()
+ * \see GPU_PrimitiveBatchV()
  */
 typedef Uint32 GPU_BatchFlagEnum;
 static const GPU_BatchFlagEnum GPU_BATCH_XY = 0x1;
@@ -720,8 +769,28 @@ DECLSPEC void SDLCALL GPU_GetRendererOrder(int* order_size, GPU_RendererID* orde
 /*! Sets the renderer ID order to use for initialization.  If 'order' is NULL, it will restore the default order. */
 DECLSPEC void SDLCALL GPU_SetRendererOrder(int order_size, GPU_RendererID* order);
 
-/*! Initializes SDL and SDL_gpu.  Creates a window and goes through the renderer order to create a renderer context.
+/*! Initializes SDL's video subsystem (if necessary) and all of SDL_gpu's internal structures.
+ * Chooses a renderer and creates a window with the given dimensions and window creation flags.
+ * A pointer to the resulting window's render target is returned.
+ * 
+ * \param w Desired window width in pixels
+ * \param h Desired window height in pixels
+ * \param SDL_flags The bit flags to pass to SDL when creating the window.  Use GPU_DEFAULT_INIT_FLAGS if you don't care.
+ * \return On success, returns the new context target (i.e. render target backed by a window).  On failure, returns NULL.
+ * 
+ * Initializes these systems:
+ *  The 'error queue': Stores error codes and description strings.
+ *  The 'renderer registry': An array of information about the supported renderers on the current platform,
+ *    such as the renderer name and id and its life cycle functions.
+ *  The SDL library and its video subsystem: Calls SDL_Init() if SDL has not already been initialized.
+ *    Use SDL_InitSubsystem() to initialize more parts of SDL.
+ *  The current renderer:  Walks through each renderer in the renderer registry and tries to initialize them until one succeeds.
+ *
+ * \see GPU_RendererID
+ * \see GPU_InitRenderer()
+ * \see GPU_InitRendererByID()
  * \see GPU_SetRendererOrder()
+ * \see GPU_PushErrorCode()
  */
 DECLSPEC GPU_Target* SDLCALL GPU_Init(Uint16 w, Uint16 h, GPU_WindowFlagEnum SDL_flags);
 
@@ -935,6 +1004,7 @@ DECLSPEC float SDLCALL GPU_SetLineThickness(float thickness);
 /*! Returns the current line thickness value. */
 DECLSPEC float SDLCALL GPU_GetLineThickness(void);
 
+
 // End of ContextControls
 /*! @} */
 
@@ -948,8 +1018,11 @@ DECLSPEC float SDLCALL GPU_GetLineThickness(void);
  * GPU_FreeTarget() frees the alias's memory, but does not affect the original. */
 DECLSPEC GPU_Target* SDLCALL GPU_CreateAliasTarget(GPU_Target* target);
 
-/*! Creates a new render target from the given image.  It can then be accessed from image->target. */
+/*! Creates a new render target from the given image.  It can then be accessed from image->target.  This increments the internal refcount of the target, so it should be matched with a GPU_FreeTarget(). */
 DECLSPEC GPU_Target* SDLCALL GPU_LoadTarget(GPU_Image* image);
+
+/*! Creates a new render target from the given image.  It can then be accessed from image->target.  This does not increment the internal refcount of the target, so it will be invalidated when the image is freed. */
+DECLSPEC GPU_Target* SDLCALL GPU_GetTarget(GPU_Image* image);
 
 /*! Deletes a render target in the proper way for this renderer. */
 DECLSPEC void SDLCALL GPU_FreeTarget(GPU_Target* target);
@@ -978,7 +1051,7 @@ DECLSPEC void SDLCALL GPU_SetViewport(GPU_Target* target, GPU_Rect viewport);
 /*! Resets the given target's viewport to the entire target area. */
 DECLSPEC void SDLCALL GPU_UnsetViewport(GPU_Target* target);
 
-/*! \return A GPU_Camera with position (0, 0, -10), angle of 0, and zoom of 1. */
+/*! \return A GPU_Camera with position (0, 0, 0), angle of 0, zoom of 1, centered origin, and near/far clipping planes of -100 and 100. */
 DECLSPEC GPU_Camera SDLCALL GPU_GetDefaultCamera(void);
 
 /*! \return The camera of the given render target.  If target is NULL, returns the default camera. */
@@ -995,6 +1068,22 @@ DECLSPEC void SDLCALL GPU_EnableCamera(GPU_Target* target, GPU_bool use_camera);
 
 /*! Returns 1 if the camera transforms are enabled, 0 otherwise. */
 DECLSPEC GPU_bool SDLCALL GPU_IsCameraEnabled(GPU_Target* target);
+
+/*! Attach a new depth buffer to the given target so that it can use depth testing.  Context targets automatically have a depth buffer already.
+ *  If successful, also enables depth testing for this target.
+ */
+DECLSPEC GPU_bool SDLCALL GPU_AddDepthBuffer(GPU_Target* target);
+
+/*! Enables or disables the depth test, which will skip drawing pixels/fragments behind other fragments.  Disabled by default.
+ *  This has implications for alpha blending, where compositing might not work correctly depending on render order.
+ */
+DECLSPEC void SDLCALL GPU_SetDepthTest(GPU_Target* target, GPU_bool enable);
+
+/*! Enables or disables writing the depth (effective view z-coordinate) of new pixels to the depth buffer.  Enabled by default, but you must call GPU_SetDepthTest() to use it. */
+DECLSPEC void SDLCALL GPU_SetDepthWrite(GPU_Target* target, GPU_bool enable);
+
+/*! Sets the operation to perform when depth testing. */
+DECLSPEC void SDLCALL GPU_SetDepthFunction(GPU_Target* target, GPU_ComparisonEnum compare_operation);
 
 /*! \return The RGBA color of a pixel. */
 DECLSPEC SDL_Color SDLCALL GPU_GetPixel(GPU_Target* target, Sint16 x, Sint16 y);
@@ -1083,7 +1172,7 @@ DECLSPEC GPU_bool SDLCALL GPU_SaveSurface_RW(SDL_Surface* surface, SDL_RWops* rw
 DECLSPEC GPU_Image* SDLCALL GPU_CreateImage(Uint16 w, Uint16 h, GPU_FormatEnum format);
 
 /*! Create a new image that uses the given native texture handle as the image texture. */
-DECLSPEC GPU_Image* SDLCALL GPU_CreateImageUsingTexture(Uint32 handle, GPU_bool take_ownership);
+DECLSPEC GPU_Image* SDLCALL GPU_CreateImageUsingTexture(GPU_TextureHandle handle, GPU_bool take_ownership);
 
 /*! Load image from an image file that is supported by this renderer.  Don't forget to GPU_FreeImage() it. */
 DECLSPEC GPU_Image* SDLCALL GPU_LoadImage(const char* filename);
@@ -1175,6 +1264,9 @@ DECLSPEC void SDLCALL GPU_SetSnapMode(GPU_Image* image, GPU_SnapEnum mode);
 /*! Sets the image wrapping mode, if supported by the renderer. */
 DECLSPEC void SDLCALL GPU_SetWrapMode(GPU_Image* image, GPU_WrapEnum wrap_mode_x, GPU_WrapEnum wrap_mode_y);
 
+/*! Returns the backend-specific texture handle associated with the given image.  Note that SDL_gpu will be unaware of changes made to the texture.  */
+DECLSPEC GPU_TextureHandle SDLCALL GPU_GetTextureHandle(GPU_Image* image);
+
 // End of ImageControls
 /*! @} */
 
@@ -1208,22 +1300,25 @@ DECLSPEC SDL_Surface* SDLCALL GPU_CopySurfaceFromImage(GPU_Image* image);
 // Basic vector operations (3D)
 
 /*! Returns the magnitude (length) of the given vector. */
-DECLSPEC float SDLCALL GPU_VectorLength(float* vec3);
+DECLSPEC float SDLCALL GPU_VectorLength(const float* vec3);
 
 /*! Modifies the given vector so that it has a new length of 1. */
 DECLSPEC void SDLCALL GPU_VectorNormalize(float* vec3);
 
 /*! Returns the dot product of two vectors. */
-DECLSPEC float SDLCALL GPU_VectorDot(float* A, float* B);
+DECLSPEC float SDLCALL GPU_VectorDot(const float* A, const float* B);
 
 /*! Performs the cross product of vectors A and B (result = A x B).  Do not use A or B as 'result'. */
-DECLSPEC void SDLCALL GPU_VectorCross(float* result, float* A, float* B);
+DECLSPEC void SDLCALL GPU_VectorCross(float* result, const float* A, const float* B);
 
 /*! Overwrite 'result' vector with the values from vector A. */
-DECLSPEC void SDLCALL GPU_VectorCopy(float* result, float* A);
+DECLSPEC void SDLCALL GPU_VectorCopy(float* result, const float* A);
 
 /*! Multiplies the given matrix into the given vector (vec3 = matrix*vec3). */
-DECLSPEC void SDLCALL GPU_VectorApplyMatrix(float* vec3, float* matrix_4x4);
+DECLSPEC void SDLCALL GPU_VectorApplyMatrix(float* vec3, const float* matrix_4x4);
+
+/*! Multiplies the given matrix into the given vector (vec4 = matrix*vec4). */
+DECLSPEC void SDLCALL GPU_Vector4ApplyMatrix(float* vec4, const float* matrix_4x4);
 
 
 
@@ -1236,13 +1331,13 @@ DECLSPEC void SDLCALL GPU_MatrixCopy(float* result, const float* A);
 DECLSPEC void SDLCALL GPU_MatrixIdentity(float* result);
 
 /*! Multiplies an orthographic projection matrix into the given matrix. */
-DECLSPEC void SDLCALL GPU_MatrixOrtho(float* result, float left, float right, float bottom, float top, float near, float far);
+DECLSPEC void SDLCALL GPU_MatrixOrtho(float* result, float left, float right, float bottom, float top, float z_near, float z_far);
 
 /*! Multiplies a perspective projection matrix into the given matrix. */
-DECLSPEC void SDLCALL GPU_MatrixFrustum(float* result, float left, float right, float bottom, float top, float near, float far);
+DECLSPEC void SDLCALL GPU_MatrixFrustum(float* result, float left, float right, float bottom, float top, float z_near, float z_far);
 
 /*! Multiplies a perspective projection matrix into the given matrix. */
-DECLSPEC void SDLCALL GPU_MatrixPerspective(float* result, float fovy, float aspect, float zNear, float zFar);
+DECLSPEC void SDLCALL GPU_MatrixPerspective(float* result, float fovy, float aspect, float z_near, float z_far);
 
 /*! Multiplies a view matrix into the given matrix. */
 DECLSPEC void SDLCALL GPU_MatrixLookAt(float* matrix, float eye_x, float eye_y, float eye_z, float target_x, float target_y, float target_z, float up_x, float up_y, float up_z);
@@ -1259,16 +1354,16 @@ DECLSPEC void SDLCALL GPU_MatrixRotate(float* result, float degrees, float x, fl
 /*! Multiplies matrices A and B and stores the result in the given 'result' matrix (result = A*B).  Do not use A or B as 'result'.
  * \see GPU_MultiplyAndAssign
 */
-DECLSPEC void SDLCALL GPU_Multiply4x4(float* result, float* A, float* B);
+DECLSPEC void SDLCALL GPU_MatrixMultiply(float* result, const float* A, const float* B);
 
 /*! Multiplies matrices 'result' and B and stores the result in the given 'result' matrix (result = result * B). */
-DECLSPEC void SDLCALL GPU_MultiplyAndAssign(float* result, float* B);
+DECLSPEC void SDLCALL GPU_MultiplyAndAssign(float* result, const float* B);
 
 
 // Matrix stack accessors
 
 /*! Returns an internal string that represents the contents of matrix A. */
-DECLSPEC const char* SDLCALL GPU_GetMatrixString(float* A);
+DECLSPEC const char* SDLCALL GPU_GetMatrixString(const float* A);
 
 /*! Returns the current matrix from the top of the matrix stack.  Returns NULL if stack is empty. */
 DECLSPEC float* SDLCALL GPU_GetCurrentMatrix(void);
@@ -1285,6 +1380,12 @@ DECLSPEC void SDLCALL GPU_GetModelViewProjection(float* result);
 
 // Matrix stack manipulators
 
+/*! Allocate new matrices for the given stack. */
+DECLSPEC void SDLCALL GPU_InitMatrixStack(GPU_MatrixStack* stack);
+
+/*! Reapplies the default orthographic projection matrix, based on camera and coordinate settings. */
+DECLSPEC void SDLCALL GPU_ResetProjection(void);
+
 /*! Changes matrix mode to either GPU_PROJECTION or GPU_MODELVIEW.  Further matrix stack operations manipulate that particular stack. */
 DECLSPEC void SDLCALL GPU_MatrixMode(int matrix_mode);
 
@@ -1297,11 +1398,14 @@ DECLSPEC void SDLCALL GPU_PopMatrix(void);
 /*! Fills current matrix with the identity matrix. */
 DECLSPEC void SDLCALL GPU_LoadIdentity(void);
 
+/*! Copies a given matrix to be the current matrix. */
+DECLSPEC void SDLCALL GPU_LoadMatrix(const float* matrix4x4);
+
 /*! Multiplies an orthographic projection matrix into the current matrix. */
-DECLSPEC void SDLCALL GPU_Ortho(float left, float right, float bottom, float top, float near, float far);
+DECLSPEC void SDLCALL GPU_Ortho(float left, float right, float bottom, float top, float z_near, float z_far);
 
 /*! Multiplies a perspective projection matrix into the current matrix. */
-DECLSPEC void SDLCALL GPU_Frustum(float left, float right, float bottom, float top, float near, float far);
+DECLSPEC void SDLCALL GPU_Frustum(float left, float right, float bottom, float top, float z_near, float z_far);
 
 /*! Adds a translation into the current matrix. */
 DECLSPEC void SDLCALL GPU_Translate(float x, float y, float z);
@@ -1313,7 +1417,7 @@ DECLSPEC void SDLCALL GPU_Scale(float sx, float sy, float sz);
 DECLSPEC void SDLCALL GPU_Rotate(float degrees, float x, float y, float z);
 
 /*! Multiplies a given matrix into the current matrix. */
-DECLSPEC void SDLCALL GPU_MultMatrix(float* matrix4x4);
+DECLSPEC void SDLCALL GPU_MultMatrix(const float* matrix4x4);
 
 // End of Matrix
 /*! @} */
@@ -1396,19 +1500,35 @@ DECLSPEC void SDLCALL GPU_BlitRect(GPU_Image* image, GPU_Rect* src_rect, GPU_Tar
 DECLSPEC void SDLCALL GPU_BlitRectX(GPU_Image* image, GPU_Rect* src_rect, GPU_Target* target, GPU_Rect* dest_rect, float degrees, float pivot_x, float pivot_y, GPU_FlipEnum flip_direction);
 
 
-/*! Renders triangles from the given set of vertices.  This lets you render arbitrary 2D geometry.  It is a direct path to the GPU, so the format is different than typical SDL_gpu calls.
+/*! Renders triangles from the given set of vertices.  This lets you render arbitrary geometry.  It is a direct path to the GPU, so the format is different than typical SDL_gpu calls.
  * \param values A tightly-packed array of vertex position (e.g. x,y), texture coordinates (e.g. s,t), and color (e.g. r,g,b,a) values.  Texture coordinates and color values are expected to be already normalized to 0.0 - 1.0.  Pass NULL to render with only custom shader attributes.
  * \param indices If not NULL, this is used to specify which vertices to use and in what order (i.e. it indexes the vertices in the 'values' array).
  * \param flags Bit flags to control the interpretation of the 'values' array parameters.
  */
 DECLSPEC void SDLCALL GPU_TriangleBatch(GPU_Image* image, GPU_Target* target, unsigned short num_vertices, float* values, unsigned int num_indices, unsigned short* indices, GPU_BatchFlagEnum flags);
 
-/*! Renders triangles from the given set of vertices.  This lets you render arbitrary 2D geometry.  It is a direct path to the GPU, so the format is different than typical SDL_gpu calls.
+/*! Renders triangles from the given set of vertices.  This lets you render arbitrary geometry.  It is a direct path to the GPU, so the format is different than typical SDL_gpu calls.
  * \param values A tightly-packed array of vertex position (e.g. x,y), texture coordinates (e.g. s,t), and color (e.g. r,g,b,a) values.  Texture coordinates and color values are expected to be already normalized to 0.0 - 1.0 (or 0 - 255 for 8-bit color components).  Pass NULL to render with only custom shader attributes.
  * \param indices If not NULL, this is used to specify which vertices to use and in what order (i.e. it indexes the vertices in the 'values' array).
  * \param flags Bit flags to control the interpretation of the 'values' array parameters.
  */
 DECLSPEC void SDLCALL GPU_TriangleBatchX(GPU_Image* image, GPU_Target* target, unsigned short num_vertices, void* values, unsigned int num_indices, unsigned short* indices, GPU_BatchFlagEnum flags);
+
+/*! Renders primitives from the given set of vertices.  This lets you render arbitrary geometry.  It is a direct path to the GPU, so the format is different than typical SDL_gpu calls.
+ * \param primitive_type The kind of primitive to render.
+ * \param values A tightly-packed array of vertex position (e.g. x,y), texture coordinates (e.g. s,t), and color (e.g. r,g,b,a) values.  Texture coordinates and color values are expected to be already normalized to 0.0 - 1.0 (or 0 - 255 for 8-bit color components).  Pass NULL to render with only custom shader attributes.
+ * \param indices If not NULL, this is used to specify which vertices to use and in what order (i.e. it indexes the vertices in the 'values' array).
+ * \param flags Bit flags to control the interpretation of the 'values' array parameters.
+ */
+DECLSPEC void SDLCALL GPU_PrimitiveBatch(GPU_Image* image, GPU_Target* target, GPU_PrimitiveEnum primitive_type, unsigned short num_vertices, float* values, unsigned int num_indices, unsigned short* indices, GPU_BatchFlagEnum flags);
+
+/*! Renders primitives from the given set of vertices.  This lets you render arbitrary geometry.  It is a direct path to the GPU, so the format is different than typical SDL_gpu calls.
+ * \param primitive_type The kind of primitive to render.
+ * \param values A tightly-packed array of vertex position (e.g. x,y), texture coordinates (e.g. s,t), and color (e.g. r,g,b,a) values.  Texture coordinates and color values are expected to be already normalized to 0.0 - 1.0 (or 0 - 255 for 8-bit color components).  Pass NULL to render with only custom shader attributes.
+ * \param indices If not NULL, this is used to specify which vertices to use and in what order (i.e. it indexes the vertices in the 'values' array).
+ * \param flags Bit flags to control the interpretation of the 'values' array parameters.
+ */
+DECLSPEC void SDLCALL GPU_PrimitiveBatchV(GPU_Image* image, GPU_Target* target, GPU_PrimitiveEnum primitive_type, unsigned short num_vertices, void* values, unsigned int num_indices, unsigned short* indices, GPU_BatchFlagEnum flags);
 
 /*! Send all buffered blitting data to the current context target. */
 DECLSPEC void SDLCALL GPU_FlushBlitBuffer(void);
@@ -1634,6 +1754,15 @@ DECLSPEC void SDLCALL GPU_RectangleRoundFilled2(GPU_Target* target, GPU_Rect rec
  */
 DECLSPEC void SDLCALL GPU_Polygon(GPU_Target* target, unsigned int num_vertices, float* vertices, SDL_Color color);
 
+/*! Renders a colored sequence of line segments.
+ * \param target The destination render target
+ * \param num_vertices Number of vertices (x and y pairs)
+ * \param vertices An array of vertex positions stored as interlaced x and y coords, e.g. {x1, y1, x2, y2, ...}
+ * \param color The color of the shape to render
+ * \param close_loop Make a closed polygon by drawing a line at the end back to the start point
+ */
+DECLSPEC void SDLCALL GPU_Polyline(GPU_Target* target, unsigned int num_vertices, float* vertices, SDL_Color color, GPU_bool close_loop);
+	
 /*! Renders a colored filled polygon.  The vertices are expected to define a convex polygon.
  * \param target The destination render target
  * \param num_vertices Number of vertices (x and y pairs)

@@ -9,6 +9,8 @@
 #ifdef __IPHONEOS__
     #include <OpenGLES/ES3/gl.h>
     #include <OpenGLES/ES3/glext.h>
+#elif defined(SDL_GPU_DYNAMIC_GLES_3)
+    #include "gl3stub.h"
 #else
     #include "GLES3/gl3.h"
     #include "GLES2/gl2ext.h"
@@ -123,6 +125,10 @@ typedef struct ContextData_GLES_3
 	GPU_Rect last_viewport;
 	GPU_Camera last_camera;
 	GPU_bool last_camera_inverted;
+	
+	GPU_bool last_depth_test;
+	GPU_bool last_depth_write;
+	GPU_ComparisonEnum last_depth_function;
 	
 	GPU_Image* last_image;
 	GPU_Target* last_target;
