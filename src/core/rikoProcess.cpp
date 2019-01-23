@@ -330,13 +330,6 @@ namespace riko::process {
 
         riko::gfx::bufferTarget = GPU_LoadTarget(riko::gfx::buffer);
 
-        GPU_Camera cam = GPU_GetDefaultCamera();
-        cam.x = -(riko::gfx::pixelScale - 1)*(SCRN_WIDTH/2);
-        cam.y = -(riko::gfx::pixelScale - 1)*(SCRN_HEIGHT/2);
-        cam.zoom_x = riko::gfx::pixelScale;
-        cam.zoom_y = -riko::gfx::pixelScale;
-        GPU_SetCamera(riko::gfx::bufferTarget, &cam);
-
         GPU_Clear(riko::gfx::renderer);
 
         riko::shader::initShader();
