@@ -77,6 +77,7 @@ SET(SDL2_gpu_SEARCH_PATHS
         /opt/local # DarwinPorts
         /opt/csw # Blastwave
         /opt
+        /usr/local/SDL_gpu-0.11.0
         ${SDL2_gpu_PATH}
         ${PROJECT_SOURCE_DIR}/libs
         ${PROJECT_SOURCE_DIR}/libs/SDL2

@@ -141,13 +141,15 @@ local luaParsers = {
   end,
   parseComment = function(toParse, curLine)
     if toParse:sub(1, 2) == "--" then
-      if toParse:sub(3, 4) == "[[" then
-        local _, closingComment = toParse:find("]]")
+      local eqs = toParse:sub(3):match("^%[(=*)%[")
+      if eqs then
+        local _, closingComment = toParse:find("]" .. eqs .. "]")
         if closingComment then
           insertColor(curLine, toParse:sub(1, closingComment), syntaxTheme.comment)
           return toParse:sub(closingComment + 1)
         else
           curLine.mode = "multi-comment"
+          curLine.eqs = eqs
           insertColor(curLine, toParse, syntaxTheme.comment)
           return ""
         end
@@ -199,13 +201,15 @@ local luaParsers = {
       end
     end
 
-    if toParse:sub(1, 2) == "[[" then
-      local _, closingString = toParse:find("]]")
+    local eqs = toParse:match("^%[(=*)%[")
+    if eqs then
+      local _, closingString = toParse:find("]" .. eqs .. "]")
       if closingString then
         insertColor(curLine, toParse:sub(1, closingString), syntaxTheme.string)
         return toParse:sub(closingString + 1)
       else
         curLine.mode = "multi-string"
+        curLine.eqs = eqs
         insertColor(curLine, toParse, syntaxTheme.string)
         return ""
       end
@@ -243,7 +247,7 @@ function highlighter.parse(lineNumber)
         toParse = toParse:sub(2)
       until true
     elseif curLine.mode == "multi-comment" then
-      local _, endComment = toParse:find("]]")
+      local _, endComment = toParse:find("]" .. curLine.eqs .. "]")
       if endComment then
         insertColor(curLine, toParse:sub(1, endComment), syntaxTheme.comment)
         toParse = toParse:sub(endComment + 1)
@@ -253,7 +257,7 @@ function highlighter.parse(lineNumber)
         toParse = ""
       end
     elseif curLine.mode == "multi-string" then
-      local _, endString = toParse:find("]]")
+      local _, endString = toParse:find("]" .. curLine.eqs .. "]")
       if endString then
         insertColor(curLine, toParse:sub(1, endString), syntaxTheme.string)
         toParse = toParse:sub(endString + 1)
