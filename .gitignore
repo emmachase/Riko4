@@ -255,8 +255,8 @@ riko4.html
 riko4.js
 riko4.wasm
 
-/.vscode/
-/.idea/
+*/.vscode/
+*/.idea/
 *.iml
 *.ipr
 *.cbp
