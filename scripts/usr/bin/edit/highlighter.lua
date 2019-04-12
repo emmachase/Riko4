@@ -221,6 +221,7 @@ function highlighter.parse(lineNumber)
   local prevLine = state[lineNumber - 1]
   local curLine = state[lineNumber]
   curLine.mode = prevLine.mode
+  curLine.eqs = prevLine.eqs
 
   local toParse = curLine.text
 

@@ -528,12 +528,14 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
             historyPt = historyPt - 1
             str = history[historyPt]
             strPos = #str + 1
+            term.blink = 0
           end
         elseif k == "down" then
           if history and historyPt < #history then
             historyPt = historyPt + 1
             str = history[historyPt]
             strPos = #str + 1
+            term.blink = 0
           end
         elseif k == "backspace" and strPos > 1 then
           str = str:sub(1, strPos - 2) .. str:sub(strPos)
@@ -564,6 +566,10 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
       elseif e == "mouseMoved" then
         local mx, my = ...
         mousePos = {mx, my}
+      end
+
+      if term.blink == 0 then
+        term.scroll(#term.buffer - term.height - term.scrollAmt)
       end
 
       checkBounds()
