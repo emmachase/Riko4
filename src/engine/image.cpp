@@ -3,6 +3,7 @@
 
 #include "SDL_gpu/SDL_gpu.h"
 
+#include "misc/consts.h"
 #include "misc/luaIncludes.h"
 
 #include "image.h"
@@ -13,7 +14,7 @@ namespace riko::gfx {
     extern GPU_Target *bufferTarget;
     extern GPU_Target *renderer;
 
-    extern Uint8 palette[16][3];
+    extern Uint8 palette[COLOR_LIMIT][3];
     extern int paletteNum;
 
     extern int drawOffX;
@@ -29,7 +30,7 @@ namespace riko::image {
         bool free;
 //        int clr;
         int lastRenderNum;
-        int remap[16];
+        int remap[COLOR_LIMIT];
         bool remapped;
         char **internalRep;
         SDL_Surface *surface;
@@ -50,7 +51,7 @@ namespace riko::image {
 
     static char getColor(lua_State *L, int arg) {
         int color = luaL_checkint(L, arg) - 1;
-        return static_cast<char>(color == -2 ? -1 : (color < 0 ? 0 : (color > 15 ? 15 : color)));
+        return static_cast<char>(color == -2 ? -1 : (color < 0 ? 0 : (color > (COLOR_LIMIT - 1) ? (COLOR_LIMIT - 1) : color)));
     }
 
     static Uint32 getRectC(imageType *data, int colorGiven) {
@@ -87,7 +88,7 @@ namespace riko::image {
         a->free = false;
 //        a->clr = 0;
         a->lastRenderNum = riko::gfx::paletteNum;
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < COLOR_LIMIT; i++) {
             a->remap[i] = i;
         }
 
@@ -313,7 +314,7 @@ namespace riko::image {
                 continue;
             }
 
-            color = color == -2 ? -1 : (color < 0 ? 0 : (color > 15 ? 15 : color));
+            color = color == -2 ? -1 : (color < 0 ? 0 : (color > (COLOR_LIMIT - 1) ? (COLOR_LIMIT - 1) : color));
 
             if (color >= 0) {
                 int xp = (i - 1) % w;

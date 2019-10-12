@@ -30,24 +30,7 @@ namespace riko::gfx {
     GPU_Target *renderer;
     GPU_Target *bufferTarget;
 
-    Uint8 palette[16][3] = {
-        {24,   24,   24},
-        {29,   43,   82},
-        {126,  37,   83},
-        {0,    134,  81},
-        {171,  81,   54},
-        {86,   86,   86},
-        {157,  157,  157},
-        {255,  0,    76},
-        {255,  163,  0},
-        {255,  240,  35},
-        {0,    231,  85},
-        {41,   173,  255},
-        {130,  118,  156},
-        {255,  119,  169},
-        {254,  204,  169},
-        {236,  236,  236}
-    };
+    Uint8 palette[COLOR_LIMIT][3] = INIT_COLORS;
 
     int paletteNum = 0;
 
@@ -88,7 +71,7 @@ namespace riko::gfx {
 namespace riko::gpu {
     static int getColor(lua_State *L, int arg) {
         int color = luaL_checkint(L, arg) - 1;
-        return color < 0 ? 0 : (color > 15 ? 15 : color);
+        return color < 0 ? 0 : (color > (COLOR_LIMIT - 1) ? (COLOR_LIMIT - 1) : color);
     }
 
     static int gpu_draw_pixel(lua_State *L) {
@@ -149,7 +132,7 @@ namespace riko::gpu {
                 continue;
             }
 
-            color = color < 0 ? 0 : (color > 15 ? 15 : color);
+            color = color < 0 ? 0 : (color > (COLOR_LIMIT - 1) ? (COLOR_LIMIT - 1) : color);
 
             int xp = (i - 1) % w;
             int yp = (i - 1) / w;
@@ -206,7 +189,7 @@ namespace riko::gpu {
             return 0;
         }
 
-        amt = static_cast<char>(amt > 16 ? 16 : amt);
+        amt = static_cast<char>(amt > COLOR_LIMIT ? COLOR_LIMIT : amt);
 
         for (int i = 1; i <= amt; i++) {
             lua_pushnumber(L, i);
@@ -240,7 +223,7 @@ namespace riko::gpu {
     static int gpu_get_palette(lua_State *L) {
         lua_newtable(L);
 
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < COLOR_LIMIT; i++) {
             lua_pushinteger(L, i + 1);
             lua_newtable(L);
             for (int j = 0; j < 3; j++) {
@@ -258,7 +241,7 @@ namespace riko::gpu {
         auto x = static_cast<Sint16>luaL_checkint(L, 1);
         auto y = static_cast<Sint16>luaL_checkint(L, 2);
         SDL_Color col = GPU_GetPixel(riko::gfx::buffer->target, x, y);
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < COLOR_LIMIT; i++) {
             Uint8 *pCol = riko::gfx::palette[i];
             if (col.r == pCol[0] && col.g == pCol[1] && col.b == pCol[2]) {
                 lua_pushinteger(L, i + 1);
