@@ -150,12 +150,27 @@ namespace riko::image {
         GPU_Rect rect = {off(x, y)};
 
         int top = lua_gettop(L);
-        if (top > 7) {
+        if (top > 8) {
             GPU_Rect srcRect = {
                     (float) luaL_checkint(L, 4),
                     (float) luaL_checkint(L, 5),
-                    clamp(luaL_checkint(L, 6), 0, data->width),
-                    clamp(luaL_checkint(L, 7), 0, data->height)
+                    (float) luaL_checkint(L, 6),
+                    (float) luaL_checkint(L, 7)
+            };
+
+            int scale = luaL_checkint(L, 8);
+            double rotation = luaL_checknumber(L, 9);
+
+            rect.w = srcRect.w * scale;
+            rect.h = srcRect.h * scale;
+
+            GPU_BlitRectX(data->texture, &srcRect, riko::gfx::bufferTarget, &rect, rotation, srcRect.w*0.5f, srcRect.h*0.5f, GPU_FLIP_NONE);
+        } else if (top > 7) {
+            GPU_Rect srcRect = {
+                    (float) luaL_checkint(L, 4),
+                    (float) luaL_checkint(L, 5),
+                    (float) luaL_checkint(L, 6),
+                    (float) luaL_checkint(L, 7)
             };
 
             int scale = luaL_checkint(L, 8);

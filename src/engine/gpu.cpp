@@ -36,6 +36,7 @@ namespace riko::gfx {
 
     int drawOffX = 0;
     int drawOffY = 0;
+    int drawScale = 1;
 
     int windowWidth;
     int windowHeight;
@@ -66,7 +67,7 @@ namespace riko::gfx {
     }
 }
 
-#define off(o, t) (float)((o) - riko::gfx::drawOffX), (float)((t) - riko::gfx::drawOffY)
+#define off(o, t) (float)(riko::gfx::drawScale*((o) - riko::gfx::drawOffX)), (float)(riko::gfx::drawScale*((t) - riko::gfx::drawOffY))
 
 namespace riko::gpu {
     static int getColor(lua_State *L, int arg) {
@@ -267,7 +268,12 @@ namespace riko::gpu {
         return 0;
     }
 
-    int *translateStack;
+    struct TransformEntry {
+        int offsetX; int offsetY;
+        int scale;
+    };
+
+    TransformEntry *translateStack;
     int tStackUsed = 0;
     int tStackSize = 32;
 
@@ -278,29 +284,56 @@ namespace riko::gpu {
         return 0;
     }
 
+    // int zoomOffsetX = 0;
+    // int zoomOffsetY = 0;
+    // static int gpu_set_zoom(lua_State *L) {
+    //     auto scale = static_cast<Sint16>luaL_checkint(L, 1);
+    //     auto originX = static_cast<Sint16>luaL_checkint(L, 2);
+    //     auto originY = static_cast<Sint16>luaL_checkint(L, 3);
+
+    //     if (scale < 1) scale = 1;
+
+    //     int offsetX = originX * scale;
+    //     int offsetY = originY * scale;
+
+    //     riko::gfx::drawOffX += offsetX - zoomOffsetX;
+    //     riko::gfx::drawOffY += offsetY - zoomOffsetY;
+    //     riko::gfx::drawScale = scale;
+
+    //     zoomOffsetX = offsetX;
+    //     zoomOffsetY = offsetY;
+
+    //     return 0;
+    // }
+
     static int gpu_push(lua_State *L) {
         if (tStackUsed == tStackSize) {
             tStackSize *= 2;
-            translateStack = (int *) realloc(translateStack, tStackSize * sizeof(int));
+            translateStack = (TransformEntry *) realloc(translateStack, tStackSize * sizeof(TransformEntry));
         }
 
-        translateStack[tStackUsed] = riko::gfx::drawOffX;
-        translateStack[tStackUsed + 1] = riko::gfx::drawOffY;
+        TransformEntry entry;
+        entry.offsetX = riko::gfx::drawOffX;
+        entry.offsetY = riko::gfx::drawOffY;
+        entry.scale = riko::gfx::drawScale;
+        translateStack[tStackUsed] = entry;
 
-        tStackUsed += 2;
+        tStackUsed += 1;
 
         return 0;
     }
 
     static int gpu_pop(lua_State *L) {
         if (tStackUsed > 0) {
-            tStackUsed -= 2;
+            tStackUsed -= 1;
 
-            riko::gfx::drawOffX = translateStack[tStackUsed];
-            riko::gfx::drawOffY = translateStack[tStackUsed + 1];
+            TransformEntry &entry = translateStack[tStackUsed];
+            riko::gfx::drawOffX = entry.offsetX;
+            riko::gfx::drawOffY = entry.offsetY;
+            riko::gfx::drawScale = entry.scale;
 
             lua_pushboolean(L, true);
-            lua_pushinteger(L, tStackUsed / 2);
+            lua_pushinteger(L, tStackUsed);
             return 2;
         } else {
             lua_pushboolean(L, false);
@@ -349,6 +382,7 @@ namespace riko::gpu {
             {"drawRectangle",   gpu_draw_rectangle},
             {"blitPixels",      gpu_blit_pixels},
             {"translate",       gpu_translate},
+            // {"setZoom",         gpu_set_zoom},
             {"push",            gpu_push},
             {"pop",             gpu_pop},
             {"setFullscreen",   gpu_set_fullscreen},
@@ -360,7 +394,7 @@ namespace riko::gpu {
     };
 
     LUALIB_API int openLua(lua_State *L) {
-        translateStack = new int[32];
+        translateStack = new TransformEntry[32];
 
         luaL_openlib(L, RIKO_GPU_NAME, gpuLib, 0);
         lua_pushnumber(L, SCRN_WIDTH);
