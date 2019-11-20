@@ -171,8 +171,7 @@ namespace riko::gpu {
     }
 
     static int gpu_set_palette_color(lua_State *L) {
-        int slot = getColor(L, 1) - 1;
-	if (slot < 0 || slot >= COLOR_LIMIT) return 0;
+        int slot = getColor(L, 1);
 
         auto r = static_cast<Uint8>luaL_checkint(L, 2);
         auto g = static_cast<Uint8>luaL_checkint(L, 3);
