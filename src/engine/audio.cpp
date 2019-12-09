@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include "SDL_gpu/SDL_gpu.h"
+#include "SDL2/SDL_mixer.h"
 
 #include "misc/luaIncludes.h"
 
@@ -494,50 +495,86 @@ namespace riko::audio {
         return 1;
     }
 
+    Mix_Music *musics[16];
+    static int loadMusic(lua_State *L) {
+        int index = luaL_checkint(L, 1) - 1;
+        const char *filename = luaL_checkstring(L, 2);
+
+        musics[index] = Mix_LoadMUS(filename);
+        lua_pushboolean(L, musics[index] != NULL);
+        if (musics[index] == NULL) {
+            printf("why: %s\n", Mix_GetError());
+        }
+
+        return 1;
+    }
+
+    static int checkPlaying(lua_State *L) {
+        lua_pushboolean(L, Mix_PlayingMusic());
+        return 1;
+    }
+
+    static int playMusic(lua_State *L) {
+        int index = luaL_checkint(L, 1) - 1;
+        Mix_PlayMusic(musics[index], -1);
+    }
+
+    static int fadeOutMusic(lua_State *L) {
+        Mix_FadeOutMusic(1000);
+        return 0;
+    }
+
     static const luaL_Reg audLib[] = {
-            {"play",         aud_play},
-            {"stopChannel",  aud_stopChan},
-            {"stopAll",      aud_stopAll},
-            {"loadSequence", loadSequence},
+            {"load", loadMusic},
+            {"isPlaying", checkPlaying},
+            {"play", playMusic},
+            {"fadeOut", fadeOutMusic},
+
+            // {"play",         aud_play},
+            // {"stopChannel",  aud_stopChan},
+            // {"stopAll",      aud_stopAll},
+            // {"loadSequence", loadSequence},
             {nullptr,        nullptr}
     };
 
     LUALIB_API int openLua(lua_State *L) {
-        for (int i = 0; i < channelCount; i++) {
-            audioQueues[i] = constructQueue();
-            streamPhase[i] = 0;
-        }
+        // for (int i = 0; i < channelCount; i++) {
+        //     audioQueues[i] = constructQueue();
+        //     streamPhase[i] = 0;
+        // }
 
         if (riko::audio::audioEnabled && !audioInitialized) {
             SDL_InitSubSystem(SDL_INIT_AUDIO);
 
-            SDL_zero(want);
-            want.freq = sampleRate;
-            want.format = AUDIO_F32SYS;
-            want.channels = audDevChanCount;
-            want.samples = samples;
-            want.callback = audioCallback;
-            want.userdata = nullptr;
+            Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 4096);
+            Mix_VolumeMusic(20);
+            // SDL_zero(want);
+            // want.freq = sampleRate;
+            // want.format = AUDIO_F32SYS;
+            // want.channels = audDevChanCount;
+            // want.samples = samples;
+            // want.callback = audioCallback;
+            // want.userdata = nullptr;
 
 
-            dev = SDL_OpenAudioDevice(nullptr, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE); // NOLINT
-            if (dev == 0) {
-                SDL_Log("Failed to open audio: %s", SDL_GetError());
-            } else {
-                sampleRate = have.freq;
-                sequenceRate = sampleRate / 60;
+            // dev = SDL_OpenAudioDevice(nullptr, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE); // NOLINT
+            // if (dev == 0) {
+            //     SDL_Log("Failed to open audio: %s", SDL_GetError());
+            // } else {
+            //     sampleRate = have.freq;
+            //     sequenceRate = sampleRate / 60;
 
-                samples = have.samples;
-                audDevChanCount = have.channels;
+            //     samples = have.samples;
+            //     audDevChanCount = have.channels;
 
-                if (have.format != want.format) { /* we can't let this one thing change. */
-                    SDL_Log("Unable to open Float32 audio.");
-                } else {
-                    SDL_PauseAudioDevice(dev, 0); /* start audio playing. */
-                }
-            }
+            //     if (have.format != want.format) { /* we can't let this one thing change. */
+            //         SDL_Log("Unable to open Float32 audio.");
+            //     } else {
+            //         SDL_PauseAudioDevice(dev, 0); /* start audio playing. */
+            //     }
+            // }
 
-            audioInitialized = true;
+            // audioInitialized = true;
         }
 
         luaL_openlib(L, RIKO_AUD_NAME, audLib, 0);
@@ -545,14 +582,15 @@ namespace riko::audio {
     }
 
     void closeAudio() {
-        if (dev != 0) {
-            SDL_CloseAudioDevice(dev);
-        }
+        Mix_CloseAudio();
+        // if (dev != 0) {
+        //     SDL_CloseAudioDevice(dev);
+        // }
 
-        for (auto &audioQueue : audioQueues) {
-            falloutQueue(audioQueue);
-            delete audioQueue;
-        }
+        // for (auto &audioQueue : audioQueues) {
+        //     falloutQueue(audioQueue);
+        //     delete audioQueue;
+        // }
 
         audioInitialized = false;
     }

@@ -37,6 +37,13 @@ if (SDL2_GPU_FOUND)
     target_link_libraries(riko4 ${SDL2_gpu_LIBRARY})
 endif ()
 
+find_package(SDL2_mixer REQUIRED)
+
+if (SDL2_MIXER_FOUND)
+    include_directories(${SDL2_MIXER_INCLUDE_DIRS})
+    target_link_libraries(riko4 ${SDL2_MIXER_LIBRARIES})
+endif ()
+
 find_package(CURL REQUIRED)
 
 if (CURL_FOUND)

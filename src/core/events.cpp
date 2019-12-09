@@ -13,7 +13,7 @@
 #include "events.h"
 
 #if SDL_PATCHLEVEL <= 4
-#define OLDSDL 
+#define OLDSDL
 #endif
 
 namespace riko::events {
