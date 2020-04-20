@@ -36,7 +36,6 @@
 #include <algorithm>
 #include <string>
 #include <sstream>
-#include <iostream>
 
 #include "SDL_gpu/SDL_gpu.h"
 
