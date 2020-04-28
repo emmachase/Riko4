@@ -32,7 +32,10 @@
 #include <cerrno>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <vector>
+#include <algorithm>
 #include <string>
+#include <sstream>
 
 #include "SDL_gpu/SDL_gpu.h"
 
@@ -56,47 +59,64 @@ namespace riko::fs {
         bool eof;
     };
 
-    int checkPath(const char *luaInput, char *varName, lua_State *L) {
-        char *workingFront = ((luaInput)[0] == '\\' || (luaInput)[0] == '/') ? scriptsPath : currentWorkingDirectory;
+    std::vector<std::string> split(const std::string &s, char delim) {
+        std::vector<std::string> result;
+        std::stringstream ss(s);
+        std::string item;
 
-        auto scriptsPathLen = (int) strlen(scriptsPath);
-
-        auto ln = (int) (strlen(luaInput) + strlen(workingFront) + 2);
-        std::string concatStr = workingFront + std::string("/") + luaInput;
-
-        auto *ptrz = (char *) getFullPath(concatStr.c_str(), varName);
-        if (ptrz == nullptr && errno == ENOENT) {
-            sprintf(varName, "%s", concatStr.c_str());
-        } else {
-            auto varNameLen = (int) strlen(varName);
-
-            if (varNameLen + 1 == scriptsPathLen) {
-                char tmp = scriptsPath[scriptsPathLen - 1];
-                scriptsPath[scriptsPathLen - 1] = 0;
-                if (strcmp(varName, scriptsPath) == 0) {
-                    scriptsPath[scriptsPathLen - 1] = tmp;
-                } else {
-                    scriptsPath[scriptsPathLen - 1] = tmp;
-                    return luaL_error(L, "attempt to access file beneath root");
-                }
-            } else if (varNameLen > scriptsPathLen) {
-                char tmp = (varName)[scriptsPathLen];
-                (varName)[scriptsPathLen] = 0;
-                if (strcmp(varName, scriptsPath) == 0) {
-                    (varName)[scriptsPathLen] = tmp;
-                } else {
-                    return luaL_error(L, "attempt to access file beneath root");
-                }
-            } else if (varNameLen == scriptsPathLen) {
-                if (strcmp(varName, scriptsPath) != 0) {
-                    return luaL_error(L, "attempt to access file beneath root");
-                }
-            } else {
-                return luaL_error(L, "attempt to access file beneath root");
-            }
+        while (std::getline(ss, item, delim)) {
+            result.push_back(item);
         }
 
-        return 0;
+        return result;
+    }
+
+    bool checkPath(const char *luaInput, char *varName) {
+        // Normalize the path
+        auto luaPath = std::string(luaInput);
+
+        char *workingFront = (luaPath[0] == PATH_SEPARATOR) ? scriptsPath : currentWorkingDirectory;
+        std::string sysPath = std::string() + workingFront + PATH_SEPARATOR + luaPath;
+
+        // Remove consecutive path seperators (e.g. a//b///c => a/b/c)
+        sysPath.erase(std::unique(sysPath.begin(), sysPath.end(), 
+            [](const char a, const char b) { return a == b && b == PATH_SEPARATOR; }), sysPath.end());
+
+        auto pathComponents = split(sysPath, PATH_SEPARATOR);
+
+        auto builder = std::vector<std::string>();
+        // For each component, evaluate it's effect
+        for (auto iter = pathComponents.begin(); iter != pathComponents.end(); ++iter) {
+            auto comp = *iter;
+            if (comp == ".") continue;
+            if (comp == "..") { builder.pop_back(); continue; }
+
+            builder.push_back(comp);
+        }
+
+        // Now collapse the path
+        auto actualPath = std::string();
+        for (auto iter = builder.begin();;) {
+            actualPath += *iter;
+            if (++iter == builder.end()) {
+                break;
+            } else {
+                actualPath += PATH_SEPARATOR;
+            }
+        }
+        
+        auto scPath = std::string(scriptsPath);
+        if (actualPath.compare(0, scPath.size(), scPath)) {
+            // Maybe actualPath was missing the final / that is sometimes present in scPath
+            actualPath += PATH_SEPARATOR;
+
+            if (actualPath.compare(0, scPath.size(), scPath))
+                return true;
+        }
+
+        sprintf(varName, "%s", actualPath.c_str());
+
+        return false; // success
     }
 
     static fileHandleType *checkFsObj(lua_State *L) {
@@ -107,7 +127,11 @@ namespace riko::fs {
 
     static int fsGetAttr(lua_State *L) {
         char filePath[MAX_PATH + 1];
-        checkPath(luaL_checkstring(L, 1), filePath, L);
+        if (checkPath(luaL_checkstring(L, 1), filePath)) {
+            lua_pushinteger(L, 0b11111111);
+            return 1;
+        }
+
 
         if (filePath[0] == 0) {
             lua_pushinteger(L, 0b11111111);
@@ -146,7 +170,13 @@ namespace riko::fs {
 
     static int fsList(lua_State *L) {
         char filePath[MAX_PATH + 1];
-        checkPath(luaL_checkstring(L, 1), filePath, L);
+        if (checkPath(luaL_checkstring(L, 1), filePath)) {
+            return 0;
+        }
+
+        char dummy[MAX_PATH + 1];
+        auto preRoot = std::string(luaL_checkstring(L, 1)) + PATH_SEPARATOR + "..";
+        bool isAtRoot = checkPath(preRoot.c_str(), dummy);
 
         if (filePath[0] == 0) {
             return 0;
@@ -173,10 +203,12 @@ namespace riko::fs {
         lua_rawset(L, -3);
         i++;
 
-        lua_pushinteger(L, i);
-        lua_pushstring(L, "..");
-        lua_rawset(L, -3);
-        i++;
+        if (!isAtRoot) {
+            lua_pushinteger(L, i);
+            lua_pushstring(L, "..");
+            lua_rawset(L, -3);
+            i++;
+        }
 
         do {
             //Build up our file path using the passed in
@@ -203,6 +235,9 @@ namespace riko::fs {
             int i = 1;
 
             while ((ep = readdir(dp))) {
+                if (isAtRoot && strcmp(ep->d_name, "..") == 0)
+                    continue; // Don't tell them they can go beneath root
+
                 lua_pushinteger(L, i);
                 lua_pushstring(L, ep->d_name);
                 lua_rawset(L, -3);
@@ -219,7 +254,9 @@ namespace riko::fs {
 
     static int fsOpenFile(lua_State *L) {
         char filePath[MAX_PATH + 1];
-        checkPath(luaL_checkstring(L, 1), filePath, L);
+        if (checkPath(luaL_checkstring(L, 1), filePath)) {
+            return 0;
+        }
 
         if (filePath[0] == 0) {
             return 0;
@@ -574,7 +611,10 @@ namespace riko::fs {
 
     static int fsMkDir(lua_State *L) {
         char filePath[MAX_PATH + 1];
-        checkPath(luaL_checkstring(L, 1), filePath, L);
+        if (checkPath(luaL_checkstring(L, 1), filePath)) {
+            lua_pushboolean(L, false);
+            return 1;
+        }
 
         if (filePath[0] == 0) {
             lua_pushboolean(L, false);
@@ -587,7 +627,10 @@ namespace riko::fs {
 
     static int fsMv(lua_State *L) {
         char filePath[MAX_PATH + 1];
-        checkPath(luaL_checkstring(L, 1), filePath, L);
+        if (checkPath(luaL_checkstring(L, 1), filePath)) {
+            lua_pushboolean(L, false);
+            return 1;
+        }
 
         if (filePath[0] == 0) {
             lua_pushboolean(L, false);
@@ -595,7 +638,10 @@ namespace riko::fs {
         }
 
         char endPath[MAX_PATH + 1];
-        checkPath(luaL_checkstring(L, 2), endPath, L);
+        if (checkPath(luaL_checkstring(L, 2), endPath)) {
+            lua_pushboolean(L, false);
+            return 1;
+        }
 
         if (endPath[0] == 0) {
             lua_pushboolean(L, false);
@@ -608,7 +654,10 @@ namespace riko::fs {
 
     static int fsDelete(lua_State *L) {
         char filePath[MAX_PATH + 1];
-        checkPath(luaL_checkstring(L, 1), filePath, L);
+        if (checkPath(luaL_checkstring(L, 1), filePath)) {
+            lua_pushboolean(L, false);
+            return 1;
+        }
 
         if (filePath[0] == 0) {
             lua_pushboolean(L, false);
