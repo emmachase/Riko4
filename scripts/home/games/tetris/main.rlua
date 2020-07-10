@@ -1,0 +1,1040 @@
+-- Global Config
+local tileScale = 5
+local boardWidth, visibleBoard = 10, 20 -- 6, 7--
+local boardHeight = visibleBoard * 2
+
+local nextPieces = 5 -- 2--
+
+local bigMode = false
+-- tileScale = tileScale * 2
+if bigMode then
+    -- boardWidth = boardWidth / 2
+    boardHeight = boardHeight / 2
+    visibleBoard = visibleBoard / 2
+end
+
+local gameOptions = {
+    gravity = 0.02,
+    gravityIncrease = 0.0025/60,
+    gravityMargin = 60*60,
+    lockTimer = 30,
+    bagType = "7-bag",
+    kickset = "SRS",
+
+    allowHolds = true,
+    allow180s = true,
+    clutchClears = true,
+
+    shiftLock = 15,
+    rotationLock = 15,
+
+    b2bchaining = true,
+    garbagemultiplier = 1,
+    garbagecap = 8,
+
+    backfire = 1--0.25
+}
+
+local handling = {
+    das = 10,
+    arr = 2,
+    sdf = 6
+}
+
+-- Imports
+local sc = require("luascore")
+
+local minos = require("minos")
+local kicksets = require("kicksets")
+local cleardata = require("cleardata")
+
+for name, kickset in pairs(kicksets) do
+    local newSet = {}
+    for pieces, set in pairs(kickset) do
+        for piece in pieces:gmatch(".") do
+            newSet[piece] = set
+        end
+    end
+
+    kicksets[name] = newSet
+end
+
+-- Util functions
+local function values(t)
+    local i = 0
+    return function()
+        i = i + 1
+        return t[i]
+    end
+end
+
+local function shallowPropCop(t)
+    if not t then error("Not a table", 2) end
+
+    local nt = {}
+    for k, v in pairs(t) do
+        nt[k] = v
+    end
+
+    return nt
+end
+
+
+local function rotate(x, y, r)
+    if r == 0 then     return x ,  y
+    elseif r == 1 then return y , -x
+    elseif r == 2 then return -x, -y
+    elseif r == 3 then return -y,  x end
+end
+
+-- Unpacks relevant piece information
+local function unpackPiece(piece, replace)
+    replace = replace or {}
+    return 
+        replace.type     or piece.type,
+        replace.x        or piece.x,
+        replace.y        or piece.y,
+        replace.rotation or piece.rotation
+end
+
+-- Given a piece state, x, y, r, return the 
+-- cells it should occupy on the board
+local function getCells(pieceType, x, y, r)
+    local cells = {}
+
+    for offset in values(pieceType.offsets) do
+        local ox, oy = rotate(offset[1], offset[2], r)
+
+        local aox = pieceType.aox or 0
+        local aoy = pieceType.aoy or 0
+        table.insert(cells, 
+            { x + ox + aox, math.ceil(y) + oy + aoy })
+    end
+
+    return cells
+end
+
+local gameState
+local drawState = {
+    shake = 0,
+    push = {x = 0, y = 0},
+    rotate = 0,
+    pushing = false,
+    particles = {},
+    tileGhosts = {},
+}
+
+local function dumpBoard()
+    local whole = ""
+    for row = boardHeight - 1, 0, -1 do
+        local str = ""
+        for col = 0, boardWidth - 1 do
+            str = str .. tostring(gameState.board[row][col] or "_"):sub(1, 1)
+        end
+        whole = whole .. str .. "\n"
+    end
+
+    print(whole)
+end
+
+-- These drawing functions assume board transform has already been set
+local function rotateAround(th, cx, cy, x, y)
+    local rx, ry = x - cx, y - cy
+    local cth, sth = math.cos(th), math.sin(th)
+    local ax, ay = rx*cth - ry*sth, rx*sth + ry*cth
+    return ax + cx, ay + cy
+end
+
+local function rotateMulti(th, cx, cy, ...)
+    local coords = {...}
+    local pairs = {}
+    for i = 1, #coords, 2 do
+        pairs[i], pairs[i + 1] = rotateAround(th, cx, cy, coords[i], coords[i + 1])
+    end
+
+    return unpack(pairs)
+end
+
+local function tileToScreen(x, y)
+    if math.abs(drawState.rotate) < 0.001 then
+        drawState.rotate = 0
+    end
+
+    if math.abs(drawState.rotate) > 0 then
+        local th = drawState.rotate
+        local cx, cy = boardWidth/2, boardHeight/2
+        x, y = rotateAround(th, cx, cy, x, y)
+    end
+
+    return x*tileScale, (boardHeight - y - 1)*tileScale
+end
+
+local function drawTile(x, y, c, ghost)
+    if not c then return end
+
+    local dx, dy = tileToScreen(x, y)
+
+    if ghost then
+        rect(
+            dx, dy, 
+            tileScale, tileScale, c)
+    else
+        rectFill(
+            dx, dy, 
+            tileScale, tileScale, c)
+    end
+end
+
+local function drawPiece(piece, ghost, forceColor)
+    local cells = getCells(unpackPiece(piece))
+
+    for cell in values(cells) do
+        local x, y = unpack(cell)
+
+        drawTile(x, y, forceColor or piece.type.color, ghost)
+    end
+end
+
+local function drawRotLine(a, b, c, d, lineWidth, color)
+    lineWidth = lineWidth or math.floor(tileScale / 2)
+    color = color or 7
+    -- a, b, c, d = rotateMulti(-drawState.rotate, _w/2, _h/2, a, b, c, d)
+    a, b = a/tileScale, -(b/tileScale + 1 - boardHeight)--(boardHeight - y - 1)*tileScale
+    c, d = c/tileScale, -(d/tileScale + 1 - boardHeight)--(boardHeight - y - 1)*tileScale
+
+    a, b = tileToScreen(a, b)
+    c, d = tileToScreen(c, d)
+
+    line(a, b, c, d, color, lineWidth)
+end
+
+local function drawEdges(bsw, bsh, visibleOffset)
+    local lineOffset = -math.floor(tileScale / 2)
+    local lineWidth = math.floor(tileScale / 2)
+    -- print(table.concat({rotateMulti(drawState.rotate, _w/2, _h/2,
+    -- lineOffset, visibleOffset, lineOffset, visibleOffset+bsh)}, ", "))
+    if math.abs(drawState.rotate) > 0 then
+        -- Sides
+        drawRotLine(lineOffset, visibleOffset, lineOffset, visibleOffset+bsh+1)
+        drawRotLine(bsw, visibleOffset, bsw, visibleOffset+visibleOffset+1)
+        -- line(rotateMulti(drawState.rotate, _w/2, _h/2,
+        --     bsw, visibleOffset, bsw, visibleOffset+visibleOffset), 8, lineWidth)
+
+        -- -- Floor
+        drawRotLine(lineOffset, bsh+visibleOffset, lineOffset + bsw + lineWidth*2 - 1, bsh+visibleOffset)
+        -- line(rotateMulti(drawState.rotate, _w/2, _h/2,
+        --     lineOffset, bsh+visibleOffset, lineOffset + bsw + lineWidth*2 - 1, bsh+visibleOffset), 8, lineWidth)
+    else
+        -- Sides
+        rectFill(lineOffset, visibleOffset, lineWidth, bsh, 7)
+        rectFill(bsw, visibleOffset, lineWidth, visibleOffset, 7)
+
+        -- Floor
+        rectFill(lineOffset, bsh+visibleOffset, bsw + lineWidth*2, lineWidth, 7)
+    end
+end
+
+local function drawGarbageQueue(bsh, visibleOffset)
+    local numGarbage = 0
+    for qg in values(gameState.queuedGarbage) do
+        numGarbage = numGarbage + qg.count
+    end
+
+    if numGarbage == 0 then return end
+
+    local lineOffset = -math.floor(tileScale / 2) - 2
+    drawRotLine(lineOffset, visibleOffset+bsh-1, lineOffset, visibleOffset+bsh - tileScale*numGarbage, 1, 8)
+
+    if numGarbage > gameState.garbagecap then
+        local position = visibleOffset+bsh - tileScale*gameState.garbagecap
+        drawRotLine(lineOffset-1, position, lineOffset+1, position, 1, 16)
+    end
+end
+
+local function isTileObstructed(x, y)
+    x = math.floor(x)
+    y = math.floor(y)
+
+    -- First do a bounds check
+    if x < 0 or x >= boardWidth
+    or y < 0 or y >= boardHeight then
+        return true
+    end
+
+    if gameState.board[y][x] then
+        return true
+    end
+
+    return false
+end
+
+local function isPieceOutOfBounds()
+    for cell in values(getCells(unpackPiece(gameState.fallingPiece))) do
+        local y = cell[2]
+        if y < visibleBoard then
+            return false
+        end
+    end
+
+    return true
+end
+
+local function willPieceBeObstructed(pieceType, newX, newY, newR)
+    local cells = getCells(pieceType, newX, newY, newR)
+
+    for cell in values(cells) do
+        local x, y = unpack(cell)
+
+        if isTileObstructed(x, y) then
+            return true
+        end
+    end
+
+    return false
+end
+
+local allMinos = {"I", "O", "T", "S", "Z", "J", "L"}
+local function fillBag()
+    gameState.bag = gameState.bag or {}
+    if gameState.bagType == "random" then
+        while #gameState.bag < 7 do
+            table.insert(gameState.bag, sc.sample(allMinos))
+        end
+    else -- Fallback to 7-bag
+        while #gameState.bag < 7 do
+            local bag7 = sc.shuffle(allMinos)
+            for piece in values(bag7) do
+                table.insert(gameState.bag, piece)
+            end
+        end
+    end
+end
+
+local function die(death)
+    gameState.lost = true
+    print("You lose")
+    -- dumpBoard()
+    os.exit() -- TODO: Show a failure screen
+end
+
+local function spawnNewPiece(pieceType)
+    fillBag()
+
+    if not pieceType then
+        pieceType = table.remove(gameState.bag, 1)
+    end
+
+    gameState.fallingPiece = {
+        x = math.floor(boardWidth / 2), y = math.floor(boardHeight / 2) + 1.04, --22,
+        rotation = 0,
+        lockTimer = 0,
+        shiftLock = gameState.shiftLock,
+        rotationLock = gameState.rotationLock,
+
+        type = minos[pieceType]
+    }
+
+    if willPieceBeObstructed(unpackPiece(gameState.fallingPiece)) then
+        -- Lose condition
+        die("topout")
+    end
+
+    gameState.hasHeld = false
+end
+
+local function isBoardEmpty()
+    for row = 0, boardHeight - 1 do
+        for col = 0, boardWidth - 1 do
+            if gameState.board[row][col] then
+                return false
+            end
+        end
+    end
+
+    return true
+end
+
+local function isRowEmpty(row)
+    for col = 0, boardWidth - 1 do
+        if gameState.board[row][col] then
+            return false
+        end
+    end
+
+    return true
+end
+
+local function rowShouldClear(row)
+    for x = 0, boardWidth - 1 do
+        if not gameState.board[row][x] then
+            return false
+        end
+    end
+
+    return true
+end
+
+local function translateSubBoard(row)
+    for r = row, boardHeight - 1 do
+        gameState.board[r] = shallowPropCop(gameState.board[r + 1] or {})
+    end
+end
+
+local function addGarbage()
+    local totalAdded = 0
+    while totalAdded < gameState.garbagecap do
+        local garbage = table.remove(gameState.queuedGarbage)
+        if (not garbage) or garbage.count <= 0 then break end
+
+        if totalAdded + garbage.count > gameState.garbagecap then
+            local recycle = gameState.garbagecap - totalAdded
+            table.insert(gameState.queuedGarbage,
+                { column = garbage.column, count = garbage.count - recycle })
+
+            garbage.count = recycle
+        end
+
+        local count, openColumn = garbage.count, garbage.column
+
+        -- First shift the board up by count
+        for row = boardHeight - 1, 0, -1 do
+            if gameState.board[row + count] then
+                gameState.board[row + count] = gameState.board[row]
+            else
+                if not isRowEmpty(row) then
+                    die("garbagesmash")
+                end
+            end
+        end
+
+        -- Now fill in the bottom rows
+        for row = 0, count - 1 do
+            gameState.board[row] = {}
+            for col = 0, boardWidth - 1 do
+                if col ~= openColumn then
+                    gameState.board[row][col] = 6
+                end
+            end
+        end
+
+        totalAdded = totalAdded + count
+    end
+
+    drawState.shake = totalAdded
+end
+
+local function addRowParticles(row)
+    for i = 0, boardWidth - 1 do
+        for j = 1, math.random(3, 5) do
+            local r = 2*math.pi*math.random(0, 1000)/1000
+            local v = math.random(3, 6)
+            table.insert(drawState.particles, 
+                { x = i   + math.random(-100, 100) / 200
+                , y = row + math.random(-100, 100) / 200 - 0.5
+                , vx = v*math.cos(r)
+                , vy = v*math.sin(r)
+                , c = gameState.board[row][i]
+                , life = math.random(5, 10) })
+        end
+    end
+end
+
+local function spawnSpinGhosts()
+    for cell in values(getCells(unpackPiece(gameState.fallingPiece))) do
+        local r = 2*math.pi*math.random(0, 1000)/1000
+        local v = math.random(8, 12)
+
+        table.insert(drawState.tileGhosts,
+            { x = cell[1]
+            , y = cell[2]
+            , c = gameState.fallingPiece.type.color
+            , vx = v*math.cos(r)
+            , vy = v*math.sin(r)
+            , life = 5
+            })
+    end
+end
+
+local function wasDifficult(linesCleared)
+    return linesCleared >= 4 or gameState.wasSpin
+end
+
+local function calculateScoring(numCleared)
+    local score, garbageToSend = 0, 0
+    local spun, mini = gameState.wasSpin, gameState.wasMini
+    if numCleared == 0 then
+        if spun then
+            if mini then
+                score = cleardata.scoring.TSPIN_MINI
+                garbageToSend = cleardata.garbage.TSPIN_MINI
+            else
+                score = cleardata.scoring.TSPIN
+                garbageToSend = cleardata.garbage.TSPIN
+            end
+        end
+    else
+        local clearTypes = {"SINGLE", "DOUBLE", "TRIPLE", "QUAD"}
+        local clearType = clearTypes[numCleared]
+        if spun then
+            if mini then
+                score = cleardata.scoring["TSPIN_MINI_" .. clearType]
+                garbageToSend = cleardata.garbage["TSPIN_MINI_" .. clearType]
+            else
+                score = cleardata.scoring["TSPIN_" .. clearType]
+                garbageToSend = cleardata.garbage["TSPIN_" .. clearType]
+            end
+        else
+            score = cleardata.scoring[clearType]
+            garbageToSend = cleardata.garbage[clearType]
+        end
+    end
+
+    -- Process b2b's and combos
+    if numCleared > 0 then
+        if wasDifficult(numCleared) then
+            gameState.b2b = gameState.b2b + 1
+        else
+            gameState.b2b = 0
+        end
+
+        gameState.combo = gameState.combo + 1
+    else
+        gameState.combo = 0
+    end
+
+    -- Calculate b2b scoring/garbage
+    if numCleared > 0 then
+        if gameState.b2b > 1 then
+            score = score * cleardata.scoring.BACKTOBACK_MULTIPLIER
+
+            if gameState.b2bchaining then
+                local nonSingleBonus = 0
+                if gameState.b2b > 2 then
+                    nonSingleBonus = (1 + math.log(1 + (gameState.b2b - 1) * cleardata.garbage.BACKTOBACK_BONUS_LOG) % 1)
+                end
+
+                local singleBonus = math.floor(1 + math.log(1 + (gameState.b2b - 1) * cleardata.garbage.BACKTOBACK_BONUS_LOG))
+                local logBonus = cleardata.garbage.BACKTOBACK_BONUS * (singleBonus + (nonSingleBonus / 3))
+                garbageToSend = garbageToSend + logBonus
+            else
+                garbageToSend = garbageToSend + cleardata.scoring.BACKTOBACK_BONUS
+            end
+        end
+    end
+
+    if gameState.combo > 1 then
+        score = score + cleardata.scoring.COMBO * (gameState.combo - 1)
+        garbageToSend = garbageToSend * (1 + cleardata.garbage.COMBO_BONUS * (gameState.combo - 1))
+    end
+
+    if gameState.combo > 2 then
+        local minimizedCombo = math.log(1 + ((gameState.combo - 1) * cleardata.garbage.COMBO_MINIFIER * cleardata.garbage.COMBO_MINIFIER_LOG))
+        garbageToSend = math.max(minimizedCombo, garbageToSend)
+    end
+
+    return score, math.floor(garbageToSend * gameState.garbagemultiplier)
+end
+
+local function sendAttack(count)
+    -- Currently implemented as a backfire
+    local backfire = math.floor(count*gameState.backfire)
+    if backfire > 0 then
+        table.insert(gameState.queuedGarbage,
+            { column = math.random(0, boardWidth - 1), count = backfire })
+    end
+end
+
+local function lockPiece(ignoreLockTimer)
+    local piece = gameState.fallingPiece
+    if not ignoreLockTimer and piece.lockTimer < gameState.lockTimer then
+        piece.lockTimer = piece.lockTimer + 1
+        return
+    end
+
+    local affectedRows = {}
+
+
+    local cells = getCells(unpackPiece(piece))
+    for cell in values(cells) do
+        local x, y = unpack(cell)
+
+        gameState.board[y][x] = piece.type.color
+        affectedRows[y] = true
+    end
+
+
+    -- TODO: Calculate combos n shit
+    local rowList = {}
+    for row in pairs(affectedRows) do
+        table.insert(rowList, row)
+    end
+
+    table.sort(rowList)
+
+    local numCleared = 0
+    for i = #rowList, 1, -1 do
+        local row = rowList[i]
+        if rowShouldClear(row) then
+            addRowParticles(row)
+
+            translateSubBoard(row)
+            numCleared = numCleared + 1
+        end
+    end
+
+    if isPieceOutOfBounds() then
+        if not (gameState.clutchClears and numCleared > 0) then
+            die("topout")
+        end
+    end
+
+
+    local score, garbage = calculateScoring(numCleared)
+    gameState.score = gameState.score + score
+
+    -- Process garbage
+    if numCleared == 0 then
+        addGarbage()
+    else
+        while garbage > 0 do
+            local qg = table.remove(gameState.queuedGarbage, 1)
+            if not qg then break end
+
+            if garbage > qg.count then
+                garbage = garbage - qg.count
+            else
+                -- Couldn't clear this garbage queue, put it back
+                qg.count = qg.count - garbage
+                garbage = 0
+
+                table.insert(gameState.queuedGarbage, 1, qg)
+            end
+        end
+    end
+
+
+    if garbage > 0 then
+        sendAttack(garbage)
+    end
+
+    if isBoardEmpty() then
+        sendAttack(10) -- All clear always sends 10 as a seperate attack
+    end
+
+
+    if numCleared > 0 then
+        drawState.shake = 2*numCleared
+    else
+        drawState.push.y = 1.5 -- A little push for locking a piece
+    end
+
+    if gameState.wasSpin then
+        drawState.shake = 4*numCleared
+    end
+
+    spawnNewPiece()
+end
+
+local function tryMoveX(key, opposingKey, delta)
+    local ctrl = gameState.controller
+    if not key or (opposingKey and ctrl.lastMove ~= delta) then
+        return
+    end
+
+    ctrl.dast = ctrl.dast + 1
+
+    local iter = 1 - math.abs(ctrl.lastMove)
+    if ctrl.dast >= handling.das then
+        if handling.arr == 0 then
+            iter = math.huge
+        else
+            while ctrl.dasb >= handling.arr do
+                ctrl.dasb = ctrl.dasb - handling.arr
+                iter = iter + 1
+            end
+        end
+
+        ctrl.dasb = ctrl.dasb + 1
+    end
+
+    ctrl.lastMove = delta
+
+    local piece = gameState.fallingPiece
+    for i = 1, iter do
+        local ox = piece.x
+        if willPieceBeObstructed(unpackPiece(piece, {x = ox + delta})) then
+            drawState.push.x = drawState.push.x + (delta*5 - drawState.push.x) * 0.5
+            drawState.pushing = true
+            return
+        end
+
+        piece.x = piece.x + delta
+        gameState.wasSpin = false
+        if piece.lockTimer > 0 then
+            piece.shiftLock = piece.shiftLock - 1
+            if piece.shiftLock >= 0 then
+                piece.lockTimer = 0
+            end
+        end
+    end
+end
+
+local function tryRotate(key, delta)
+    local ctrl = gameState.controller
+    if ctrl[key] ~= true then
+        return
+    end
+
+    ctrl[key] = false
+
+    local piece = gameState.fallingPiece
+    local newRot = (piece.rotation + delta) % 4
+
+    local willBeMini = false
+
+    local set = kicksets[gameState.kickset][piece.type.name]
+    local rotKey = piece.rotation .. newRot
+    local px, py = piece.x, piece.y
+    for kick in values(set[rotKey]) do
+        if not willPieceBeObstructed(
+                unpackPiece(piece, 
+                    { x = px + kick[1]
+                    , y = py + kick[2]
+                    , rotation = newRot})) then
+            
+            piece.x = px + kick[1]
+            piece.y = py + kick[2]
+            piece.rotation = newRot
+            piece.rotationLock = piece.rotationLock - 1
+            if piece.rotationLock >= 0 then
+                piece.lockTimer = 0
+            end
+            
+            if piece.type.name == "T" then
+                -- Check for t-spin
+                local numCorners = 0
+                for i = -1, 1, 2 do
+                    for j = -1, 1, 2 do
+                        if isTileObstructed(piece.x + i, piece.y + j) then
+                            numCorners = numCorners + 1
+                        end
+                    end
+                end
+
+                if numCorners >= 3 then
+                    spawnSpinGhosts()
+                    drawState.rotate = -0.05*delta
+                    gameState.wasSpin = true
+                    gameState.wasMini = willBeMini
+                end
+            end
+
+            break
+        end
+
+        willBeMini = true
+    end
+end
+
+local function getHardDropPosition()
+    local piece = gameState.fallingPiece
+    local py = piece.y
+    while not willPieceBeObstructed(unpackPiece(piece, {y = py - 1})) do
+        py = py - 1
+    end
+
+    return piece.x, py
+end
+
+local function tryHardDrop()
+    local ctrl = gameState.controller
+    if ctrl["hard"] ~= true then
+        return
+    end
+
+    ctrl["hard"] = false
+
+    local piece = gameState.fallingPiece
+    piece.x, piece.y = getHardDropPosition()
+
+    lockPiece(true)
+end
+
+local function tryHold()
+    if not gameState.allowHolds then return end
+
+    local ctrl = gameState.controller
+    if ctrl["hold"] ~= true or gameState.hasHeld then
+        return
+    end
+
+    ctrl["hold"] = false
+
+    local piece = gameState.fallingPiece
+    if gameState.holding then
+        local heldPiece = gameState.holding
+        gameState.holding = piece.type
+        spawnNewPiece(heldPiece.name)
+    else
+        gameState.holding = piece.type
+        spawnNewPiece()
+    end
+
+    gameState.hasHeld = true
+end
+
+local function tickEngine()
+    -- Do controller first
+    drawState.pushing = false
+    local ctrl = gameState.controller
+    tryMoveX(ctrl.left, ctrl.right, -1)
+    tryMoveX(ctrl.right, ctrl.left,  1)
+    if not (ctrl.left or ctrl.right) then
+        ctrl.lastMove = 0
+        ctrl.dast = 0
+        ctrl.dasb = handling.arr
+    end
+
+    if not ctrl.soft then
+        ctrl.sdft = 0
+    end
+
+    -- Then gravity
+    local grav = gameState.gravity
+    if ctrl.soft then
+        grav = math.max(0.3, grav * handling.sdf)
+    end
+
+    local newY = gameState.fallingPiece.y - grav
+    local locked = false
+    for interY = math.floor(gameState.fallingPiece.y), math.floor(newY), -1 do
+        if willPieceBeObstructed(unpackPiece(gameState.fallingPiece, {y = interY})) then
+            lockPiece()
+            locked = true
+            break
+        else
+            if interY ~= gameState.fallingPiece.y then
+                gameState.fallingPiece.y = interY
+                gameState.wasSpin = false
+            end
+        end
+    end
+
+    if not locked then
+        if newY ~= gameState.fallingPiece.y then
+            gameState.fallingPiece.y = newY
+            gameState.wasSpin = false
+        end
+        gameState.fallingPiece.lockTimer = 0
+    end
+
+    -- These come after gravity because of... uh... shit
+    tryRotate("rotateCW" ,  1)
+    tryRotate("rotateCCW", -1)
+    if gameState.allow180s then
+        tryRotate("rotate180",  2)
+    end
+
+    tryHardDrop()
+    tryHold()
+
+    if gameState.currentFrame > gameState.gravityMargin then
+        gameState.gravity = gameState.gravity + gameState.gravityIncrease
+    end
+end
+
+local function tickDrawspace(dt)
+    for i = #drawState.particles, 1, -1 do
+        local part = drawState.particles[i]
+        part.x = part.x + part.vx*dt
+        part.y = part.y + part.vy*dt
+        part.vy = part.vy - 16*dt
+        part.life = part.life - 30*dt
+
+        if part.y < -20 then--part.life < 0 then
+            table.remove(drawState.particles, i)
+        end
+    end
+
+    for i = #drawState.tileGhosts, 1, -1 do
+        local ghost = drawState.tileGhosts[i]
+        ghost.x = ghost.x + ghost.vx*dt
+        ghost.y = ghost.y + ghost.vy*dt
+        ghost.vx = ghost.vx*0.98
+        ghost.vy = ghost.vy*0.98
+        ghost.life = ghost.life - 10*dt
+
+        if ghost.life < 0 then
+            table.remove(drawState.tileGhosts, i)
+        end
+    end
+end
+
+function _init()
+    gameState = shallowPropCop(gameOptions)
+    gameState.beginTime = os.clock()
+    gameState.currentFrame = 0
+
+    gameState.board = {}
+    for row = 0, boardHeight - 1 do
+        gameState.board[row] = {}
+    end
+
+    gameState.controller = {
+        left = false, right = false, lastMove = 0,
+        rotateCW = false, rotateCCW = false, rotate180 = false, lastRotate = 0,
+        soft = false, hard = false,
+        dast = 0, dasb = 0, sdft = 0
+    }
+    
+    gameState.hasHeld = false
+
+    gameState.score = 0
+    gameState.combo = 0
+    gameState.b2b = 0
+
+    gameState.queuedGarbage = {}
+
+    spawnNewPiece()
+end
+
+function _update(dt)
+    local gameTime = os.clock() - gameState.beginTime
+    local targetFrame = math.floor(gameTime * 60)
+    for f = gameState.currentFrame + 1, targetFrame do
+        gameState.currentFrame = f
+        tickEngine()
+    end
+
+    tickDrawspace(dt)
+end
+
+local centerW = _w / 2
+local centerH = _h / 2
+
+local function writeCentered(str, cw, y, c)
+    str = tostring(str)
+    local x = cw - (#str * (gpu.font.data.w + 1))/2
+
+    write(str, x, y, c)
+end
+
+function _draw()
+    cls()
+    
+    push()
+    local bsw = boardWidth * tileScale
+    local bsh = visibleBoard * tileScale
+    local visibleOffset = tileScale*(boardHeight - visibleBoard)
+    trans(centerW - bsw/2, centerH - 1.4*visibleOffset)
+
+    local shake = drawState.shake
+    drawState.shake = drawState.shake * 0.9
+    trans(math.random(-shake, shake), math.random(-shake, shake))
+
+    trans(drawState.push.x, drawState.push.y)
+    if not drawState.pushing then
+        drawState.push.x = drawState.push.x * 0.9
+        drawState.push.y = drawState.push.y * 0.9
+    end
+
+    drawState.rotate = drawState.rotate * 0.9
+
+    -- These ghosts go first because they're really noisy
+    for ghost in values(drawState.tileGhosts) do
+        local x, y = ghost.x, ghost.y
+        local color = ghost.c
+        if ghost.life <= 1 then
+            color = 7
+        elseif ghost.life <= 2 then
+            color = 6
+        end
+
+        drawTile(x, y, color, true)
+    end
+
+    -- Draw score
+    writeCentered(gameState.score, tileToScreen(boardWidth / 2, -2))
+
+    if gameState.b2b > 1 then
+        write("B2B x" .. gameState.b2b, tileToScreen(-6, visibleBoard - 5))
+    end
+
+    drawGarbageQueue(bsh, visibleOffset)
+
+    drawEdges(bsw, bsh, visibleOffset)
+
+    drawPiece(gameState.fallingPiece)
+    if gameState.fallingPiece then
+        local x, y = getHardDropPosition()
+        drawPiece({
+            x = x, y = y, rotation = gameState.fallingPiece.rotation,
+            type = gameState.fallingPiece.type
+        }, true)
+    end
+
+    for x = 0, boardWidth - 1 do
+        for y = 0, boardHeight - 1 do
+            drawTile(x, y, gameState.board[y][x])
+        end
+    end
+
+    if gameState.holding then
+        local pieceType = gameState.holding
+        drawPiece({
+            x = -(pieceType.aox or 0) + -5,
+            y = -(pieceType.aoy or 0) + visibleBoard - 3,
+            rotation = 0,
+            type = pieceType
+        }, false, gameState.hasHeld and 7)
+    end
+
+    for i = 1, nextPieces do
+        local pieceType = minos[gameState.bag[i]]
+        if pieceType then
+            drawPiece({
+                x = -(pieceType.aox or 0) + boardWidth + 5,
+                y = -(pieceType.aoy or 0) + visibleBoard - i*3, 
+                rotation = 0,
+                type = pieceType
+            })
+        end
+    end
+
+    for part in values(drawState.particles) do
+        local x, y = tileToScreen(part.x, part.y)
+        local color = part.c
+
+        pix(x, y, color)
+    end
+
+    pop()
+
+    swap()
+end
+
+local keyMap = {
+    ["left"] = "left",
+    ["right"] = "right",
+    ["down"] = "soft",
+    ["space"] = "hard",
+    ["z"] = "rotateCCW",
+    ["x"] = "rotateCW",
+    ["a"] = "rotate180",
+    ["c"] = "hold"
+}
+function _event(e, ...)
+    if e == "key" or e == "keyUp" then
+        local k = ...
+        local val = e == "key"
+
+        local mapping = keyMap[k]
+        if mapping then
+            gameState.controller[mapping] = val
+        end
+
+        -- if k == "home" and e == "key" then
+        --     dumpBoard()
+        -- end
+    end
+end

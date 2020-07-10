@@ -8,6 +8,8 @@ end
 
 local gpuWidth = gpu.width
 local gpuHeight = gpu.height
+local cos, sin = math.cos, math.sin
+local min, max = math.min, math.max
 
 local function round(n)
   if n % 1 >= 0.5 then
@@ -167,7 +169,8 @@ function gpp.fillCircle(x0, y0, r, c)
   end
 end
 
-function gpp.drawLine(x1, y1, x2, y2, c)
+function gpp.drawLine(x1, y1, x2, y2, c, thickness)
+  thickness = thickness or 1
   local deltaX = x2 - x1
   local deltaY = y2 - y1
 
@@ -192,14 +195,14 @@ function gpp.drawLine(x1, y1, x2, y2, c)
       min = x < min and x or min
 
       if deltaErr > 0 then
-        gpuDrawRectangle(min, y, x - min + 1, 1, c)
+        gpuDrawRectangle(min, y, x - min + 1, thickness, c)
         min = math.huge
         y = y + ddY
         deltaErr = deltaErr - deltaX
       end
       deltaErr = deltaErr + deltaY * ddY
     end
-    gpuDrawRectangle(min, y, x2 - min + 1, 1, c)
+    gpuDrawRectangle(min, y, x2 - min + 1, thickness, c)
   else
     if y1 > y2 then
       local tx, ty = x1, y1
@@ -221,14 +224,14 @@ function gpp.drawLine(x1, y1, x2, y2, c)
       min = y < min and y or min
 
       if deltaErr > 0 then
-        gpuDrawRectangle(x, min, 1, y - min + 1, c)
+        gpuDrawRectangle(x, min, thickness, y - min + 1, c)
         min = math.huge
         x = x + ddX
         deltaErr = deltaErr - deltaY
       end
       deltaErr = deltaErr + deltaX * ddX
     end
-    gpuDrawRectangle(x, min, 1, y2 - min + 1, c)
+    gpuDrawRectangle(x, min, thickness, y2 - min + 1, c)
   end
 end
 
@@ -296,6 +299,70 @@ function gpp.fillPolygon(poly, c)
       end
     end
   end
+end
+
+local rotCache = {}
+
+-- Make sure that the rotCache has weak keys so that when cached sprites
+-- are dropped, the cache doesn't stop them from being garbage collected
+setmetatable(rotCache, { __mode = "k" })
+
+function gpp.bakeRotation(spr, r, cx, cy)
+  local w, h = spr:getWidth(), spr:getHeight()
+  cx, cy = cx or w / 2, cy or h / 2
+
+  -- Get rotation matrix
+  local cosr, sinr = cos(r), sin(r)
+  local rm11, rm12, rm21, rm22 = cosr, -sinr, sinr, cosr
+
+  -- Initialize rect vectors
+  local n1x, n1y = -cx    , -cy
+  local n2x, n2y = n1x + w, n1y
+  local n3x, n3y = n2x    , n1y + h
+  local n4x, n4y = n1x    , n3y
+
+  -- Now rotate them
+  n1x, n1y = n1x*rm11 + n1y*rm12, n1x*rm21 + n1y*rm22
+  n2x, n2y = n2x*rm11 + n2y*rm12, n2x*rm21 + n2y*rm22
+  n3x, n3y = n3x*rm11 + n3y*rm12, n3x*rm21 + n3y*rm22
+  n4x, n4y = n4x*rm11 + n4y*rm12, n4x*rm21 + n4y*rm22
+
+  local minX = min(n1x, n2x, n3x, n4x)
+  local maxX = max(n1x, n2x, n3x, n4x)
+  local minY = min(n1y, n2y, n3y, n4y)
+  local maxY = max(n1y, n2y, n3y, n4y)
+
+  -- local img = image.newImage(maxX - minX + 1, maxY - minY + 1)
+  -- local poly = {
+  --   {n1x - minX, n1y - minY},
+  --   {n2x - minX, n2y - minY},
+  --   {n3x - minX, n3y - minY},
+  --   {n4x - minX, n4y - minY}
+  -- }
+
+  -- local tempBlit = gpuBlitImage
+  -- gpuBlitImage = function(a, ...)
+  --   a:copy(img, ...)
+  -- end
+
+  -- gpp.fillPolygon(poly, spr)
+
+  -- print(n1x .. ", " .. n1y)
+  -- print(n2x .. ", " .. n2y)
+  -- print(n3x .. ", " .. n3y)
+  -- print(n4x .. ", " .. n4y)
+
+  for sy = minY, maxY do
+
+  end
+
+end
+
+function gpp.blitRotated(spr, x, y, r, cx, cy)
+  gpp.bakeRotation(spr, r, cx, cy)
+
+  local cake = rotCache[spr][r]
+  gpuBlitImage(cake.im, cake.ox + x, cake.oy + y)
 end
 
 return gpp
