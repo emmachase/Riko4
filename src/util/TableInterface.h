@@ -34,9 +34,13 @@ public:
     bool getBoolean(std::string key);
     bool getBoolean(std::string key, bool defaultValue);
 
+    std::string getString(std::string key);
+    std::string getString(std::string key, std::string defaultValue);
+
     double getNextNumber();
     int getNextInteger();
     bool getNextBoolean();
+    std::string getNextString();
 };
 
 

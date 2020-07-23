@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <sstream>
 #include <thread>
+#include <set>
 
 #ifndef __EMSCRIPTEN__
 #  include <curlpp/cURLpp.hpp>
@@ -16,6 +17,7 @@
 
 #include "core/events.h"
 #include "misc/luaIncludes.h"
+#include "util/TableInterface.h"
 
 #include "net.h"
 #include "userdata/ResponseHandle.h"
@@ -26,13 +28,16 @@ Uint32 riko::events::NET_FAILURE = 0;
 Uint32 riko::events::NET_PROGRESS = 0;
 
 namespace riko::net {
+    int requestHandleCounter = 0;
     std::atomic<int> openThreads;
+    std::set<int> activeThreadIDs;
 
     int init() {
 #ifndef __EMSCRIPTEN__
         cURLpp::initialize(CURL_GLOBAL_ALL);
 #endif
         openThreads = 0;
+        activeThreadIDs = std::set<int>();
 
         riko::events::NET_SUCCESS = SDL_RegisterEvents(3);
         riko::events::NET_FAILURE = riko::events::NET_SUCCESS + 1;
@@ -69,7 +74,11 @@ namespace riko::net {
         SDL_PushEvent(&failureEvent);
     }
 
-    int progressCallback(std::string *url, double total, double now, double, double) {
+    int progressCallback(int thread_id, std::string *url, double total, double now, double, double) {
+        if (activeThreadIDs.count(thread_id) == 0) {
+            return 1;
+        }
+
         SDL_Event progressEvent;
         SDL_memset(&progressEvent, 0, sizeof(progressEvent));
         progressEvent.type = riko::events::NET_PROGRESS;
@@ -79,7 +88,7 @@ namespace riko::net {
         return 0;
     }
 
-    void getThread(std::string *url, std::string *postData) {
+    void getThread(int thread_id, std::string *url, std::string *postData, std::list<std::string> *headers) {
         auto *dataStream = new std::stringstream;
 
 #ifndef __EMSCRIPTEN__
@@ -94,6 +103,10 @@ namespace riko::net {
                 request.setOpt<cURLpp::options::PostFieldSize>(postData->length());
             }
 
+            if (headers != nullptr) {
+                request.setOpt<cURLpp::options::HttpHeader>(*headers);
+            }
+
             request.setOpt<cURLpp::options::UserAgent>("curl/7.61.0");
 
             request.setOpt<cURLpp::options::FollowLocation>(true);
@@ -104,7 +117,7 @@ namespace riko::net {
             using namespace std::placeholders;
             cURLpp::types::ProgressFunctionFunctor progressFunctor(
                     [=](auto a, auto b, auto c, auto d) {
-                        return progressCallback(url, a, b, c, d);
+                        return progressCallback(thread_id, url, a, b, c, d);
                     });
 
             request.setOpt<cURLpp::options::ProgressFunction>(progressFunctor);
@@ -126,8 +139,11 @@ namespace riko::net {
 #endif
 
         delete url;
+        delete postData;
+        delete headers;
 
         openThreads--;
+        activeThreadIDs.erase(thread_id);
     }
 
     static int netRequest(lua_State *L) {
@@ -142,19 +158,47 @@ namespace riko::net {
             postData = new std::string(postDataCStr, postLen);
         }
 
+        std::list<std::string> *headers = nullptr;
+        if (lua_gettop(L) > 2) {
+            try {
+                TableInterface interface(L, 3);
+
+                headers = new std::list<std::string>;
+
+                for (;;) {
+                    headers->push_back(interface.getNextString());
+                }
+            } catch (const LuaError &e) {
+                if (e.getErrorType() != LuaError::Type::NIL_ARG)
+                    return luaL_error(L, e.what());
+            }
+        }
+
         if (openThreads >= MAX_CONCURRENT) {
             return luaL_error(L, "too many open requests");
         }
 
         openThreads++;
-        std::thread requestThread(getThread, url, postData);
+        int rid = requestHandleCounter++;
+        activeThreadIDs.insert(rid);
+        std::thread requestThread(getThread, rid, url, postData, headers);
         requestThread.detach();
 
-        return 0;
+        lua_pushinteger(L, rid);
+        return 1;
+    }
+
+    static int netCancel(lua_State *L) {
+        int rid = luaL_checkint(L, 1);
+        lua_pushboolean(L, !!activeThreadIDs.count(rid));
+        activeThreadIDs.erase(rid);
+
+        return 1;
     }
 
     static const luaL_Reg netLib[] = {
         {"request", netRequest},
+        {"cancel", netCancel},
         {nullptr, nullptr}
     };
 

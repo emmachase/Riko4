@@ -4,7 +4,8 @@
 
 TableInterface::TableInterface(lua_State *state, int arg) : state(state), arg(arg), offset(lua_gettop(state)) {
     if (offset < arg) {
-        throw LuaError("expected table as argument " + std::to_string(arg) + ", got nil");
+        throw LuaError("expected table as argument " + std::to_string(arg) + ", got nil",
+                       LuaError::Type::NIL_ARG);
     }
 
     offset -= (arg - 1);
@@ -12,7 +13,7 @@ TableInterface::TableInterface(lua_State *state, int arg) : state(state), arg(ar
     int type = lua_type(state, -offset);
     if (type != LUA_TTABLE) {
         throw LuaError("expected table as argument " + std::to_string(arg) + ", got " + lua_typename(state, type),
-                       LuaError::Type::NIL_ARG);
+                       type == LUA_TNIL ? LuaError::Type::NIL_ARG : LuaError::Type::BAD_TYPE);
     }
 }
 
@@ -106,7 +107,7 @@ bool TableInterface::getBoolean(std::string key) {
 
     bool value;
     if (lua_isnil(state, -1)) {
-        throw LuaError("expected number for element '" + key + "' of argument " + std::to_string(arg) + ", got nil",
+        throw LuaError("expected boolean for element '" + key + "' of argument " + std::to_string(arg) + ", got nil",
                        LuaError::Type::NIL_ARG);
     } else {
         int type = lua_type(state, -1);
@@ -114,7 +115,7 @@ bool TableInterface::getBoolean(std::string key) {
         if (type == LUA_TBOOLEAN) {
             value = static_cast<bool>(lua_toboolean(state, -1));
         } else {
-            throw LuaError("expected number for element '" + key + "' of argument " + std::to_string(arg) + ", got " +
+            throw LuaError("expected boolean for element '" + key + "' of argument " + std::to_string(arg) + ", got " +
                            lua_typename(state, type), LuaError::Type::BAD_TYPE);
         }
     }
@@ -125,6 +126,38 @@ bool TableInterface::getBoolean(std::string key) {
 bool TableInterface::getBoolean(std::string key, bool defaultValue) {
     try {
         return getBoolean(std::move(key));
+    } catch (const LuaError &e) {
+        if (e.getErrorType() == LuaError::Type::NIL_ARG)
+            return defaultValue;
+        else
+            throw e;
+    }
+}
+
+std::string TableInterface::getString(std::string key) {
+    popToStack(key);
+
+    std::string value;
+    if (lua_isnil(state, -1)) {
+        throw LuaError("expected string for element '" + key + "' of argument " + std::to_string(arg) + ", got nil",
+                       LuaError::Type::NIL_ARG);
+    } else {
+        int type = lua_type(state, -1);
+
+        if (type == LUA_TSTRING) {
+            value = std::string(lua_tostring(state, -1));
+        } else {
+            throw LuaError("expected string for element '" + key + "' of argument " + std::to_string(arg) + ", got " +
+                           lua_typename(state, type), LuaError::Type::BAD_TYPE);
+        }
+    }
+
+    return value;
+}
+
+std::string TableInterface::getString(std::string key, std::string defaultValue) {
+    try {
+        return getString(std::move(key));
     } catch (const LuaError &e) {
         if (e.getErrorType() == LuaError::Type::NIL_ARG)
             return defaultValue;
@@ -184,7 +217,7 @@ bool TableInterface::getNextBoolean() {
 
     bool value;
     if (lua_isnil(state, -1)) {
-        throw LuaError("expected number for element '" + std::to_string(lastArrayIndex) + "' of argument " +
+        throw LuaError("expected boolean for element '" + std::to_string(lastArrayIndex) + "' of argument " +
                        std::to_string(arg) + ", got nil", LuaError::Type::NIL_ARG);
     } else {
         int type = lua_type(state, -1);
@@ -192,7 +225,28 @@ bool TableInterface::getNextBoolean() {
         if (type == LUA_TBOOLEAN) {
             value = static_cast<bool>(lua_toboolean(state, -1));
         } else {
-            throw LuaError("expected number for element '" + std::to_string(lastArrayIndex) + "' of argument " +
+            throw LuaError("expected boolean for element '" + std::to_string(lastArrayIndex) + "' of argument " +
+                           std::to_string(arg) + ", got " + lua_typename(state, type), LuaError::Type::BAD_TYPE);
+        }
+    }
+
+    return value;
+}
+
+std::string TableInterface::getNextString() {
+    popToStack(lastArrayIndex + 1);
+
+    std::string value;
+    if (lua_isnil(state, -1)) {
+        throw LuaError("expected string for element '" + std::to_string(lastArrayIndex) + "' of argument " +
+                       std::to_string(arg) + ", got nil", LuaError::Type::NIL_ARG);
+    } else {
+        int type = lua_type(state, -1);
+
+        if (type == LUA_TSTRING) {
+            value = std::string(lua_tostring(state, -1));
+        } else {
+            throw LuaError("expected string for element '" + std::to_string(lastArrayIndex) + "' of argument " +
                            std::to_string(arg) + ", got " + lua_typename(state, type), LuaError::Type::BAD_TYPE);
         }
     }

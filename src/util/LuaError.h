@@ -9,7 +9,7 @@
 class LuaError : public std::runtime_error {
 public:
     enum class Type { GENERIC, NIL_ARG, BAD_TYPE };
-
+    
 private:
     Type errorType = Type::GENERIC;
 

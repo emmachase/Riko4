@@ -77,8 +77,8 @@ local function trim(str)
   return str:match("^%s*(.*)"):match("^(.-)%s*$")
 end
 
-net.post = function(url, postData)
-  net.request(url, postData)
+net.post = function(url, postData, headers)
+  net.request(url, postData, headers)
 
   while true do
     local e, eUrl, handle = coroutine.yield()
