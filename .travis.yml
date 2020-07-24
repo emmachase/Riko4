@@ -32,6 +32,7 @@ script:
   # Get and build curlpp
   - git clone https://github.com/jpbarrette/curlpp.git
   - cd curlpp
+  - git reset --hard 41b1325a752da73dcd390b6b9cf5c1b577451ecf
   - cmake .
   - sudo make install
   - cd ..
