@@ -1,21 +1,13 @@
 -- Global Config
-local tileScale = 5
-local boardWidth, visibleBoard = 10, 20 -- 6, 7--
+local tileScale = 10
+local boardWidth, visibleBoard = 6,7
 local boardHeight = visibleBoard * 2
 
-local nextPieces = 5 -- 2--
-
-local bigMode = false
--- tileScale = tileScale * 2
-if bigMode then
-    -- boardWidth = boardWidth / 2
-    boardHeight = boardHeight / 2
-    visibleBoard = visibleBoard / 2
-end
+local nextPieces = 2
 
 local gameOptions = {
-    gravity = 0.02,
-    gravityIncrease = 0.0025/60,
+    gravity = 0.015,
+    gravityIncrease = 0.00125/60,
     gravityMargin = 60*60,
     lockTimer = 30,
     bagType = "7-bag",
@@ -90,14 +82,14 @@ end
 -- Unpacks relevant piece information
 local function unpackPiece(piece, replace)
     replace = replace or {}
-    return 
+    return
         replace.type     or piece.type,
         replace.x        or piece.x,
         replace.y        or piece.y,
         replace.rotation or piece.rotation
 end
 
--- Given a piece state, x, y, r, return the 
+-- Given a piece state, x, y, r, return the
 -- cells it should occupy on the board
 local function getCells(pieceType, x, y, r)
     local cells = {}
@@ -107,7 +99,7 @@ local function getCells(pieceType, x, y, r)
 
         local aox = pieceType.aox or 0
         local aoy = pieceType.aoy or 0
-        table.insert(cells, 
+        table.insert(cells,
             { x + ox + aox, math.ceil(y) + oy + aoy })
     end
 
@@ -176,11 +168,11 @@ local function drawTile(x, y, c, ghost)
 
     if ghost then
         rect(
-            dx, dy, 
+            dx, dy,
             tileScale, tileScale, c)
     else
         rectFill(
-            dx, dy, 
+            dx, dy,
             tileScale, tileScale, c)
     end
 end
@@ -428,7 +420,7 @@ local function addRowParticles(row)
         for j = 1, math.random(3, 5) do
             local r = 2*math.pi*math.random(0, 1000)/1000
             local v = math.random(3, 6)
-            table.insert(drawState.particles, 
+            table.insert(drawState.particles,
                 { x = i   + math.random(-100, 100) / 200
                 , y = row + math.random(-100, 100) / 200 - 0.5
                 , vx = v*math.cos(r)
@@ -591,7 +583,6 @@ local function lockPiece(ignoreLockTimer)
 
     local score, garbage = calculateScoring(numCleared)
     gameState.score = gameState.score + score
-
     -- Process garbage
     if numCleared == 0 then
         addGarbage()
@@ -611,7 +602,6 @@ local function lockPiece(ignoreLockTimer)
             end
         end
     end
-
 
     if garbage > 0 then
         sendAttack(garbage)
@@ -697,11 +687,11 @@ local function tryRotate(key, delta)
     local px, py = piece.x, piece.y
     for kick in values(set[rotKey]) do
         if not willPieceBeObstructed(
-                unpackPiece(piece, 
+                unpackPiece(piece,
                     { x = px + kick[1]
                     , y = py + kick[2]
                     , rotation = newRot})) then
-            
+
             piece.x = px + kick[1]
             piece.y = py + kick[2]
             piece.rotation = newRot
@@ -709,7 +699,7 @@ local function tryRotate(key, delta)
             if piece.rotationLock >= 0 then
                 piece.lockTimer = 0
             end
-            
+
             if piece.type.name == "T" then
                 -- Check for t-spin
                 local numCorners = 0
@@ -723,7 +713,7 @@ local function tryRotate(key, delta)
 
                 if numCorners >= 3 then
                     spawnSpinGhosts()
-                    drawState.rotate = -0.05*delta
+                    drawState.rotate = -0.1*delta
                     gameState.wasSpin = true
                     gameState.wasMini = willBeMini
                 end
@@ -886,7 +876,7 @@ function _init()
         soft = false, hard = false,
         dast = 0, dasb = 0, sdft = 0
     }
-    
+
     gameState.hasHeld = false
 
     gameState.score = 0
@@ -921,7 +911,7 @@ end
 
 function _draw()
     cls()
-    
+
     push()
     local bsw = boardWidth * tileScale
     local bsh = visibleBoard * tileScale
@@ -994,7 +984,7 @@ function _draw()
         if pieceType then
             drawPiece({
                 x = -(pieceType.aox or 0) + boardWidth + 5,
-                y = -(pieceType.aoy or 0) + visibleBoard - i*3, 
+                y = -(pieceType.aoy or 0) + visibleBoard - i*3,
                 rotation = 0,
                 type = pieceType
             })
@@ -1038,3 +1028,4 @@ function _event(e, ...)
         -- end
     end
 end
+
