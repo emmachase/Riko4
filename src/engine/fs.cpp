@@ -7,6 +7,7 @@
 /* Compiling for Windows */
 #ifndef __WINDOWS__
 #define __WINDOWS__
+#undef UNICODE
 #endif
 
 #  include <Windows.h>
@@ -23,7 +24,6 @@
 #  include <dirent.h>
 #  define f_mkdir mkdir
 #else
-
 #  include <direct.h>
 
 #  define f_mkdir(a, b) _mkdir(a)
@@ -74,6 +74,7 @@ namespace riko::fs {
     bool checkPath(const char *luaInput, char *varName) {
         // Normalize the path
         auto luaPath = std::string(luaInput);
+        std::replace(luaPath.begin(), luaPath.end(), '/', PATH_SEPARATOR);
 
         char *workingFront = (luaPath[0] == PATH_SEPARATOR) ? scriptsPath : currentWorkingDirectory;
         std::string sysPath = std::string() + workingFront + PATH_SEPARATOR + luaPath;

@@ -161,12 +161,12 @@ namespace riko::net {
         std::list<std::string> *headers = nullptr;
         if (lua_gettop(L) > 2) {
             try {
-                TableInterface interface(L, 3);
+                TableInterface headerTable(L, 3);
 
                 headers = new std::list<std::string>;
 
                 for (;;) {
-                    headers->push_back(interface.getNextString());
+                    headers->push_back(headerTable.getNextString());
                 }
             } catch (const LuaError &e) {
                 if (e.getErrorType() != LuaError::Type::NIL_ARG)

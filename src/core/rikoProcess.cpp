@@ -1,8 +1,11 @@
 #include <cstring>
-#include <getopt.h>
 #include <iostream>
 
 #include "SDL_gpu/SDL_gpu.h"
+
+#ifndef __WINDOWS__
+#include <getopt.h>
+#endif
 
 #include "engine/audio.h"
 #include "misc/consts.h"
@@ -17,11 +20,20 @@
 
 #ifdef __WINDOWS__
 
+#undef UNICODE
+
 #include <windows.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <shellapi.h>
+#ifdef _MSC_VER
+#include <direct.h>
+#include "util/Xdirent.h"
+#define S_ISDIR(mode) (S_IFDIR&mode)
+#define mkdir _mkdir
+#else
 #include <dirent.h>
+#endif
 
 #else
 #include <ftw.h>
@@ -61,6 +73,7 @@ namespace riko::process {
 #endif
 
     void parseCommands(int argc, char *argv[]) {
+#ifndef _MSC_VER
         while (true) {
             int optionIndex = 0;
             static option longOptions[] = {
@@ -123,6 +136,7 @@ namespace riko::process {
                     exit(1);
             }
         }
+#endif
     }
 
     int initLibs() {
@@ -186,7 +200,6 @@ namespace riko::process {
     }
 
 #ifdef __WINDOWS__
-
     bool is_dir(const char *path) {
         struct stat buf{};
         stat(path, &buf);
