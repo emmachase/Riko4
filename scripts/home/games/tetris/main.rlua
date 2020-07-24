@@ -1,13 +1,13 @@
 -- Global Config
-local tileScale = 10
-local boardWidth, visibleBoard = 6,7
+local tileScale = 5
+local boardWidth, visibleBoard = 10, 20
 local boardHeight = visibleBoard * 2
 
-local nextPieces = 2
+local nextPieces = 5
 
 local gameOptions = {
-    gravity = 0.015,
-    gravityIncrease = 0.00125/60,
+    gravity = 0.02,
+    gravityIncrease = 0.0025/60,
     gravityMargin = 60*60,
     lockTimer = 30,
     bagType = "7-bag",
