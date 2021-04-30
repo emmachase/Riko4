@@ -1,9 +1,19 @@
 -- Global Config
 local tileScale = 5
-local boardWidth, visibleBoard = 10, 20
+local boardWidth, visibleBoard = 10, 20 -- 6, 7--
 local boardHeight = visibleBoard * 2
 
-local nextPieces = 5
+local nextPieces = 5 -- 2--
+
+local animationMultiplier = 1
+
+local bigMode = false
+-- tileScale = tileScale * 2
+if bigMode then
+    -- boardWidth = boardWidth / 2
+    boardHeight = boardHeight / 2
+    visibleBoard = visibleBoard / 2
+end
 
 local gameOptions = {
     gravity = 0.02,
@@ -30,15 +40,18 @@ local gameOptions = {
 local handling = {
     das = 10,
     arr = 2,
-    sdf = 6
+    sdf = 10
 }
 
 -- Imports
 local sc = require("luascore")
+local rif = require("rif")
 
 local minos = require("minos")
 local kicksets = require("kicksets")
 local cleardata = require("cleardata")
+
+-- local gameOverSprite, gosW = rif.createImage("gover_d.rif")
 
 for name, kickset in pairs(kicksets) do
     local newSet = {}
@@ -107,14 +120,8 @@ local function getCells(pieceType, x, y, r)
 end
 
 local gameState
-local drawState = {
-    shake = 0,
-    push = {x = 0, y = 0},
-    rotate = 0,
-    pushing = false,
-    particles = {},
-    tileGhosts = {},
-}
+local drawState
+local heldReset = false
 
 local function dumpBoard()
     local whole = ""
@@ -147,7 +154,7 @@ local function rotateMulti(th, cx, cy, ...)
     return unpack(pairs)
 end
 
-local function tileToScreen(x, y)
+local function tileToScreen(x, y, ...)
     if math.abs(drawState.rotate) < 0.001 then
         drawState.rotate = 0
     end
@@ -158,7 +165,7 @@ local function tileToScreen(x, y)
         x, y = rotateAround(th, cx, cy, x, y)
     end
 
-    return x*tileScale, (boardHeight - y - 1)*tileScale
+    return x*tileScale, (boardHeight - y - 1)*tileScale, ...
 end
 
 local function drawTile(x, y, c, ghost)
@@ -223,6 +230,13 @@ local function drawEdges(bsw, bsh, visibleOffset)
 
         -- Floor
         rectFill(lineOffset, bsh+visibleOffset, bsw + lineWidth*2, lineWidth, 7)
+    end
+end
+
+local function thickRect(x, y, w, h, t, c)
+    for thicc = 0, t - 1 do
+        rect(x + thicc, y + thicc
+            ,w - thicc*2, h - thicc*2, c)
     end
 end
 
@@ -304,9 +318,12 @@ end
 
 local function die(death)
     gameState.lost = true
-    print("You lose")
+    gameState.fallingPiece = nil
+
+    drawState.shake = 20
+    -- print("You lose")
     -- dumpBoard()
-    os.exit() -- TODO: Show a failure screen
+    -- os.exit() -- TODO: Show a failure screen
 end
 
 local function spawnNewPiece(pieceType)
@@ -317,7 +334,7 @@ local function spawnNewPiece(pieceType)
     end
 
     gameState.fallingPiece = {
-        x = math.floor(boardWidth / 2), y = math.floor(boardHeight / 2) + 1.04, --22,
+        x = math.floor(boardWidth / 2) - 1, y = math.floor(boardHeight / 2) + 1.04, --22,
         rotation = 0,
         lockTimer = 0,
         shiftLock = gameState.shiftLock,
@@ -412,7 +429,7 @@ local function addGarbage()
         totalAdded = totalAdded + count
     end
 
-    drawState.shake = totalAdded
+    drawState.shake = drawState.shake + totalAdded
 end
 
 local function addRowParticles(row)
@@ -447,6 +464,10 @@ local function spawnSpinGhosts()
     end
 end
 
+local function capitalize(str)
+    return str:sub(1, 1):upper() .. str:sub(2):lower()
+end
+
 local function wasDifficult(linesCleared)
     return linesCleared >= 4 or gameState.wasSpin
 end
@@ -454,6 +475,12 @@ end
 local function calculateScoring(numCleared)
     local score, garbageToSend = 0, 0
     local spun, mini = gameState.wasSpin, gameState.wasMini
+    if numCleared > 2 -- T-Spin Triple
+    or (numCleared == 2 and gameState.fallingPiece.rotation == 2) -- Backwards tspin double
+    then
+        mini = false
+    end
+
     if numCleared == 0 then
         if spun then
             if mini then
@@ -479,6 +506,19 @@ local function calculateScoring(numCleared)
             score = cleardata.scoring[clearType]
             garbageToSend = cleardata.garbage[clearType]
         end
+
+        drawState.shoutoutProgress = 0
+        drawState.shoutout = capitalize(clearTypes[numCleared])
+        if spun then
+            drawState.shoutout = "T-Spin " .. drawState.shoutout
+            if mini then
+                drawState.shoutout = "Mini " .. drawState.shoutout
+            end
+        end
+
+        if numCleared == 1 and not spun then
+            drawState.shoutoutProgress = 1
+        end
     end
 
     -- Process b2b's and combos
@@ -486,6 +526,10 @@ local function calculateScoring(numCleared)
         if wasDifficult(numCleared) then
             gameState.b2b = gameState.b2b + 1
         else
+            if gameState.b2b > 1 then
+                drawState.b2bfail = 5
+            end
+
             gameState.b2b = 0
         end
 
@@ -583,6 +627,7 @@ local function lockPiece(ignoreLockTimer)
 
     local score, garbage = calculateScoring(numCleared)
     gameState.score = gameState.score + score
+
     -- Process garbage
     if numCleared == 0 then
         addGarbage()
@@ -603,6 +648,7 @@ local function lockPiece(ignoreLockTimer)
         end
     end
 
+
     if garbage > 0 then
         sendAttack(garbage)
     end
@@ -622,18 +668,26 @@ local function lockPiece(ignoreLockTimer)
         drawState.shake = 4*numCleared
     end
 
-    spawnNewPiece()
+    if not gameState.lost then
+        spawnNewPiece()
+    end
 end
 
-local function tryMoveX(key, opposingKey, delta)
+local function tryMoveX(key, delta)
     local ctrl = gameState.controller
-    if not key or (opposingKey and ctrl.lastMove ~= delta) then
+    if not key then
         return
     end
 
+    local iter = 1
+    if ctrl.lastMove ~= delta then
+        ctrl.dast = 0
+        ctrl.dasb = handling.arr
+    else
+        iter = 0
+    end
     ctrl.dast = ctrl.dast + 1
 
-    local iter = 1 - math.abs(ctrl.lastMove)
     if ctrl.dast >= handling.das then
         if handling.arr == 0 then
             iter = math.huge
@@ -713,7 +767,7 @@ local function tryRotate(key, delta)
 
                 if numCorners >= 3 then
                     spawnSpinGhosts()
-                    drawState.rotate = -0.1*delta
+                    drawState.rotate = -0.05*delta
                     gameState.wasSpin = true
                     gameState.wasMini = willBeMini
                 end
@@ -773,12 +827,37 @@ local function tryHold()
     gameState.hasHeld = true
 end
 
+local moveOrder = {}
+local function addMoveOrder(typ)
+    for i = 1, #moveOrder do
+        if moveOrder[i] == typ then
+            return
+        end
+    end
+
+    table.insert(moveOrder, typ)
+end
+
+local function removeMoveOrder(typ)
+    for i = #moveOrder, 1, -1 do
+        if moveOrder[i] == typ then
+            return table.remove(moveOrder, i)
+        end
+    end
+end
+
 local function tickEngine()
     -- Do controller first
     drawState.pushing = false
     local ctrl = gameState.controller
-    tryMoveX(ctrl.left, ctrl.right, -1)
-    tryMoveX(ctrl.right, ctrl.left,  1)
+
+    local last = moveOrder[#moveOrder]
+    if last == "left" then
+        tryMoveX(ctrl.left, -1)
+    elseif last == "right" then
+        tryMoveX(ctrl.right, 1)
+    end
+
     if not (ctrl.left or ctrl.right) then
         ctrl.lastMove = 0
         ctrl.dast = 0
@@ -793,6 +872,10 @@ local function tickEngine()
     local grav = gameState.gravity
     if ctrl.soft then
         grav = math.max(0.3, grav * handling.sdf)
+    end
+
+    if not gameState.fallingPiece then
+        return
     end
 
     local newY = gameState.fallingPiece.y - grav
@@ -858,12 +941,26 @@ local function tickDrawspace(dt)
             table.remove(drawState.tileGhosts, i)
         end
     end
+
+    if drawState.shoutoutProgress < 1 then
+        drawState.shoutoutProgress = drawState.shoutoutProgress + dt/2
+    end
+
+    if drawState.b2bfail > 0 then
+        drawState.b2bfail = drawState.b2bfail - dt*10
+    end
+
+    if gameState.lost then
+        if drawState.deathProgress > 0 then
+            drawState.deathProgress = drawState.deathProgress*0.95
+        end
+    end
 end
 
 function _init()
     gameState = shallowPropCop(gameOptions)
     gameState.beginTime = os.clock()
-    gameState.currentFrame = 0
+    gameState.currentFrame = -1
 
     gameState.board = {}
     for row = 0, boardHeight - 1 do
@@ -874,7 +971,9 @@ function _init()
         left = false, right = false, lastMove = 0,
         rotateCW = false, rotateCCW = false, rotate180 = false, lastRotate = 0,
         soft = false, hard = false,
-        dast = 0, dasb = 0, sdft = 0
+        dast = 0, dasb = handling.arr, sdft = 0,
+
+        reset = false -- Internal use only
     }
 
     gameState.hasHeld = false
@@ -885,15 +984,60 @@ function _init()
 
     gameState.queuedGarbage = {}
 
+    drawState = {
+        shake = 0,
+        push = {x = 0, y = 0},
+        rotate = 0,
+        pushing = false,
+        particles = {},
+        tileGhosts = {},
+        shoutout = "",
+        shoutoutProgress = 1,
+        b2bfail = 0,
+        resetBar = 0,
+        deathProgress = 100,
+    }
+
     spawnNewPiece()
 end
 
+-- local requeue = {}
+-- local requeueBuf = {}
 function _update(dt)
-    local gameTime = os.clock() - gameState.beginTime
-    local targetFrame = math.floor(gameTime * 60)
-    for f = gameState.currentFrame + 1, targetFrame do
-        gameState.currentFrame = f
-        tickEngine()
+    -- requeueBuf = requeue
+    -- requeue = {}
+    -- while #requeueBuf > 0 do
+    --     _event(unpack(table.remove(requeueBuf)))
+    -- end
+
+    if not gameState.lost then
+        local gameTime = os.clock() - gameState.beginTime
+        local targetFrame = math.floor(gameTime * 60)
+        for f = gameState.currentFrame + 1, targetFrame do
+            gameState.currentFrame = f
+            tickEngine()
+        end
+    end
+
+    if not gameState.controller.reset then
+        heldReset = false
+    end
+
+    if gameState.controller.reset and not heldReset then
+        drawState.resetBar = drawState.resetBar + (1.1 - drawState.resetBar)*0.05
+        if drawState.resetBar >= 1 then
+            drawState.resetBar = 0
+            heldReset = true
+
+            _init()
+            gameState.controller.reset = true -- To counteract reset debounce
+            drawState.shake = 5
+        end
+    elseif drawState.resetBar > 0 then
+        drawState.resetBar = drawState.resetBar*0.8 - dt -- dt*2
+        if drawState.resetBar < 0.01 then
+            drawState.resetBar = 0
+        end
     end
 
     tickDrawspace(dt)
@@ -909,6 +1053,28 @@ local function writeCentered(str, cw, y, c)
     write(str, x, y, c)
 end
 
+local function getCBoxStartW(str, cw)
+    str = tostring(str)
+
+    return cw - (#str * (gpu.font.data.w + 1))/2
+         , #str * (gpu.font.data.w + 1)
+end
+
+local function writeRight(str, bw, y, c, cb)
+    str = tostring(str)
+    local x = bw - #str * (gpu.font.data.w + 1)
+
+    if cb then
+        for xo = -1, 1 do
+            for yo = -1, 1 do
+                write(str, x+xo, y+yo, cb)
+            end
+        end
+    end
+
+    write(str, x, y, c)
+end
+
 function _draw()
     cls()
 
@@ -916,19 +1082,21 @@ function _draw()
     local bsw = boardWidth * tileScale
     local bsh = visibleBoard * tileScale
     local visibleOffset = tileScale*(boardHeight - visibleBoard)
-    trans(centerW - bsw/2, centerH - 1.4*visibleOffset)
+    trans(centerW - bsw/2, centerH - 1.5*visibleOffset)
 
-    local shake = drawState.shake
-    drawState.shake = drawState.shake * 0.9
+    local amult = animationMultiplier
+
+    local shake = amult * drawState.shake * (tileScale / 5)
+    drawState.shake = drawState.shake * (0.9 / amult)
     trans(math.random(-shake, shake), math.random(-shake, shake))
 
-    trans(drawState.push.x, drawState.push.y)
+    trans(amult*drawState.push.x, amult*drawState.push.y)
     if not drawState.pushing then
-        drawState.push.x = drawState.push.x * 0.9
-        drawState.push.y = drawState.push.y * 0.9
+        drawState.push.x = drawState.push.x * (0.9 / amult)
+        drawState.push.y = drawState.push.y * (0.9 / amult)
     end
 
-    drawState.rotate = drawState.rotate * 0.9
+    drawState.rotate = drawState.rotate * (0.9 / amult)
 
     -- These ghosts go first because they're really noisy
     for ghost in values(drawState.tileGhosts) do
@@ -947,15 +1115,31 @@ function _draw()
     writeCentered(gameState.score, tileToScreen(boardWidth / 2, -2))
 
     if gameState.b2b > 1 then
-        write("B2B x" .. gameState.b2b, tileToScreen(-6, visibleBoard - 5))
+        writeRight("B2B x" .. gameState.b2b, tileToScreen(-1.5, visibleBoard - 9))
+    elseif drawState.b2bfail > 0 then
+        local c = math.ceil(drawState.b2bfail) % 2 * 7 + 1
+        writeRight("B2B x" .. gameState.b2b, tileToScreen(-1.5, visibleBoard - 9, c))
+    end
+
+    if drawState.shoutoutProgress < 1 then
+        local pg = drawState.shoutoutProgress
+        local clrs = {16, 7, 6, 1, 1, 1}
+        local bgc = clrs[math.ceil (pg * 4) + 2]
+        local fgc = clrs[math.floor(pg * 4) + 1]
+
+        local bw, y = tileToScreen(-2, visibleBoard - 6)
+        bw = bw - 10*math.sqrt(drawState.shoutoutProgress)
+
+        writeRight(drawState.shoutout, bw, y+2, fgc, bgc)
     end
 
     drawGarbageQueue(bsh, visibleOffset)
 
     drawEdges(bsw, bsh, visibleOffset)
 
-    drawPiece(gameState.fallingPiece)
     if gameState.fallingPiece then
+        drawPiece(gameState.fallingPiece)
+
         local x, y = getHardDropPosition()
         drawPiece({
             x = x, y = y, rotation = gameState.fallingPiece.rotation,
@@ -969,14 +1153,25 @@ function _draw()
         end
     end
 
+    thickRect(tileToScreen(-7.5, visibleBoard - 1, tileScale*6, tileScale*4, math.floor(tileScale / 2), 7))
     if gameState.holding then
         local pieceType = gameState.holding
+
+        if pieceType == minos.I then
+            push()
+            trans(0, math.ceil(tileScale / 2))
+        end
+
         drawPiece({
             x = -(pieceType.aox or 0) + -5,
             y = -(pieceType.aoy or 0) + visibleBoard - 3,
             rotation = 0,
             type = pieceType
         }, false, gameState.hasHeld and 7)
+
+        if pieceType == minos.I then
+            pop()
+        end
     end
 
     for i = 1, nextPieces do
@@ -1000,8 +1195,57 @@ function _draw()
 
     pop()
 
+    local sc = _w/2
+
+    local function underLine(x, y, w, h, c)
+        rect(x, y, w, h, 8)
+        rect(x - 2, y + 1, w, h, 3)
+    end
+
+    local lineProg = drawState.deathProgress--math.sin(os.clock()*1)*50 + 50
+
+    local upLineProg = math.max(0, lineProg - 30)
+    local textProg = math.max(0, lineProg - 40)
+
+    push()
+    trans(0, _h/2 - 25)
+
+    underLine(sc + 30 + upLineProg^1.4, 15, 40, 1, 3)
+    underLine(sc + 22 + lineProg^1.4, 24, 40, 1, 3)
+
+    underLine(sc - 30 - 36 - upLineProg^1.4, 24, 40, 1, 3)
+    underLine(sc - 22 - 36 - lineProg^1.4, 15, 40, 1, 3)
+
+    -- gameOverSprite:render((_w - gosW) / 2, 10)
+
+    local gos = "GAME OVER"
+    local gosTW = writeWidth(gos, 3)
+    writeScaled(gos, (_w - gosTW) / 2, 10 - (textProg / 2)^1.3, 3)
+
+    pop()
+
+    if drawState.resetBar > 0 then
+        local str = "Keep holding to reset"
+        local sx, w = getCBoxStartW(str, _w/2)
+        rectFill(sx    , _h - 9, w+2, 9, 6)
+        rectFill(sx - 1, _h - 8, w+4, 8, 6)
+
+        rectFill(sx    , _h - 9, (w+3)*drawState.resetBar, 9, 8)
+        rectFill(sx - 1, _h - 8, (w+5)*drawState.resetBar, 8, 8)
+        writeCentered(str, _w/2, _h - 8)
+    end
+
+    -- write("L " .. tostring(gameState.controller.left), 0, 0)
+    -- write("R " .. tostring(gameState.controller.right), 0, 10)
+    -- write("RQ " .. table.concat(moveOrder, " "), 0, 20)
+
     swap()
 end
+
+-- local rqPairs = {
+--     ["left"] = "right",
+--     ["right"] = "left"
+-- }
 
 local keyMap = {
     ["left"] = "left",
@@ -1010,22 +1254,31 @@ local keyMap = {
     ["space"] = "hard",
     ["z"] = "rotateCCW",
     ["x"] = "rotateCW",
-    ["a"] = "rotate180",
-    ["c"] = "hold"
+    ["leftShift"] = "rotate180",
+    ["c"] = "hold",
+    ["r"] = "reset"
 }
 function _event(e, ...)
     if e == "key" or e == "keyUp" then
         local k = ...
         local val = e == "key"
 
+        -- local pair = rqPairs[k]
+        -- if pair and e == "keyUp" and gameState.controller[pair] then
+        --     table.insert(requeue, {e, ...})
+        --     return -- Don't process this event yet
+        -- end
+
         local mapping = keyMap[k]
         if mapping then
             gameState.controller[mapping] = val
         end
 
+        if mapping == "left" or mapping == "right" then
+            if val then addMoveOrder(mapping) else removeMoveOrder(mapping) end
+        end
         -- if k == "home" and e == "key" then
         --     dumpBoard()
         -- end
     end
 end
-
