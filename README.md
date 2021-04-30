@@ -1,4 +1,4 @@
-# Riko4 [![Build Status](https://travis-ci.org/incinirate/Riko4.svg?branch=master)](https://travis-ci.org/incinirate/Riko4)
+# Riko4 [![Build Status](https://travis-ci.org/emmachase/Riko4.svg?branch=master)](https://travis-ci.org/emmachase/Riko4)
 
 A fantasy computer / game engine
 
@@ -18,7 +18,7 @@ curlpp - Ubuntu: libcurlpp-dev, Arch: aur/libcurlpp
 Build Instructions:
 
 ```
-git clone https://github.com/incinirate/riko4
+git clone https://github.com/emmachase/riko4
 cd riko4
 mkdir build
 cp -r scripts build
