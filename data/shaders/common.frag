@@ -1,5 +1,5 @@
 // Adapted from https://www.shadertoy.com/view/XdyGzR
-// Authored by @frutbunn, adapted by @Incinirate for usage in Riko4
+// Authored by @frutbunn, adapted by @emmachase for usage in Riko4
 
 varying vec4 color;
 varying vec2 texCoord;
