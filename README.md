@@ -29,9 +29,9 @@ make
 ```
 
 Screenshots:
-![Hello World](https://i.would.download/a-gate.png)
-![Shell](https://i.would.download/a-vacation.png)
-![Code Editor](https://i.would.download/a-frame.png)
-![Image/Spritesheet Editor](https://i.would.download/a-hot.png)
-![Isola Game](https://i.would.download/a-wall.png)
-![Minesweeper](https://i.would.download/a-railway.png)
+![Hello World](https://its-em.ma/and-her-thirsty-stitch.jfif)
+![Shell](https://its-em.ma/and-her-internal-shoe.jfif)
+![Code Editor](https://its-em.ma/and-her-whispering-father.jfif)
+![Image/Spritesheet Editor](https://its-em.ma/and-her-spiffy-hen.jfif)
+![Isola Game](https://its-em.ma/and-her-naive-sleep.jfif)
+![Minesweeper](https://its-em.ma/and-her-wacky-belief.jfif)
