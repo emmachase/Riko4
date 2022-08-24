@@ -8,11 +8,11 @@ local nextPieces = 5 -- 2--
 local animationMultiplier = 1
 
 local bigMode = false
--- tileScale = tileScale * 2
 if bigMode then
-    -- boardWidth = boardWidth / 2
+    boardWidth = boardWidth / 2
     boardHeight = boardHeight / 2
     visibleBoard = visibleBoard / 2
+    tileScale = tileScale * 2
 end
 
 local gameOptions = {
@@ -1024,7 +1024,7 @@ function _update(dt)
     end
 
     if gameState.controller.reset and not heldReset then
-        drawState.resetBar = drawState.resetBar + (1.1 - drawState.resetBar)*0.05
+        drawState.resetBar = drawState.resetBar + 0.025 -- (1.1 - drawState.resetBar)*0.05
         if drawState.resetBar >= 1 then
             drawState.resetBar = 0
             heldReset = true
@@ -1075,6 +1075,14 @@ local function writeRight(str, bw, y, c, cb)
     write(str, x, y, c)
 end
 
+local function normalNaN(x)
+    if x ~= x then
+        return 0
+    else
+        return x
+    end
+end
+
 function _draw()
     cls()
 
@@ -1087,16 +1095,16 @@ function _draw()
     local amult = animationMultiplier
 
     local shake = amult * drawState.shake * (tileScale / 5)
-    drawState.shake = drawState.shake * (0.9 / amult)
+    drawState.shake = drawState.shake * normalNaN(0.9 / amult)
     trans(math.random(-shake, shake), math.random(-shake, shake))
 
     trans(amult*drawState.push.x, amult*drawState.push.y)
     if not drawState.pushing then
-        drawState.push.x = drawState.push.x * (0.9 / amult)
-        drawState.push.y = drawState.push.y * (0.9 / amult)
+        drawState.push.x = drawState.push.x * normalNaN(0.9 / amult)
+        drawState.push.y = drawState.push.y * normalNaN(0.9 / amult)
     end
 
-    drawState.rotate = drawState.rotate * (0.9 / amult)
+    drawState.rotate = drawState.rotate * normalNaN(0.9 / amult)
 
     -- These ghosts go first because they're really noisy
     for ghost in values(drawState.tileGhosts) do

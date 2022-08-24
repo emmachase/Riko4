@@ -5,6 +5,8 @@
 
 #ifndef __WINDOWS__
 #include <getopt.h>
+#else
+#include "getopt.h"
 #endif
 
 #include "engine/audio.h"
