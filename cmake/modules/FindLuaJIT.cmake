@@ -42,7 +42,7 @@ FIND_PATH(LUAJIT_INCLUDE_DIR lua.h
         /opt/csw # Blastwave
         /opt
         ${PROJECT_SOURCE_DIR}/libs
-        ${PROJECT_SOURCE_DIR}/libs/libs/LuaJIT
+        ${PROJECT_SOURCE_DIR}/libs/include/LuaJIT
         )
 
 FIND_LIBRARY(LUAJIT_LIBRARY
@@ -59,7 +59,7 @@ FIND_LIBRARY(LUAJIT_LIBRARY
         /opt/local
         /opt/csw
         /opt
-        ${PROJECT_SOURCE_DIR}/libs/libs
+        ${PROJECT_SOURCE_DIR}/libs
         ${PROJECT_SOURCE_DIR}/libs/LuaJIT
         )
 
