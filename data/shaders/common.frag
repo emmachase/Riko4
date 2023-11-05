@@ -1,8 +1,9 @@
 // Adapted from https://www.shadertoy.com/view/XdyGzR
 // Authored by @frutbunn, adapted by @emmachase for usage in Riko4
 
-varying vec4 color;
-varying vec2 texCoord;
+out vec4 color;
+out vec2 texCoord;
+out vec4 fragColor;
 
 uniform sampler2D tex;
 uniform vec2 resolution;
@@ -29,17 +30,17 @@ vec3 gaussian(in vec2 ncuv, in vec2 rs) {
 
     ncuv+= .5;
 
-    vec3 col = texture2D(tex, vec2(ncuv.x - b/rs.x, ncuv.y - b/rs.y) ).rgb * 0.077847;
-    col += texture2D(tex, vec2(ncuv.x - b/rs.x, ncuv.y) ).rgb * 0.123317;
-    col += texture2D(tex, vec2(ncuv.x - b/rs.x, ncuv.y + b/rs.y) ).rgb * 0.077847;
+    vec3 col = texture(tex, vec2(ncuv.x - b/rs.x, ncuv.y - b/rs.y) ).rgb * 0.077847;
+    col += texture(tex, vec2(ncuv.x - b/rs.x, ncuv.y) ).rgb * 0.123317;
+    col += texture(tex, vec2(ncuv.x - b/rs.x, ncuv.y + b/rs.y) ).rgb * 0.077847;
 
-    col += texture2D(tex, vec2(ncuv.x, ncuv.y - b/rs.y) ).rgb * 0.123317;
-    col += texture2D(tex, vec2(ncuv.x, ncuv.y) ).rgb * 0.195346;
-    col += texture2D(tex, vec2(ncuv.x, ncuv.y + b/rs.y) ).rgb * 0.123317;
+    col += texture(tex, vec2(ncuv.x, ncuv.y - b/rs.y) ).rgb * 0.123317;
+    col += texture(tex, vec2(ncuv.x, ncuv.y) ).rgb * 0.195346;
+    col += texture(tex, vec2(ncuv.x, ncuv.y + b/rs.y) ).rgb * 0.123317;
 
-    col += texture2D(tex, vec2(ncuv.x + b/rs.x, ncuv.y - b/rs.y) ).rgb * 0.077847;
-    col += texture2D(tex, vec2(ncuv.x + b/rs.x, ncuv.y) ).rgb * 0.123317;
-    col += texture2D(tex, vec2(ncuv.x + b/rs.x, ncuv.y + b/rs.y) ).rgb * 0.077847;
+    col += texture(tex, vec2(ncuv.x + b/rs.x, ncuv.y - b/rs.y) ).rgb * 0.077847;
+    col += texture(tex, vec2(ncuv.x + b/rs.x, ncuv.y) ).rgb * 0.123317;
+    col += texture(tex, vec2(ncuv.x + b/rs.x, ncuv.y + b/rs.y) ).rgb * 0.077847;
 
     return col;
 }
@@ -101,8 +102,8 @@ void main(void)
         color = postEffects(color, st);
 
 
-        gl_FragColor = vec4(max(vec3(.0), min(vec3(1.), color)), 1.);
+        fragColor = vec4(max(vec3(.0), min(vec3(1.), color)), 1.);
     } else {
-        gl_FragColor = texture2D(tex, texCoord) * color;
+        fragColor = texture(tex, texCoord) * color;
     }
 }

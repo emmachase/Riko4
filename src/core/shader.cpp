@@ -47,8 +47,8 @@ namespace riko::shader {
             }
 
             int glslVersion;
-            if (renderer->max_shader_version >= 120)
-                glslVersion = 120;
+            if (renderer->max_shader_version >= 150)
+                glslVersion = 150;
             else
                 glslVersion = 110; // Maybe this is good enough?
 
@@ -114,7 +114,10 @@ namespace riko::shader {
 
         GPU_ShaderBlock block = GPU_LoadShaderBlock(*p, "gpu_Vertex", "gpu_TexCoord", "gpu_Color",
                                                     "gpu_ModelViewProjectionMatrix");
+
+        #ifndef __APPLE__
         GPU_ActivateShaderProgram(*p, &block);
+        #endif
 
         return block;
 
@@ -136,8 +139,10 @@ namespace riko::shader {
     }
 
     void updateShader() {
+        #ifndef __APPLE__
         GPU_DeactivateShaderProgram();
         GPU_ActivateShaderProgram(screenShader, &screenBlock);
+        #endif
     }
 }
 

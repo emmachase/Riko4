@@ -3,10 +3,10 @@
 
 #include "SDL_gpu/SDL_gpu.h"
 
-#ifndef __WINDOWS__
-#include <getopt.h>
+#ifdef __WINDOWS__
+#  include "wingetopt.h"
 #else
-#include "getopt.h"
+#  include <getopt.h>
 #endif
 
 #include "engine/audio.h"
