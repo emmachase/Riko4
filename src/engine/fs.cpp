@@ -698,44 +698,8 @@ namespace riko::fs {
     static int fsSetCWD(lua_State *L) {
         const char *nwd = luaL_checkstring(L, 1);
 
-        if (nwd[0] == '\\' || nwd[0] == '/') {
-            size_t nwdLen = strlen(nwd);
-
-            size_t ln = (int) (strlen(scriptsPath) + nwdLen + 2);
-            auto *concatStr = new char[ln];
-            sprintf(concatStr, "%s/%s", scriptsPath, nwd);
-
-            auto *fPath = new char[MAX_PATH];
-
-            getFullPath(concatStr, fPath);
-
-            delete[] concatStr;
-
-            if (strlen(fPath) < MAX_PATH) {
-                strncpy(currentWorkingDirectory, fPath, strlen(fPath));
-                currentWorkingDirectory[strlen(fPath)] = 0;
-            }
-
-            delete[] fPath;
-        } else {
-            size_t nwdlen = strlen(nwd);
-
-            auto ln = strlen(currentWorkingDirectory) + nwdlen + 2;
-            auto *concatStr = new char[ln];
-            sprintf(concatStr, "%s/%s", currentWorkingDirectory, nwd);
-
-            auto *fPath = new char[MAX_PATH];
-
-            getFullPath(concatStr, fPath);
-
-            delete[] concatStr;
-
-            if (strlen(fPath) < MAX_PATH) {
-                strncpy(currentWorkingDirectory, fPath, strlen(fPath));
-                currentWorkingDirectory[strlen(fPath)] = 0;
-            }
-
-            delete[] fPath;
+        if (checkPath(nwd, currentWorkingDirectory)) {
+            return luaL_error(L, "invalid path");
         }
 
         return 0;
