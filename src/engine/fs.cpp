@@ -44,13 +44,14 @@
 
 #include "fs.h"
 
+#define MAX_PATH_S (MAX_PATH + 1)
 
 namespace riko::fs {
     char *appPath = nullptr;
     char *scriptsPath;
 
-    char currentWorkingDirectory[MAX_PATH];
-    char lastOpenedPath[MAX_PATH];
+    char currentWorkingDirectory[MAX_PATH_S];
+    char lastOpenedPath[MAX_PATH_S];
 
     struct fileHandleType {
         FILE *fileStream;
@@ -71,7 +72,7 @@ namespace riko::fs {
         return result;
     }
 
-    bool checkPath(const char *luaInput, char *varName) {
+    bool checkPath(const char *luaInput, char *varName, size_t varSize) {
         // Normalize the path
         auto luaPath = std::string(luaInput);
         std::replace(luaPath.begin(), luaPath.end(), '/', PATH_SEPARATOR);
@@ -115,7 +116,7 @@ namespace riko::fs {
                 return true;
         }
 
-        sprintf(varName, "%s", actualPath.c_str());
+        snprintf(varName, varSize, "%s", actualPath.c_str());
 
         return false; // success
     }
@@ -127,8 +128,8 @@ namespace riko::fs {
     }
 
     static int fsGetAttr(lua_State *L) {
-        char filePath[MAX_PATH + 1];
-        if (checkPath(luaL_checkstring(L, 1), filePath)) {
+        char filePath[MAX_PATH_S];
+        if (checkPath(luaL_checkstring(L, 1), filePath, MAX_PATH_S)) {
             lua_pushinteger(L, 0b11111111);
             return 1;
         }
@@ -170,14 +171,14 @@ namespace riko::fs {
     }
 
     static int fsList(lua_State *L) {
-        char filePath[MAX_PATH + 1];
-        if (checkPath(luaL_checkstring(L, 1), filePath)) {
+        char filePath[MAX_PATH_S];
+        if (checkPath(luaL_checkstring(L, 1), filePath, MAX_PATH_S)) {
             return 0;
         }
 
-        char dummy[MAX_PATH + 1];
+        char dummy[MAX_PATH_S];
         auto preRoot = std::string(luaL_checkstring(L, 1)) + PATH_SEPARATOR + "..";
-        bool isAtRoot = checkPath(preRoot.c_str(), dummy);
+        bool isAtRoot = checkPath(preRoot.c_str(), dummy, MAX_PATH_S);
 
         if (filePath[0] == 0) {
             return 0;
@@ -190,7 +191,7 @@ namespace riko::fs {
         char sPath[2048];
 
         //Specify a file mask. *.* = We want everything!
-        sprintf(sPath, "%s\\*.*", filePath);
+        snprintf(sPath, 2048, "%s\\*.*", filePath);
 
         if ((hFind = FindFirstFile(sPath, &fdFile)) == INVALID_HANDLE_VALUE) {
             return 0;
@@ -254,8 +255,8 @@ namespace riko::fs {
     }
 
     static int fsOpenFile(lua_State *L) {
-        char filePath[MAX_PATH + 1];
-        if (checkPath(luaL_checkstring(L, 1), filePath)) {
+        char filePath[MAX_PATH_S];
+        if (checkPath(luaL_checkstring(L, 1), filePath, MAX_PATH_S)) {
             return 0;
         }
 
@@ -603,7 +604,7 @@ namespace riko::fs {
             const char *typeN = lua_typename(L, type);
             size_t len = 16 + strlen(typeN);
             auto *eMsg = new char[len];
-            sprintf(eMsg, "%s was unexpected", typeN);
+            snprintf(eMsg, len, "%s was unexpected", typeN);
             delete[] eMsg;
 
             return luaL_argerror(L, 2, eMsg);
@@ -611,8 +612,8 @@ namespace riko::fs {
     }
 
     static int fsMkDir(lua_State *L) {
-        char filePath[MAX_PATH + 1];
-        if (checkPath(luaL_checkstring(L, 1), filePath)) {
+        char filePath[MAX_PATH_S];
+        if (checkPath(luaL_checkstring(L, 1), filePath, MAX_PATH_S)) {
             lua_pushboolean(L, false);
             return 1;
         }
@@ -627,8 +628,8 @@ namespace riko::fs {
     }
 
     static int fsMv(lua_State *L) {
-        char filePath[MAX_PATH + 1];
-        if (checkPath(luaL_checkstring(L, 1), filePath)) {
+        char filePath[MAX_PATH_S];
+        if (checkPath(luaL_checkstring(L, 1), filePath, MAX_PATH_S)) {
             lua_pushboolean(L, false);
             return 1;
         }
@@ -638,8 +639,8 @@ namespace riko::fs {
             return 1;
         }
 
-        char endPath[MAX_PATH + 1];
-        if (checkPath(luaL_checkstring(L, 2), endPath)) {
+        char endPath[MAX_PATH_S];
+        if (checkPath(luaL_checkstring(L, 2), endPath, MAX_PATH_S)) {
             lua_pushboolean(L, false);
             return 1;
         }
@@ -654,8 +655,8 @@ namespace riko::fs {
     }
 
     static int fsDelete(lua_State *L) {
-        char filePath[MAX_PATH + 1];
-        if (checkPath(luaL_checkstring(L, 1), filePath)) {
+        char filePath[MAX_PATH_S];
+        if (checkPath(luaL_checkstring(L, 1), filePath, MAX_PATH_S)) {
             lua_pushboolean(L, false);
             return 1;
         }
@@ -698,7 +699,7 @@ namespace riko::fs {
     static int fsSetCWD(lua_State *L) {
         const char *nwd = luaL_checkstring(L, 1);
 
-        if (checkPath(nwd, currentWorkingDirectory)) {
+        if (checkPath(nwd, currentWorkingDirectory, MAX_PATH_S)) {
             return luaL_error(L, "invalid path");
         }
 

@@ -46,8 +46,9 @@ namespace riko::process {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
     int fileCopyCallback(const char *fPath, const struct stat *sb, int typeFlag, struct FTW *ftwBuf) {
-        char endPath[sizeof(char) * (strlen(fPath) + strlen(riko::fs::appPath) + 1)];
-        sprintf(endPath, "%s%s", riko::fs::appPath, fPath);
+        size_t pathLen = sizeof(char) * (strlen(fPath) + strlen(riko::fs::appPath) + 1);
+        char endPath[pathLen];
+        snprintf(endPath, pathLen, "%s%s", riko::fs::appPath, fPath);
 
         if (typeFlag == FTW_D) {
             mkdir(endPath, 0777);
@@ -277,8 +278,9 @@ namespace riko::process {
         printf("Riko4 path: '%s'\n", riko::fs::appPath);
 
 
-        riko::fs::scriptsPath = new char[strlen(riko::fs::appPath) + 8];
-        sprintf(riko::fs::scriptsPath, "%sscripts", riko::fs::appPath);
+        size_t nChars = strlen(riko::fs::appPath) + 8;
+        riko::fs::scriptsPath = new char[nChars];
+        snprintf(riko::fs::scriptsPath, nChars, "%sscripts", riko::fs::appPath);
 
         struct stat statbuf {};
         if (stat(riko::fs::scriptsPath, &statbuf) != 0) {
