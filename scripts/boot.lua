@@ -369,9 +369,36 @@ dataH:close()
 local coreFont = font.new(data)
 gpu.font = coreFont
 
+local fontCache = {}
+function gpu.cacheFont(fnt)
+  local cache = {}
+  fontCache[fnt] = cache
 
+  for k, v in pairs(fnt) do
+    if type(k) == "number" then
+      fontCache[fnt][k] = {}
+      for c = 1, 16 do
+        local img = image.newImage(fnt.w, fnt.h)
+        for j=1, fnt.w do
+          for kk=1, fnt.h do
+            if v[j][kk] then
+              img:drawPixel(j - 1, kk - 1, c)
+            end
+          end
+        end
+        img:flush()
+        fontCache[fnt][k][c] = img
+      end
+    end
+  end
+end
+gpu.cacheFont(coreFont.data)
+
+local imageMetatable = getmetatable(image.newImage(0,0))
 write = function(t, x, y, col, target)
   local fnt = gpu.font.data
+  local cachedFont = fontCache[fnt]
+  local targetIsImage = getmetatable(target) == imageMetatable
 
   t = tostring(t)
   col = col or 16
@@ -380,15 +407,21 @@ write = function(t, x, y, col, target)
     local text = t:sub(i, i)
     local c = string.byte(text)
     if fnt[c] then
-      for j=1, fnt.w do
-        for k=1, fnt.h do
-          if fnt[c][j][k] then
-            local dx = x + xoff + j
-            local dy = y + k
-            if target then
-              target:drawPixel(dx, dy, col)
-            else
-              gpu.drawPixel(dx, dy, col)
+      if not target and cachedFont then
+        cachedFont[c][col]:render(x + xoff + 1, y + 1)
+      elseif targetIsImage and cachedFont then
+        cachedFont[c][col]:copy(target, x + xoff, y)
+      else
+        for j=1, fnt.w do
+          for k=1, fnt.h do
+            if fnt[c][j][k] then
+              local dx = x + xoff + j
+              local dy = y + k
+              if target then
+                target:drawPixel(dx, dy, col)
+              else
+                gpu.drawPixel(dx, dy, col)
+              end
             end
           end
         end

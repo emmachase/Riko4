@@ -131,7 +131,7 @@ namespace riko::image {
             for (int x = 0; x < data->width; x++) {
                 for (int y = 0; y < data->height; y++) {
                     SDL_Rect rect = {x, y, 1, 1};
-                    int c = data->internalRep[x][y];
+                    char c = data->internalRep[x][y];
                     if (c >= 0)
                         SDL_FillRect(data->surface, &rect, getRectC(data, c));
                 }
@@ -386,7 +386,10 @@ namespace riko::image {
                 if (xp >= src->width || xp < 0 || yp >= src->height || yp < 0) {
                     continue;
                 }
-                internalDrawPixel(dst, xp, yp, src->internalRep[xp][yp]);
+                char c = src->internalRep[xp][yp];
+                if (c >= 0) {
+                    internalDrawPixel(dst, xp, yp, c);
+                }
             }
         }
 
