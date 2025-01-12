@@ -54,4 +54,23 @@ if (WIN32)
     target_link_libraries(riko4 ${CMAKE_SOURCE_DIR}/src/resources/icon.res)
 endif ()
 
-install(TARGETS riko4 RUNTIME DESTINATION bin)
+if (APPLE)
+    set(myApp_ICON ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icon.icns)
+    set_source_files_properties(${myApp_ICON} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+
+    set_target_properties(riko4 PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_ICON_FILE icon.icns
+        MACOSX_BUNDLE_BUNDLE_NAME "Riko4"
+    )
+
+    target_sources(riko4 PRIVATE ${myApp_ICON})
+
+    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "Riko4")
+endif ()
+
+if (APPLE)
+    install(TARGETS riko4 RUNTIME DESTINATION bin BUNDLE DESTINATION .)
+else()
+    install(TARGETS riko4 RUNTIME DESTINATION bin)
+endif()

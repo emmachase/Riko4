@@ -260,3 +260,5 @@ riko4.wasm
 *.iml
 *.ipr
 *.cbp
+
+**/.DS_Store
