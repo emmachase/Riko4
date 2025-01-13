@@ -13,6 +13,7 @@
 #include "engine/audio.h"
 #include "engine/image.h"
 #include "engine/net.h"
+#include "engine/poly.h"
 
 #include "luaMachine.h"
 
@@ -120,6 +121,7 @@ namespace riko::lua {
         if (riko::fs::openLua(state) == 2) {
             return nullptr;
         }
+        riko::poly::openLua(state);
         riko::gpu::openLua(state);
         riko::audio::openLua(state);
         riko::image::openLua(state);
