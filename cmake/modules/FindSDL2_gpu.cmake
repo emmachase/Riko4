@@ -97,7 +97,7 @@ else ()
 endif ()
 
 FIND_LIBRARY(SDL2_gpu_LIBRARY_TEMP
-        NAMES SDL2_gpu
+        NAMES SDL2_gpu libSDL2_gpu
         HINTS
         $ENV{SDL2GPUDIR}
         PATH_SUFFIXES ${PATH_SUFFIXES}

@@ -45,23 +45,28 @@ FIND_PATH(LUAJIT_INCLUDE_DIR lua.h
         ${PROJECT_SOURCE_DIR}/libs/include/LuaJIT
         )
 
-FIND_LIBRARY(LUAJIT_LIBRARY
-        NAMES luajit-51 luajit-5.1 luajit lua51
-        HINTS
-        $ENV{LUAJIT_DIR}
-        PATH_SUFFIXES lib64 lib
-        PATHS
-        ~/Library/Frameworks
-        /Library/Frameworks
-        /usr/local
-        /usr
-        /sw
-        /opt/local
-        /opt/csw
-        /opt
-        ${PROJECT_SOURCE_DIR}/libs
-        ${PROJECT_SOURCE_DIR}/libs/LuaJIT
-        )
+IF (WIN32)
+    # Use the lua5.1.lib in /libs/LuaJIT
+    SET(LUAJIT_LIBRARY ${PROJECT_SOURCE_DIR}/libs/LuaJIT/lua51.lib)
+ELSE (WIN32)
+    FIND_LIBRARY(LUAJIT_LIBRARY
+            NAMES luajit-51 luajit-5.1 luajit lua51
+            HINTS
+            $ENV{LUAJIT_DIR}
+            PATH_SUFFIXES lib64 lib
+            PATHS
+            ${PROJECT_SOURCE_DIR}/libs/libs
+            ${PROJECT_SOURCE_DIR}/libs/LuaJIT
+            ~/Library/Frameworks
+            /Library/Frameworks
+            /usr/local
+            /usr
+            /sw
+            /opt/local
+            /opt/csw
+            /opt
+            )
+ENDIF (WIN32)
 
 IF (LUAJIT_LIBRARY)
     # include the math library for Unix
