@@ -2,30 +2,48 @@
 
 A fantasy computer / game engine
 
-Required Dependencies:
+Build Instructions with vcpkg:
 
 ```
-luajit - Ubuntu: libluajit-5.1-dev, Arch: luajit
-sdl2 - Ubuntu: libsdl2-dev, Arch: sdl2
+# First, set up vcpkg if you haven't already
+git clone https://github.com/Microsoft/vcpkg.git
+cd vcpkg
+./bootstrap-vcpkg.sh  # On Linux/macOS
+# OR
+.\bootstrap-vcpkg.bat  # On Windows
 
-sdl_gpu - No avaliable binaries from package repositories afaik,
- either build from https://github.com/grimfang4/sdl-gpu or grab a
- released copy from https://github.com/grimfang4/sdl-gpu/releases
- 
-curlpp - Ubuntu: libcurlpp-dev, Arch: aur/libcurlpp
-```
-
-Build Instructions:
-
-```
+# Clone Riko4 and build
 git clone https://github.com/emmachase/riko4
 cd riko4
 mkdir build
 cp -r scripts build
-cp -r data build
 cd build
-cmake ..
-make
+cmake .. -DCMAKE_TOOLCHAIN_FILE=[path to vcpkg]/scripts/buildsystems/vcpkg.cmake
+cmake --build .
+```
+
+Alternatively, create a CMakeUserPresets.json:
+
+```jsonc
+{
+    "version": 2,
+    "configurePresets": [
+        {
+            "name": "default",
+            "inherits": "vcpkg",
+            "generator": "Unix Makefiles", // Or your preferred Generator
+            "environment": {
+                "VCPKG_ROOT": "C:/code/vcpkg"
+            }
+        }
+    ]
+}
+```
+
+Then:
+```
+cmake .. --preset default
+cmake --build .
 ```
 
 Screenshots:
