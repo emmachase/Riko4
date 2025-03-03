@@ -22,7 +22,7 @@ target_link_libraries(riko4
 )
 
 find_package(SDL_gpu CONFIG REQUIRED)
-if(BUILD_SHARED_LIBS)
+if(WIN32)
     target_link_libraries(riko4 SDL_gpu::SDL_gpu_shared)
 else()
     if (APPLE)
