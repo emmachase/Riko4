@@ -20,6 +20,14 @@ return function(filename, args, env)
 
   if not s then
     if e then
+      if type(e) ~= "string" then
+        if type(e) == "table" and e.stack then
+          return false, tostring(e) .. "\n" .. e.stack
+        else
+          return false, tostring(e)
+        end
+      end
+
       local xt = e:match("%[.+%](.+)")
       if xt then
         return false, "Error: [" .. filename .. "]" .. xt
