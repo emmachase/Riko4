@@ -51,7 +51,7 @@ namespace riko::poly {
         return 1;
     }
 
-    LUALIB_API int openLua(lua_State *L) {
+    int openLua(lua_State *L) {
         REPLACE_TABLE_FUNCTION(L, "debug", "traceback", poly_traceback);
 
         return 1;

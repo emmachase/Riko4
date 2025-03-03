@@ -6,7 +6,7 @@
 #include <cstring>
 #include <string>
 
-#include "SDL_gpu/SDL_gpu.h"
+#include "SDL2/SDL_gpu.h"
 
 #include "shader.h"
 

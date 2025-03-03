@@ -202,7 +202,7 @@ namespace riko::net {
         {nullptr, nullptr}
     };
 
-    LUALIB_API int openLua(lua_State *L) {
+    int openLua(lua_State *L) {
         ResponseHandle::initMetatable(L);
 
         luaL_openlib(L, RIKO_NET_NAME, netLib, 0);

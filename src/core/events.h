@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SDL_gpu/SDL_gpu.h"
+#include "SDL2/SDL_gpu.h"
 
 namespace riko::events {
     char *sane_UCS4ToUTF8(Uint32 ch, char *dst);

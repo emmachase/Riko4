@@ -1,0 +1,18 @@
+{
+  "name": "sdl-gpu",
+  "version": "0.12.0",
+  "description": "SDL_gpu is a library for making hardware-accelerated 2D graphics easy.",
+  "homepage": "https://github.com/grimfang4/sdl-gpu",
+  "license": "MIT",
+  "dependencies": [
+    "sdl2",
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
+} 

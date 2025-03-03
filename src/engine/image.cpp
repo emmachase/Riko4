@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "SDL_gpu/SDL_gpu.h"
+#include "SDL2/SDL_gpu.h"
 
 #include "misc/consts.h"
 #include "misc/luaIncludes.h"
@@ -442,7 +442,7 @@ namespace riko::image {
             {nullptr,         nullptr}
     };
 
-    LUALIB_API int openLua(lua_State *L) {
+    int openLua(lua_State *L) {
         luaL_newmetatable(L, "Riko4.Image");
 
         lua_pushstring(L, "__index");

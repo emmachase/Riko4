@@ -5,5 +5,5 @@
 #include "misc/luaIncludes.h"
 
 namespace riko::poly {
-    LUALIB_API int openLua(lua_State *L);
+    int openLua(lua_State *L);
 }

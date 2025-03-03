@@ -2,7 +2,7 @@
 
 #define RIKO_GPU_NAME "gpu"
 
-#include "SDL_gpu/SDL_gpu.h"
+#include "SDL2/SDL_gpu.h"
 
 #include "misc/luaIncludes.h"
 
@@ -27,5 +27,5 @@ namespace riko::gfx {
 }
 
 namespace riko::gpu {
-    LUALIB_API int openLua(lua_State *L);
+    int openLua(lua_State *L);
 }

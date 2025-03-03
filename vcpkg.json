@@ -1,0 +1,10 @@
+{
+    "dependencies": [
+        "sdl2",
+        "sdl-gpu",
+        "curl",
+        "curlpp",
+        "luajit",
+        "pkgconf"
+    ]
+}

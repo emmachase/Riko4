@@ -1,0 +1,37 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 42b5818..a81afb7 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -209,10 +209,30 @@ if(INSTALL_LIBRARY)
+ 	endif(USE_SDL1)
+ 
+ 	if(BUILD_SHARED)
+-		install(TARGETS SDL_gpu_shared EXPORT SDL_gpu-targets DESTINATION lib)
++		install(TARGETS SDL_gpu_shared
++				EXPORT SDL_gpu-targets
++				ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
++				LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
++				RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+ 	endif()
+ 	if(BUILD_STATIC)
+-		install(TARGETS SDL_gpu EXPORT SDL_gpu-targets DESTINATION lib)
++		install(TARGETS SDL_gpu
++				EXPORT SDL_gpu-targets
++				ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
++				LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
++				RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+ 	endif()
+ 
++	install(EXPORT SDL_gpu-targets
++			DESTINATION share/SDL_gpu
++			NAMESPACE SDL_gpu::)
++
++	file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/SDL_gpuConfig.cmake"
++	"include(CMakeFindDependencyMacro)\n"
++	"find_dependency(SDL2 CONFIG REQUIRED)\n"
++	"include(\"\${CMAKE_CURRENT_LIST_DIR}/SDL_gpu-targets.cmake\")\n"
++	)
++
++	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/SDL_gpuConfig.cmake"
++			DESTINATION share/SDL_gpu)
+ endif(INSTALL_LIBRARY)

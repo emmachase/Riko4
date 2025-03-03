@@ -7,5 +7,5 @@ namespace riko::net {
     int init();
     void cleanup();
 
-    LUALIB_API int openLua(lua_State *L);
+    int openLua(lua_State *L);
 }

@@ -1,0 +1,7 @@
+The package SDL_gpu provides CMake targets:
+
+    find_package(SDL_gpu CONFIG REQUIRED)
+    # For dynamic library
+    target_link_libraries(main PRIVATE SDL_gpu::SDL_gpu_shared)
+    # OR for static library
+    # target_link_libraries(main PRIVATE SDL_gpu::SDL_gpu)

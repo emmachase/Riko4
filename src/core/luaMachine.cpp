@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 
-#include "SDL_gpu/SDL_gpu.h"
+#include "SDL2/SDL_gpu.h"
 #include "misc/luaIncludes.h"
 
 #include "misc/consts.h"

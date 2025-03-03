@@ -1,11 +1,9 @@
 #include <cstring>
 #include <iostream>
 
-#include "SDL_gpu/SDL_gpu.h"
+#include "SDL2/SDL_gpu.h"
 
-#ifdef __WINDOWS__
-#  include "wingetopt.h"
-#else
+#ifndef __WINDOWS__
 #  include <getopt.h>
 #endif
 

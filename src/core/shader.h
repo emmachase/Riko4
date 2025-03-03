@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SDL_gpu/SDL_gpu.h"
+#include "SDL2/SDL_gpu.h"
 
 namespace riko::shader {
     void initShader();

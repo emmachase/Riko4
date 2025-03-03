@@ -37,7 +37,7 @@
 #include <string>
 #include <sstream>
 
-#include "SDL_gpu/SDL_gpu.h"
+#include "SDL2/SDL_gpu.h"
 
 #include "misc/consts.h"
 #include "misc/luaIncludes.h"
@@ -751,7 +751,7 @@ namespace riko::fs {
             {nullptr, nullptr}
     };
 
-    LUALIB_API int openLua(lua_State *L) {
+    int openLua(lua_State *L) {
         auto *fPath = new char[MAX_PATH];
         getFullPath(scriptsPath, fPath);
 

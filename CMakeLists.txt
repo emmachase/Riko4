@@ -1,10 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 
-set(CMAKE_TOOLCHAIN_FILE "C:/code/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
-
 project(riko4)
-
-set($SDL2_gpu_PATH "${SDL2_gpu_PATH}" CACHE INTERNAL "SDL2_gpu" FORCE)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
@@ -15,57 +11,25 @@ set_target_properties(riko4 PROPERTIES
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED ON)
 
-# find_package(SDL2 REQUIRED)
-
-# if (SDL2_FOUND)
-#     include_directories(${SDL2_INCLUDE_DIR})
-#     target_link_libraries(riko4 ${SDL2_LIBRARY})
-# endif ()
+find_package(PkgConfig REQUIRED)  
+pkg_check_modules(LuaJIT REQUIRED IMPORTED_TARGET luajit)
+target_link_libraries(riko4 PkgConfig::LuaJIT)
 
 find_package(SDL2 CONFIG REQUIRED)
 target_link_libraries(riko4
-    # PRIVATE
     $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
     $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
 )
 
-find_package(LuaJIT REQUIRED)
-
-if (LUAJIT_FOUND)
-    include_directories(${LUAJIT_INCLUDE_DIR})
-    target_link_libraries(riko4 ${LUAJIT_LIBRARIES})
-endif ()
-
-find_package(SDL2_gpu REQUIRED)
-
-if (SDL2_GPU_FOUND)
-    include_directories(${SDL2_gpu_INCLUDE_DIR})
-    target_link_libraries(riko4 ${SDL2_gpu_LIBRARY})
-endif ()
-
-# SET(PC_CURL_LIBRARY_DIRS ${PROJECT_SOURCE_DIR}/libs/curl)
-# SET(PC_CURL_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/libs/include)
-# find_package(CURL REQUIRED)
-
-# if (CURL_FOUND)
-#     include_directories(${CURL_INCLUDE_DIR})
-#     target_link_libraries(riko4 ${CURL_LIBRARY})
-# endif ()
+find_package(SDL_gpu CONFIG REQUIRED)
+target_link_libraries(riko4 SDL_gpu::SDL_gpu_shared)
 
 find_package(CURL REQUIRED)
 target_link_libraries(riko4 CURL::libcurl)
 
-# find_package(CURLpp REQUIRED)
-
-# if (CURLPP_FOUND)
-#     include_directories(${CURLPP_INCLUDE_DIR})
-#     target_link_libraries(riko4 ${CURLPP_LIBRARY})
-# endif ()
-
 find_package(unofficial-curlpp CONFIG REQUIRED)
 target_link_libraries(riko4 unofficial::curlpp::curlpp)
 
-include_directories(${CMAKE_SOURCE_DIR}/libs/include)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
 if (WIN32)

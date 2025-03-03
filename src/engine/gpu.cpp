@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <cstdlib>
 
-#include "SDL_gpu/SDL_gpu.h"
+#include "SDL2/SDL_gpu.h"
 
 #include "misc/consts.h"
 #include "misc/luaIncludes.h"
@@ -360,7 +360,7 @@ namespace riko::gpu {
             {nullptr,           nullptr}
     };
 
-    LUALIB_API int openLua(lua_State *L) {
+    int openLua(lua_State *L) {
         translateStack = new int[32];
 
         luaL_openlib(L, RIKO_GPU_NAME, gpuLib, 0);

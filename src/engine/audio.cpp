@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <cmath>
 
-#include "SDL_gpu/SDL_gpu.h"
+#include "SDL2/SDL_gpu.h"
 
 #include "misc/luaIncludes.h"
 
@@ -502,7 +502,7 @@ namespace riko::audio {
             {nullptr,        nullptr}
     };
 
-    LUALIB_API int openLua(lua_State *L) {
+    int openLua(lua_State *L) {
         for (int i = 0; i < channelCount; i++) {
             audioQueues[i] = constructQueue();
             streamPhase[i] = 0;

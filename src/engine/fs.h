@@ -17,5 +17,5 @@ namespace riko::fs {
     extern char* appPath;
     extern char* scriptsPath;
 
-    LUALIB_API int openLua(lua_State *L);
+    int openLua(lua_State *L);
 }
