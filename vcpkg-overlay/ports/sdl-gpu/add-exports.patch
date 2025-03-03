@@ -1,27 +1,76 @@
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
-index 42b5818..a81afb7 100644
+index 42b5818..0c3e52a 100644
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -209,10 +209,30 @@ if(INSTALL_LIBRARY)
+@@ -115,18 +115,18 @@ configure_file(../README.md ${CMAKE_BINARY_DIR}/${OUTPUT_DIR}/README.md COPYONLY
+ 
+ # Build the shared library (.so or .dll)
+ if(BUILD_SHARED)
+-	add_library(SDL_gpu_shared SHARED
++	add_library(SDL_gpu SHARED
+ 		${SDL_gpu_HDRS}
+ 		${SDL_gpu_SRCS}
+ 	)
+ 	
+-	target_link_libraries(SDL_gpu_shared ${GL_LIBRARIES})
++	target_link_libraries(SDL_gpu ${GL_LIBRARIES})
+ 
+ 	if(BUILD_FRAMEWORK)
+         if(NOT CMAKE_VERSION VERSION_LESS "3.1")
+-            set_property(TARGET SDL_gpu_shared PROPERTY C_STANDARD 99)
++            set_property(TARGET SDL_gpu PROPERTY C_STANDARD 99)
+         endif()
+-		set_target_properties(SDL_gpu_shared PROPERTIES
++		set_target_properties(SDL_gpu PROPERTIES
+ 			FRAMEWORK TRUE
+ 			FRAMEWORK_VERSION "A"
+ 			PUBLIC_HEADER "${SDL_gpu_public_HDRS}"
+@@ -149,7 +149,7 @@ if(BUILD_SHARED)
+ 
+ 	else()
+ 		if(ANDROID)
+-			set_target_properties(SDL_gpu_shared PROPERTIES
++			set_target_properties(SDL_gpu PROPERTIES
+ 				OUTPUT_NAME ${SHARED_OUTPUT}
+ 				CLEAN_DIRECT_OUTPUT 1
+ 				ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${OUTPUT_DIR}/lib"
+@@ -157,7 +157,7 @@ if(BUILD_SHARED)
+ 				RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${OUTPUT_DIR}/bin"
+ 			)
+ 		else()
+-			set_target_properties(SDL_gpu_shared PROPERTIES
++			set_target_properties(SDL_gpu PROPERTIES
+ 				OUTPUT_NAME ${SHARED_OUTPUT}
+ 				CLEAN_DIRECT_OUTPUT 1
+ #				VERSION ${SDL_GPU_VERSION}
+@@ -168,9 +168,9 @@ if(BUILD_SHARED)
+ 		endif()
+ 
+ 	endif()
+-	set_target_properties(SDL_gpu_shared PROPERTIES LINKER_LANGUAGE C)
++	set_target_properties(SDL_gpu PROPERTIES LINKER_LANGUAGE C)
+ 	if(APPLE)
+-		CONFIGURE_XCODE_DEFAULTS(SDL_gpu_shared)
++		CONFIGURE_XCODE_DEFAULTS(SDL_gpu)
+ 	endif()
+ endif()
+ 
+@@ -208,11 +208,22 @@ if(INSTALL_LIBRARY)
+ 		install(FILES ${SDL_gpu_public_HDRS} DESTINATION include/SDL2)
  	endif(USE_SDL1)
  
- 	if(BUILD_SHARED)
+-	if(BUILD_SHARED)
 -		install(TARGETS SDL_gpu_shared EXPORT SDL_gpu-targets DESTINATION lib)
-+		install(TARGETS SDL_gpu_shared
-+				EXPORT SDL_gpu-targets
-+				ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-+				LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-+				RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
- 	endif()
- 	if(BUILD_STATIC)
+-	endif()
+-	if(BUILD_STATIC)
 -		install(TARGETS SDL_gpu EXPORT SDL_gpu-targets DESTINATION lib)
-+		install(TARGETS SDL_gpu
-+				EXPORT SDL_gpu-targets
-+				ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-+				LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-+				RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
- 	endif()
- 
+-	endif()
++	install(TARGETS SDL_gpu
++			EXPORT SDL_gpu-targets
++			ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
++			LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
++			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
++
 +	install(EXPORT SDL_gpu-targets
 +			DESTINATION share/SDL_gpu
 +			NAMESPACE SDL_gpu::)
@@ -31,7 +80,7 @@ index 42b5818..a81afb7 100644
 +	"find_dependency(SDL2 CONFIG REQUIRED)\n"
 +	"include(\"\${CMAKE_CURRENT_LIST_DIR}/SDL_gpu-targets.cmake\")\n"
 +	)
-+
+ 
 +	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/SDL_gpuConfig.cmake"
 +			DESTINATION share/SDL_gpu)
  endif(INSTALL_LIBRARY)
