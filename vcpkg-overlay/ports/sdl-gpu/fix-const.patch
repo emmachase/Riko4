@@ -1,0 +1,13 @@
+diff --git a/src/renderer_GL_common.inl b/src/renderer_GL_common.inl
+index 1b8c916..5462d43 100644
+--- a/src/renderer_GL_common.inl
++++ b/src/renderer_GL_common.inl
+@@ -3870,7 +3870,7 @@ static_inline Uint32 getPixel(SDL_Surface *Surface, int x, int y)
+     return 0;  // FIXME: Handle errors better
+ }
+ 
+-static GPU_Image* CopyImageFromSurface(GPU_Renderer* renderer, SDL_Surface* surface, const GPU_Rect* surface_rect)
++static GPU_Image* CopyImageFromSurface(GPU_Renderer* renderer, SDL_Surface* surface, GPU_Rect* surface_rect)
+ {
+     GPU_FormatEnum format;
+     GPU_Image* image;
