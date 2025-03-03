@@ -1227,8 +1227,8 @@ function _draw()
     -- gameOverSprite:render((_w - gosW) / 2, 10)
 
     local gos = "GAME OVER"
-    local gosTW = writeWidth(gos, 3)
-    writeScaled(gos, (_w - gosTW) / 2, 10 - (textProg / 2)^1.3, 3)
+    local gosTW = writeWidth(gos) * 3
+    write(gos, (_w - gosTW) / 2, 10 - (textProg / 2)^1.3, 16, nil, 3)
 
     pop()
 

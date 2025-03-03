@@ -319,7 +319,7 @@ namespace riko::process {
                 SDL_WINDOWPOS_CENTERED,
                 SCRN_WIDTH * riko::gfx::pixelScale,
                 SCRN_HEIGHT * riko::gfx::pixelScale,
-                SDL_WINDOW_OPENGL
+                SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
         );
 
         GPU_SetInitWindow(SDL_GetWindowID(riko::window));

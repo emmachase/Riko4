@@ -370,34 +370,40 @@ local coreFont = font.new(data)
 gpu.font = coreFont
 
 local fontCache = {}
-function gpu.cacheFont(fnt)
+function gpu.cacheFont(fnt, scale)
   local cache = {}
-  fontCache[fnt] = cache
+  if not fontCache[fnt] then
+    fontCache[fnt] = {}
+  end
+  fontCache[fnt][scale] = cache
 
   for k, v in pairs(fnt) do
     if type(k) == "number" then
-      fontCache[fnt][k] = {}
+      fontCache[fnt][scale][k] = {}
       for c = 1, 16 do
-        local img = image.newImage(fnt.w, fnt.h)
+        local img = image.newImage(fnt.w * scale, fnt.h * scale)
         for j=1, fnt.w do
           for kk=1, fnt.h do
             if v[j][kk] then
-              img:drawPixel(j - 1, kk - 1, c)
+              img:drawRectangle((j - 1) * scale, (kk - 1) * scale, scale, scale, c)
             end
           end
         end
         img:flush()
-        fontCache[fnt][k][c] = img
+        fontCache[fnt][scale][k][c] = img
       end
     end
   end
 end
-gpu.cacheFont(coreFont.data)
+gpu.cacheFont(coreFont.data, 1)
+gpu.cacheFont(coreFont.data, 2)
+gpu.cacheFont(coreFont.data, 3)
 
 local imageMetatable = getmetatable(image.newImage(0,0))
-write = function(t, x, y, col, target)
+write = function(t, x, y, col, target, scale)
+  scale = scale or 1
   local fnt = gpu.font.data
-  local cachedFont = fontCache[fnt]
+  local cachedFont = fontCache[fnt][scale]
   local targetIsImage = getmetatable(target) == imageMetatable
 
   t = tostring(t)
@@ -418,19 +424,39 @@ write = function(t, x, y, col, target)
               local dx = x + xoff + j
               local dy = y + k
               if target then
-                target:drawPixel(dx, dy, col)
+                target:drawRectangle(dx * scale, dy * scale, scale, scale, col)
               else
-                gpu.drawPixel(dx, dy, col)
+                gpu.drawRectangle(dx * scale, dy * scale, scale, scale, col)
               end
             end
           end
         end
       end
     end
-    xoff = xoff + fnt.w + 1
+    xoff = xoff + (fnt.w + 1) * scale
   end
 
-  return x + (fnt.w + 1) * #t, y
+  return x + (fnt.w + 1) * scale * #t, y
+end
+
+writeWidth = function(t)
+  local fnt = gpu.font.data
+
+  t = tostring(t)
+
+  local xoff = 0
+  local w = 0
+  for i=1, #t do
+    local text = t:sub(i, i)
+    local c = string.byte(text)
+    if fnt[c] then
+      xoff = xoff + fnt.w
+      w = xoff
+      xoff = xoff + 1
+    end
+  end
+
+  return w
 end
 
 function sleep(s)

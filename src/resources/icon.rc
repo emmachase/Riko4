@@ -1,17 +1,16 @@
 id ICON "icon.ico"
 1 VERSIONINFO
-FILEVERSION     1,0,0,0
-PRODUCTVERSION  1,0,0,0
+FILEVERSION     1,0,0,1
+PRODUCTVERSION  1,0,0,1
 BEGIN
   BLOCK "StringFileInfo"
   BEGIN
     BLOCK "040904E4"
     BEGIN
-      VALUE "CompanyName", "TMPIM"
-      VALUE "FileDescription", "A Fantasy Console intended as a tool for pixel art game development."
+      VALUE "CompanyName", "tmpim"
+      VALUE "FileDescription", "Riko4"
       VALUE "FileVersion", "1.0"
       VALUE "InternalName", "riko4"
-      VALUE "LegalCopyright", "Bryan Becar"
       VALUE "OriginalFilename", "riko4.exe"
       VALUE "ProductName", "Riko4"
       VALUE "ProductVersion", "0.0.3"

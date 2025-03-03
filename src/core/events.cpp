@@ -228,11 +228,7 @@ namespace riko::events {
                 case SDL_MOUSEWHEEL:
                     lua_pushstring(riko::mainThread, "mouseWheel");
 
-#ifdef OLDSDL
-                    mult = 1;
-#else
                     mult = (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) ? -1 : 1;
-#endif
 
                     lua_pushnumber(riko::mainThread, event.wheel.y * mult);
                     lua_pushnumber(riko::mainThread, event.wheel.x * mult);

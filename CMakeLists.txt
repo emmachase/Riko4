@@ -38,7 +38,7 @@ target_link_libraries(riko4 unofficial::curlpp::curlpp)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
 if (WIN32)
-    target_link_libraries(riko4 ${CMAKE_SOURCE_DIR}/src/resources/icon.res)
+    target_sources(riko4 PRIVATE ${CMAKE_SOURCE_DIR}/src/resources/icon.rc)
 endif ()
 
 if (APPLE)
