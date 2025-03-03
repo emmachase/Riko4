@@ -263,3 +263,4 @@ riko4.wasm
 **/.DS_Store
 
 CMakeUserPresets.json
+*.code-workspace

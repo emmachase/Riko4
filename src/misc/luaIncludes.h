@@ -7,6 +7,6 @@ extern "C" {
 #  include "Lua/lualib.h"
 }
 #else
-#  include <LuaJIT/lua.hpp>
-#  include <LuaJIT/lauxlib.h>
+#  include <lua.hpp>
+#  include <lauxlib.h>
 #endif

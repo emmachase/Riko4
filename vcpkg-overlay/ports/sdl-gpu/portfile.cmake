@@ -6,6 +6,7 @@ vcpkg_from_github(
     HEAD_REF master
     PATCHES
         add-exports.patch
+        fix-const.patch
 )
 
 # Configure CMake options based on library linkage

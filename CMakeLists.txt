@@ -22,7 +22,15 @@ target_link_libraries(riko4
 )
 
 find_package(SDL_gpu CONFIG REQUIRED)
-target_link_libraries(riko4 SDL_gpu::SDL_gpu_shared)
+if(BUILD_SHARED_LIBS)
+    target_link_libraries(riko4 SDL_gpu::SDL_gpu_shared)
+else()
+    if (APPLE)
+        target_link_libraries(riko4 SDL_gpu::SDL_gpu "-framework OpenGL")
+    else()
+        target_link_libraries(riko4 SDL_gpu::SDL_gpu)
+    endif()
+endif()
 
 find_package(CURL REQUIRED)
 target_link_libraries(riko4 CURL::libcurl)
