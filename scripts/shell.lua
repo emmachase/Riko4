@@ -674,10 +674,11 @@ function print(text, fg, bg, x, y) -- luacheck: ignore
   term.y = term.y + 1
 end
 
-local function newEnv(workingDir)
+local function newEnv(...)
   local env = {}
 
-  local requirePaths = {workingDir, "/lib/"}
+  local requirePaths = {...}
+  table.insert(requirePaths, "/lib/")
 
   local function resolveFile(file)
     file = file:gsub("%.", "/") .. ".lua"
@@ -810,7 +811,10 @@ function shell.erun(cenv, name, ...)
   else
     local words = {...}
 
-    local env = newEnv(fs.getBaseDir(fs.combine(fs.getCWD(), name)))
+    local env = newEnv(
+      fs.getBaseDir(fs.combine(fs.getCWD(), name)),
+      fs.getBaseDir(fs.getCWD())
+    )
     for k, v in pairs(cenv) do
       env[k] = v
     end
