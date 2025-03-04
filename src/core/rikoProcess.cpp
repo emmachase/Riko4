@@ -326,7 +326,7 @@ namespace riko::process {
         riko::gfx::renderer = GPU_Init(
                 static_cast<Uint16>(SCRN_WIDTH * riko::gfx::pixelScale),
                 static_cast<Uint16>(SCRN_HEIGHT * riko::gfx::pixelScale),
-                GPU_DEFAULT_INIT_FLAGS
+                GPU_DEFAULT_INIT_FLAGS | GPU_INIT_ENABLE_VSYNC
         );
 
         SDL_GetWindowSize(riko::window, &riko::gfx::windowWidth, &riko::gfx::windowHeight);

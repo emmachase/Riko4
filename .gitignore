@@ -264,3 +264,4 @@ riko4.wasm
 
 CMakeUserPresets.json
 *.code-workspace
+.vscode

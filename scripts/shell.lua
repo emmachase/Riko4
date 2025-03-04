@@ -316,6 +316,27 @@ local function completeRead(str, strPos, forceFull)
         baseDir = ""
       end
 
+      -- Normal path tab completion
+      local file = baseDir == "" and subStr
+                or baseDir == "/" and subStr:sub(2)
+                or subStr:sub(#baseDir + 2)
+      local listing = fs.list(baseDir)
+      if listing and file ~= "" then
+        for _, lfile in pairs(listing) do
+          if lfile:sub(1, #file) == file then
+            local newSubStr = baseDir .. ((baseDir == "" or baseDir == "/") and "" or "/") .. lfile
+
+            if forceFull then
+              subStr = newSubStr
+              strPos = subStrPos + #subStr
+              break
+            else
+              matches[#matches + 1] = newSubStr
+            end
+          end
+        end
+      end
+
       -- If this is the first argument and not an absolute path,
       -- look for programs in PATH and select the first one that matches
       if baseDir == "" and subStrPos == 1 then
@@ -348,26 +369,6 @@ local function completeRead(str, strPos, forceFull)
           end
           if found then
             break
-          end
-        end
-      else -- Normal path tab completion
-        local file = baseDir == "" and subStr
-                  or baseDir == "/" and subStr:sub(2)
-                  or subStr:sub(#baseDir + 2)
-        local listing = fs.list(baseDir)
-        if listing and file ~= "" then
-          for _, lfile in pairs(listing) do
-            if lfile:sub(1, #file) == file then
-              local newSubStr = baseDir .. ((baseDir == "" or baseDir == "/") and "" or "/") .. lfile
-
-              if forceFull then
-                subStr = newSubStr
-                strPos = subStrPos + #subStr
-                break
-              else
-                matches[#matches + 1] = newSubStr
-              end
-            end
           end
         end
       end

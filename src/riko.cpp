@@ -84,17 +84,7 @@ int main(int argc, char *argv[]) {
     riko::events::ready = true;
 #ifndef __EMSCRIPTEN__
     while (riko::running) {
-        int start = SDL_GetTicks();
-
         riko::events::loop();
-
-        int time = SDL_GetTicks() - start;
-        if (time < 0) continue;
-
-        int sleepTime = 100 / 6 - time;
-        if (sleepTime > 0) {
-            SDL_Delay(sleepTime);
-        }
     }
 
     riko::process::cleanup();
