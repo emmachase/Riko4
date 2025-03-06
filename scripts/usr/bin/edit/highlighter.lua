@@ -3,17 +3,39 @@ local highlighter = {}
 local tableInsert = table.insert
 
 local keywords = {
-  ["local"]  = true, ["function"] = true, ["for"]   = true, ["if"]     = true,
-  ["then"]   = true, ["in"]       = true, ["do"]    = true, ["else"]   = true,
-  ["elseif"] = true, ["end"]      = true, ["break"] = true, ["return"] = true,
-  ["not"]    = true, ["and"]      = true, ["or"]    = true, ["while"]  = true,
-  ["repeat"] = true, ["until"]    = true,
+  ["local"] = true,
+  ["function"] = true,
+  ["for"] = true,
+  ["if"] = true,
+  ["then"] = true,
+  ["in"] = true,
+  ["do"] = true,
+  ["else"] = true,
+  ["elseif"] = true,
+  ["end"] = true,
+  ["break"] = true,
+  ["return"] = true,
+  ["not"] = true,
+  ["and"] = true,
+  ["or"] = true,
+  ["while"] = true,
+  ["repeat"] = true,
+  ["until"] = true,
 }
 
 local specialVars = {
-  ["io"]      = true, ["fs"]    = true, ["gpu"]       = true, ["image"]  = true,
-  ["speaker"] = true, ["table"] = true, ["coroutine"] = true, ["string"] = true,
-  ["_G"]      = true, ["math"]  = true, ["error"]     = true, ["os"]     = true,
+  ["io"] = true,
+  ["fs"] = true,
+  ["gpu"] = true,
+  ["image"] = true,
+  ["speaker"] = true,
+  ["table"] = true,
+  ["coroutine"] = true,
+  ["string"] = true,
+  ["_G"] = true,
+  ["math"] = true,
+  ["error"] = true,
+  ["os"] = true,
   ["require"] = true
 }
 
@@ -25,7 +47,7 @@ local wordPrims = {
 local syntaxTheme
 local specialIndentifiers
 local state = {
-  [0] = {mode = "normal"}
+  [0] = { mode = "normal" }
 }
 
 function highlighter.init(args)
@@ -35,7 +57,7 @@ end
 
 function highlighter.clear()
   state = {
-    [0] = {mode = "normal"}
+    [0] = { mode = "normal" }
   }
 end
 
@@ -97,7 +119,6 @@ function highlighter.getColoredLine(lineNumber)
   return state[lineNumber].colored
 end
 
-
 local function matchExtra(indentifier)
   for i = 1, #specialIndentifiers do
     if indentifier:match(specialIndentifiers[i]) then
@@ -114,7 +135,7 @@ end
 
 local function insertColor(line, text, color)
   local c = line.colored
-  c[#c + 1] = {text, color or 16}
+  c[#c + 1] = { text, color or 16 }
 end
 
 local luaParsers = {
@@ -161,8 +182,8 @@ local luaParsers = {
   end,
   parseNumber = function(toParse, curLine)
     local number = toParse:match("^0[xX][0-9a-fA-F]+")
-                or toParse:match("^%d*%.?%d*[eE][-+]?%d+")
-                or toParse:match("^%d*%.?%d*")
+        or toParse:match("^%d*%.?%d*[eE][-+]?%d+")
+        or toParse:match("^%d*%.?%d*")
     if number and tonumber(number) then
       insertColor(curLine, number, syntaxTheme.primitive)
       return toParse:sub(#number + 1)
@@ -238,10 +259,18 @@ function highlighter.parse(lineNumber)
 
       repeat -- Really just a loop construct we can 'break' out of as a 'continue' polyfill
         local n
-        n = luaParsers.parseIdentifier(toParse, curLine); if n then toParse = n; break end
-        n = luaParsers.parseNumber(toParse, curLine);     if n then toParse = n; break end
-        n = luaParsers.parseString(toParse, curLine);     if n then toParse = n; break end
-        n = luaParsers.parseComment(toParse, curLine);    if n then toParse = n; break end
+        n = luaParsers.parseIdentifier(toParse, curLine); if n then
+          toParse = n; break
+        end
+        n = luaParsers.parseNumber(toParse, curLine); if n then
+          toParse = n; break
+        end
+        n = luaParsers.parseString(toParse, curLine); if n then
+          toParse = n; break
+        end
+        n = luaParsers.parseComment(toParse, curLine); if n then
+          toParse = n; break
+        end
 
 
         insertColor(curLine, toParse:sub(1, 1), syntaxTheme.catch)
