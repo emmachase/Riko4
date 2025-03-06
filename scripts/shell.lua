@@ -32,7 +32,8 @@ local scrnW, scrnH = gpu.width, gpu.height
 -- Cursor
 local cur
 do
-  local curRIF = "\82\73\86\2\0\6\0\7\1\0\0\0\0\0\0\0\0\0\0\1\0\0\31\16\0\31\241\0\31\255\16\31\255\241\31\241\16\1\31\16\61\14\131\0\24\2"
+  local curRIF =
+  "\82\73\86\2\0\6\0\7\1\0\0\0\0\0\0\0\0\0\0\1\0\0\31\16\0\31\241\0\31\255\16\31\255\241\31\241\16\1\31\16\61\14\131\0\24\2"
   local rif = dofile("/lib/rif.lua")
   local rifout, cw, ch = rif.decode1D(curRIF)
   cur = image.newImage(cw, ch)
@@ -41,17 +42,17 @@ do
 end
 
 -- Localizations
-local write = write
-local font  = gpu.font.data
-local fontW = font.w + 1 -- TODO: This must be changed after fonts overhaul
-local fontH = font.h + 1
+local write     = write
+local font      = gpu.font.data
+local fontW     = font.w + 1 -- TODO: This must be changed after fonts overhaul
+local fontH     = font.h + 1
 local rootPrint = print
-debugTrace = rootPrint -- Used for Debug builds of Riko4
+debugTrace      = rootPrint -- Used for Debug builds of Riko4
 
-local mousePos = {-5, -5}
+local mousePos  = { -5, -5 }
 
 -- Setup Extension Handlers
-local handlers = {}
+local handlers  = {}
 do
   local shellItems = fs.list("/usr/shell")
 
@@ -67,7 +68,7 @@ end
 
 -- Utility Functions
 local function shellSplit(str)
-  local tab = {""}
+  local tab = { "" }
 
   local inStr = false
   for i = 1, #str do
@@ -101,19 +102,19 @@ table.insert(config.path, 1, ".") -- Shell should be able to run files from the 
 -- Terminal
 -- Character buffer
 local term = {
-  width  = math.floor(scrnW / fontW),
-  height = math.floor(scrnH / fontH),
+  width     = math.floor(scrnW / fontW),
+  height    = math.floor(scrnH / fontH),
   scrollAmt = 0,
-  buffer = {},
-  x = 1,
-  y = 1,
-  blink = -math.huge
+  buffer    = {},
+  x         = 1,
+  y         = 1,
+  blink     = -math.huge
 }
 
 for i = 1, term.height do
   term.buffer[i] = {}
   for j = 1, term.width do
-    term.buffer[i][j] = {" ", 1, 16} -- Char, BG, FG
+    term.buffer[i][j] = { " ", 1, 16 } -- Char, BG, FG
   end
 end
 
@@ -128,7 +129,7 @@ function term.scroll(n)
     local y = #term.buffer + 1
     term.buffer[y] = {}
     for j = 1, term.width do
-      term.buffer[y][j] = {" ", 1, 16}
+      term.buffer[y][j] = { " ", 1, 16 }
     end
   end
 end
@@ -148,7 +149,10 @@ function term.write(text, fg, bg, x, y)
       nl = true
       break
     else
-      if x > term.width then endC = text:sub(i) break end
+      if x > term.width then
+        endC = text:sub(i)
+        break
+      end
 
       if term.buffer[y] then
         local ind = term.buffer[y][x]
@@ -172,13 +176,12 @@ function term.write(text, fg, bg, x, y)
   return endC, nl
 end
 
-
 -- Shell Library
-shell = {config = config, term = term}
+shell = { config = config, term = term }
 local shell = shell -- For performance
 
 function shell.updateMouse(mx, my)
-  mousePos = {mx, my}
+  mousePos = { mx, my }
 end
 
 function shell.write(text, fg, bg, x, y)
@@ -204,27 +207,77 @@ function shell.write(text, fg, bg, x, y)
 
         for instruction in instructionStr:gmatch("(%d*);?") do
           instruction = tonumber(instruction)
-          if instruction == 0 then bg = 1; fg = 16
-          elseif instruction == 30 then fg = 1  elseif instruction == 40 then bg = 1
-          elseif instruction == 31 then fg = 8  elseif instruction == 41 then bg = 8
-          elseif instruction == 32 then fg = 4  elseif instruction == 42 then bg = 4
-          elseif instruction == 33 then fg = 9  elseif instruction == 43 then bg = 9
-          elseif instruction == 34 then fg = 2  elseif instruction == 44 then bg = 2
-          elseif instruction == 35 then fg = 3  elseif instruction == 45 then bg = 3
-          elseif instruction == 36 then fg = 12 elseif instruction == 46 then bg = 12
-          elseif instruction == 37 then fg = 7  elseif instruction == 47 then bg = 16
-
-          elseif instruction == 90 then fg = 6  elseif instruction == 100 then bg = 6
-          elseif instruction == 91 then fg = 14 elseif instruction == 101 then bg = 14
-          elseif instruction == 92 then fg = 11 elseif instruction == 102 then bg = 11
-          elseif instruction == 93 then fg = 10 elseif instruction == 103 then bg = 10
-          elseif instruction == 94 then fg = 12 elseif instruction == 104 then bg = 12
-          elseif instruction == 95 then fg = 13 elseif instruction == 105 then bg = 13
-          elseif instruction == 96 then fg = 13 elseif instruction == 106 then bg = 13
-          elseif instruction == 97 then fg = 16 elseif instruction == 107 then bg = 16
-
-          elseif instruction == 39 then fg = 16
-          elseif instruction == 49 then bg = 1 end
+          if instruction == 0 then
+            bg = 1; fg = 16
+          elseif instruction == 30 then
+            fg = 1
+          elseif instruction == 40 then
+            bg = 1
+          elseif instruction == 31 then
+            fg = 8
+          elseif instruction == 41 then
+            bg = 8
+          elseif instruction == 32 then
+            fg = 4
+          elseif instruction == 42 then
+            bg = 4
+          elseif instruction == 33 then
+            fg = 9
+          elseif instruction == 43 then
+            bg = 9
+          elseif instruction == 34 then
+            fg = 2
+          elseif instruction == 44 then
+            bg = 2
+          elseif instruction == 35 then
+            fg = 3
+          elseif instruction == 45 then
+            bg = 3
+          elseif instruction == 36 then
+            fg = 12
+          elseif instruction == 46 then
+            bg = 12
+          elseif instruction == 37 then
+            fg = 7
+          elseif instruction == 47 then
+            bg = 16
+          elseif instruction == 90 then
+            fg = 6
+          elseif instruction == 100 then
+            bg = 6
+          elseif instruction == 91 then
+            fg = 14
+          elseif instruction == 101 then
+            bg = 14
+          elseif instruction == 92 then
+            fg = 11
+          elseif instruction == 102 then
+            bg = 11
+          elseif instruction == 93 then
+            fg = 10
+          elseif instruction == 103 then
+            bg = 10
+          elseif instruction == 94 then
+            fg = 12
+          elseif instruction == 104 then
+            bg = 12
+          elseif instruction == 95 then
+            fg = 13
+          elseif instruction == 105 then
+            bg = 13
+          elseif instruction == 96 then
+            fg = 13
+          elseif instruction == 106 then
+            bg = 13
+          elseif instruction == 97 then
+            fg = 16
+          elseif instruction == 107 then
+            bg = 16
+          elseif instruction == 39 then
+            fg = 16
+          elseif instruction == 49 then
+            bg = 1
+          end
         end
       elseif code then
         local rem = remainder:sub(1, code - 1)
@@ -258,7 +311,7 @@ function shell.write(text, fg, bg, x, y)
 end
 
 function shell.tabulate(...)
-  local all = {...}
+  local all = { ... }
 
   local maxLen = term.width / 7
   for i = 1, #all do
@@ -277,7 +330,6 @@ function shell.tabulate(...)
     local t = all[i]
     if type(t) == "table" then
       if #t > 0 then
-
         local col = 1
         for j = 1, #t do
           local item = t[j]
@@ -318,8 +370,8 @@ local function completeRead(str, strPos, forceFull)
 
       -- Normal path tab completion
       local file = baseDir == "" and subStr
-                or baseDir == "/" and subStr:sub(2)
-                or subStr:sub(#baseDir + 2)
+          or baseDir == "/" and subStr:sub(2)
+          or subStr:sub(#baseDir + 2)
       local listing = fs.list(baseDir)
       if listing and file ~= "" then
         for _, lfile in pairs(listing) do
@@ -420,7 +472,7 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
 
   local alive = true
   local evFunc
-  local cLine = {{""}}
+  local cLine = { { "" } }
 
   local function checkBounds()
     if strPos - strScrollAmt > size then
@@ -487,7 +539,7 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
 
   while alive do
     local fStr = str
-    local modi = {ctrl = false}
+    local modi = { ctrl = false }
 
     evFunc = evFunc or function(e, ...)
       if e == "char" then
@@ -566,7 +618,7 @@ function shell.read(replaceChar, size, history, colorFn, fileTabComplete)
         end
       elseif e == "mouseMoved" then
         local mx, my = ...
-        mousePos = {mx, my}
+        mousePos = { mx, my }
       end
 
       if term.blink == 0 then
@@ -600,7 +652,7 @@ local pumpLast = os.clock()
 function shell.pumpEvents(func)
   local eq = {}
   while true do
-    local a = {coroutine.yield()}
+    local a = { coroutine.yield() }
     if not a[1] then break end
     table.insert(eq, a)
   end
@@ -654,9 +706,9 @@ function shell.clear()
     width  = math.floor(scrnW / fontW),
     height = math.floor(scrnH / fontH),
     buffer = {},
-    x = 1,
-    y = 1,
-    blink = -math.huge
+    x      = 1,
+    y      = 1,
+    blink  = -math.huge
   }
 
   for k, v in pairs(replace) do
@@ -678,13 +730,13 @@ end
 local function newEnv(...)
   local env = {}
 
-  local requirePaths = {...}
+  local requirePaths = { ... }
   table.insert(requirePaths, "/lib/")
 
   local function resolveFile(file)
     file = file:gsub("%.", "/") .. ".lua"
     if file:sub(1, 1) == "/" or file:sub(1, 1) == "\\" then
-      return {file}
+      return { file }
     else
       local paths = {}
       for i = 1, #requirePaths do
@@ -778,7 +830,7 @@ local function newEnv(...)
   end
 
   env._G = env
-  return setmetatable(env, {__index = _G})
+  return setmetatable(env, { __index = _G })
 end
 
 function shell.erun(cenv, name, ...)
@@ -810,7 +862,7 @@ function shell.erun(cenv, name, ...)
   if not handlerFunc then
     return false, "Cannot find file `" .. name .. "`"
   else
-    local words = {...}
+    local words = { ... }
 
     local env = newEnv(
       fs.getBaseDir(fs.combine(fs.getCWD(), name)),
@@ -824,9 +876,9 @@ function shell.erun(cenv, name, ...)
 
     local routine = coroutine.create(handlerFunc)
     local preEvents = {
-      {"mouseMoved", mousePos[1], mousePos[2], 0, 0}
+      { "mouseMoved", mousePos[1], mousePos[2], 0, 0 }
     }
-    local resumeArgs = {name, words, env}
+    local resumeArgs = { name, words, env }
     while coroutine.status(routine) ~= "dead" do
       if resumeArgs[1] == "mouseMoved" then
         shell.updateMouse(resumeArgs[2], resumeArgs[3])
@@ -854,9 +906,22 @@ function shell.erun(cenv, name, ...)
 end
 
 function shell.run(...)
-  return shell.erun({}, ...)
+  local debugClone = {}
+  for k, v in pairs(debug) do
+    debugClone[k] = v
+  end
+
+  return shell.erun({
+    ["debug"] = debugClone
+  }, ...)
 end
+
 os.execute = shell.run
+
+-- Execute .profile
+if fs.exists(".profile.lua") then
+  shell.run(".profile.lua")
+end
 
 local shellHistory = {}
 
