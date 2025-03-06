@@ -28,7 +28,7 @@ return function(context)
   local cursorPos = 0
   local explicitCursorPos = 0
 
-  local mouseDown, scrolling, shouldScrollX = false, false, false
+  local mouseDown, scrolling = false, false
   local scrollX, scrollY = 0, 0
 
   local selection = {
@@ -936,8 +936,6 @@ return function(context)
       activeWidth = viewportWidth - getDrawOffset()
       checkDrawBounds(true)
     end
-
-    shouldScrollX = modifiers.key.shift
   end
 
   function editor:onKey(modifiers, key)
@@ -965,7 +963,7 @@ return function(context)
   end
 
   function editor:onMouseWheel(modifiers, direction)
-    if shouldScrollX then
+    if modifiers.key.shift then
       -- TODO: Should probably cache this
       local largestLineLength = 0
       for i = 1, #editorContent do
@@ -975,7 +973,7 @@ return function(context)
         end
       end
 
-      for _ = 1, math.abs(direction) do
+      for _ = 1, math.abs(direction) * 2 do
         if direction > 0 then
           if scrollX < 0 then
             scrollX = scrollX + 1
