@@ -28,13 +28,13 @@ return function(context)
   local cursorPos = 0
   local explicitCursorPos = 0
 
-  local mouseDown, scrolling = false, false
+  local mouseDown, scrolling, shouldScrollX = false, false, false
   local scrollX, scrollY = 0, 0
 
   local selection = {
     active = false,
-    start = {1, 1}, -- {cursorPos, cursorLine}
-    stop = {1, 1}   -- {cursorPos, cursorLine}
+    start = { 1, 1 }, -- {cursorPos, cursorLine}
+    stop = { 1, 1 }   -- {cursorPos, cursorLine}
   }
 
   -- Resorts selection if necessary
@@ -43,8 +43,8 @@ return function(context)
     local se1, se2 = selection.stop[1], selection.stop[2]
 
     if ss2 > se2 then
-      selection.start = {se1, se2}
-      selection.stop = {ss1, ss2}
+      selection.start = { se1, se2 }
+      selection.stop = { ss1, ss2 }
     elseif ss2 == se2 and ss1 > se1 then
       selection.start[1] = se1
       selection.stop[1] = ss1
@@ -57,7 +57,7 @@ return function(context)
   --          endCharacterPos,   endLine)
   local function getSortedSelection()
     local ss1, ss2 = selection.start[1], selection.start[2]
-    local se1, se2 = selection.stop[1],  selection.stop[2]
+    local se1, se2 = selection.stop[1], selection.stop[2]
 
     if ss2 > se2 then
       local t = ss1
@@ -73,13 +73,13 @@ return function(context)
     end
 
     return ss1, ss2,
-          se1, se2
+        se1, se2
   end
 
   -- Make sure that the editor cursor position is within the viewport
   local function checkDrawBounds(skipY)
-    if cursorPos > math.floor(activeWidth/(fontW + 1)) - scrollX - 3 then
-      scrollX = math.floor(activeWidth/(fontW + 1)) - cursorPos - 3
+    if cursorPos > math.floor(activeWidth / (fontW + 1)) - scrollX - 3 then
+      scrollX = math.floor(activeWidth / (fontW + 1)) - cursorPos - 3
     elseif cursorPos - 1 < -scrollX then
       scrollX = -cursorPos + 1
       if scrollX > 0 then
@@ -98,7 +98,7 @@ return function(context)
 
   local function getDrawOffset()
     if lineNumbers then
-      return (#tostring(#editorContent) + 1)*(fontW+1)
+      return (#tostring(#editorContent) + 1) * (fontW + 1)
     else
       return 0
     end
@@ -111,7 +111,8 @@ return function(context)
       local ctime = math.floor(((os.clock() - cursorBlinkTimer) * 2)) % 2
 
       if ((ctime == 0 or force)) or which == 1 then
-        write("_", dOff + (cursorPos + scrollX) * (fontW + 1) + 1, (cursorLine - scrollY - 1) * (fontH + 1) + 4, editorTheme.caret)
+        write("_", dOff + (cursorPos + scrollX) * (fontW + 1) + 1, (cursorLine - scrollY - 1) * (fontH + 1) + 4,
+          editorTheme.caret)
       end
     end
   end
@@ -137,10 +138,10 @@ return function(context)
   -- Check if we should start selecting, and if so begin the selection
   local function initSelection(modifiers, left)
     if not selection.active and modifiers.key.shift then
-      local offset = left and -1 or 0
+      local offset     = left and -1 or 0
       selection.active = true
-      selection.start = {cursorPos + offset, cursorLine}
-      selection.stop  = {cursorPos + offset, cursorLine}
+      selection.start  = { cursorPos + offset, cursorLine }
+      selection.stop   = { cursorPos + offset, cursorLine }
     end
   end
 
@@ -149,9 +150,9 @@ return function(context)
   local function updateSelection(modifiers, mouse)
     if modifiers.key.shift or mouse then
       if (cursorLine == selection.start[2] and cursorPos <= selection.start[1]) or cursorLine < selection.start[2] then
-        selection.stop = {cursorPos, cursorLine}
+        selection.stop = { cursorPos, cursorLine }
       else
-        selection.stop = {cursorPos - 1, cursorLine}
+        selection.stop = { cursorPos - 1, cursorLine }
       end
     else
       selection.active = false
@@ -164,10 +165,10 @@ return function(context)
       checkSelectionOrder()
 
       if selection.start[2] == selection.stop[2] then
-        editorContent[selection.start[2]] = editorContent[selection.start[2]]:sub(1, selection.start[1]) .. editorContent[selection.start[2]]:sub(selection.stop[1] + 2)
+        editorContent[selection.start[2]] = editorContent[selection.start[2]]:sub(1, selection.start[1]) ..
+            editorContent[selection.start[2]]:sub(selection.stop[1] + 2)
         highlighter.setLine(selection.start[2], editorContent[selection.start[2]])
       else
-
         for _ = selection.start[2] + 1, selection.stop[2] - 1 do
           tableRemove(editorContent, selection.start[2] + 1)
           highlighter.removeLine(selection.start[2] + 1)
@@ -193,10 +194,10 @@ return function(context)
     if findText ~= "" then
       local find, findEnd = editorContent[cursorLine]:lower():find(findText:lower(), cursorPos + 2) -- +2 to skip current occurance
       if find then
-        mediator:publish({"editor"}, "goto", cursorLine, findEnd)
+        mediator:publish({ "editor" }, "goto", cursorLine, findEnd)
         selection.active = true
-        selection.start = {find - 1, cursorLine}
-        selection.stop  = {findEnd - 1, cursorLine}
+        selection.start  = { find - 1, cursorLine }
+        selection.stop   = { findEnd - 1, cursorLine }
         return
       end
 
@@ -211,13 +212,13 @@ return function(context)
       while searchLine <= #editorContent do
         find, findEnd = editorContent[searchLine]:lower():find(findText:lower())
         if find then
-          mediator:publish({"editor"}, "goto", searchLine, findEnd)
+          mediator:publish({ "editor" }, "goto", searchLine, findEnd)
           selection.active = true
-          selection.start = {find - 1, searchLine}
-          selection.stop  = {findEnd - 1, searchLine}
+          selection.start  = { find - 1, searchLine }
+          selection.stop   = { findEnd - 1, searchLine }
           return
         elseif startLine == searchLine then
-          mediator:publish({"menu", "misc"}, "info", "No results")
+          mediator:publish({ "menu", "misc" }, "info", "No results")
           return
         else
           searchLine = searchLine + 1
@@ -244,7 +245,7 @@ return function(context)
     cursorLine = args.initialLine or 1
     checkDrawBounds()
 
-    mediator:subscribe({"editor"}, function(cmd, p1, p2)
+    mediator:subscribe({ "editor" }, function(cmd, p1, p2)
       if cmd == "stopBlink" then
         cursorBlinkTimer = -1
       elseif cmd == "startBlink" then
@@ -266,7 +267,7 @@ return function(context)
 
         checkDrawBounds()
       elseif cmd == "openFind" then
-        mediator:publish({"menu", "misc"}, "openFind", findText)
+        mediator:publish({ "menu", "misc" }, "openFind", findText)
       elseif cmd == "findNext" then
         findText = p1
         findNext()
@@ -314,12 +315,12 @@ return function(context)
           break
         end
 
-        local hScrl = scrollX*(fontW + 1)
+        local hScrl = scrollX * (fontW + 1)
 
         gpu.clip(activeDOff, 0, activeWidth, viewportHeight)
 
         local nullSelection = false
-        if  selection.active and
+        if selection.active and
             selection.start[1] == selection.stop[1] and
             selection.start[2] == selection.stop[2] and
             selection.start[1] == #editorContent[selection.start[2]] then
@@ -328,19 +329,22 @@ return function(context)
 
         if selection.active and not nullSelection then
           local selBeginPos, selBeginLine,
-                selStopPos,  selStopLine = getSortedSelection()
+          selStopPos, selStopLine = getSortedSelection()
 
           if selBeginLine == selStopLine then
             if cy == selBeginLine then
               if selStopPos == #editorContent[cy] then
-                gpu.drawRectangle(activeDOff + (fontW + 1) * (selBeginPos) + 1 + hScrl, dy, (fontW + 1) * (#editorContent[cy] - selBeginPos) + 1, 7, editorTheme.highlight)
+                gpu.drawRectangle(activeDOff + (fontW + 1) * (selBeginPos) + 1 + hScrl, dy,
+                  (fontW + 1) * (#editorContent[cy] - selBeginPos) + 1, 7, editorTheme.highlight)
               else
-                gpu.drawRectangle(activeDOff + (fontW + 1) * (selBeginPos) + 1 + hScrl, dy, (fontW + 1) * (selStopPos - selBeginPos + 1) + 1, 7, editorTheme.highlight)
+                gpu.drawRectangle(activeDOff + (fontW + 1) * (selBeginPos) + 1 + hScrl, dy,
+                  (fontW + 1) * (selStopPos - selBeginPos + 1) + 1, 7, editorTheme.highlight)
               end
             end
           else
             if cy == selBeginLine then
-              gpu.drawRectangle(activeDOff + (fontW + 1) * (selBeginPos) + 1 + hScrl, dy, (fontW + 1) * (#editorContent[cy] - selBeginPos) + 1, 7, editorTheme.highlight)
+              gpu.drawRectangle(activeDOff + (fontW + 1) * (selBeginPos) + 1 + hScrl, dy,
+                (fontW + 1) * (#editorContent[cy] - selBeginPos) + 1, 7, editorTheme.highlight)
             elseif cy == selStopLine then
               if selStopPos == #editorContent[cy] then
                 gpu.drawRectangle(activeDOff + hScrl, dy, (fontW + 1) * #editorContent[cy] + 2, 7, editorTheme.highlight)
@@ -353,12 +357,48 @@ return function(context)
           end
         end
 
-        local cx = 1 + scrollX*(fontW + 1)
+        local cx = 1 + scrollX * (fontW + 1)
         local coloredLine = highlighter.getColoredLine(cy)
         for j = 1, #coloredLine do
           local chk = coloredLine[j]
-          write(chk[1], activeDOff + cx, dy, chk[2])
+          local text = chk[1]
+          local startX = activeDOff + cx
+          local maxWidth = gpu.width + fontW + 1
+
+          if startX > maxWidth then
+            break
+          end
+
+          -- Check if this segment is visible on screen
+          if startX + (fontW + 1) * #text > 0 then
+            -- Calculate visible portion
+            local visibleStartPos = 1
+
+            -- If start is off-screen to the left, adjust start position
+            if startX < 0 then
+              visibleStartPos = math.ceil(-startX / (fontW + 1))
+              if visibleStartPos > #text then
+                -- Skip this segment entirely
+                cx = cx + (fontW + 1) * #text
+                goto continue
+              end
+              text = text:sub(visibleStartPos)
+              startX = startX + (fontW + 1) * (visibleStartPos - 1)
+            end
+
+            -- If end is off-screen to the right, adjust end position
+            local endX = startX + (fontW + 1) * #text
+            if endX > maxWidth then
+              local charsToRemove = math.ceil((endX - maxWidth) / (fontW + 1))
+              text = text:sub(1, #text - charsToRemove)
+            end
+
+            -- Write the visible portion
+            write(text, startX, dy, chk[2])
+          end
+
           cx = cx + (fontW + 1) * #chk[1]
+          ::continue::
         end
 
         gpu.clip()
@@ -381,10 +421,10 @@ return function(context)
     barPos = math.floor(barPos)
 
     do
-      gpu.drawRectangle(viewportWidth - 6, barPos,               5,       1, editorTheme.scrollBar)
-      gpu.drawRectangle(viewportWidth - 6, barPos,               1, barSize, editorTheme.scrollBar)
-      gpu.drawRectangle(viewportWidth - 2, barPos,               1, barSize, editorTheme.scrollBar)
-      gpu.drawRectangle(viewportWidth - 6, barPos + barSize - 1, 5,       1, editorTheme.scrollBar)
+      gpu.drawRectangle(viewportWidth - 6, barPos, 5, 1, editorTheme.scrollBar)
+      gpu.drawRectangle(viewportWidth - 6, barPos, 1, barSize, editorTheme.scrollBar)
+      gpu.drawRectangle(viewportWidth - 2, barPos, 1, barSize, editorTheme.scrollBar)
+      gpu.drawRectangle(viewportWidth - 6, barPos + barSize - 1, 5, 1, editorTheme.scrollBar)
     end
 
     drawCursor()
@@ -455,8 +495,8 @@ return function(context)
             nx = #editorContent[ny]
           end
         until (charType == 2 and let:match("[%w%s]"))
-            or (charType == 1 and let:match("%W"))
-            or nx == 0
+          or (charType == 1 and let:match("%W"))
+          or nx == 0
 
         if nx ~= 0 then
           nx = nx + 1
@@ -501,8 +541,8 @@ return function(context)
             end
           end
         until (charType == 2 and let:match("[%w%s]"))
-            or (charType == 1 and let:match("%W"))
-            or nx == #editorContent[ny]
+          or (charType == 1 and let:match("%W"))
+          or nx == #editorContent[ny]
 
         if nx ~= #editorContent[ny] then
           nx = nx - 1
@@ -529,14 +569,14 @@ return function(context)
     if key == "a" and modifiers.key.ctrl then
       updateCursor(#editorContent[#editorContent], #editorContent)
       selection.active = true
-      selection.start = {0, 1}
-      selection.stop = {#editorContent[#editorContent], #editorContent}
+      selection.start = { 0, 1 }
+      selection.stop = { #editorContent[#editorContent], #editorContent }
     elseif key == "c" and modifiers.key.ctrl then
       if selection.active then
         checkSelectionOrder()
         local clipboard = {}
         if selection.start[2] == selection.stop[2] then
-          clipboard = {editorContent[selection.start[2]]:sub(selection.start[1] + 1, selection.stop[1] + 1)}
+          clipboard = { editorContent[selection.start[2]]:sub(selection.start[1] + 1, selection.stop[1] + 1) }
         else
           clipboard[1] = editorContent[selection.start[2]]:sub(selection.start[1] + 1)
           for i = selection.start[2] + 1, selection.stop[2] - 1 do
@@ -552,7 +592,7 @@ return function(context)
         checkSelectionOrder()
         local clipboard = {}
         if selection.start[2] == selection.stop[2] then
-          clipboard = {editorContent[selection.start[2]]:sub(selection.start[1] + 1, selection.stop[1] + 1)}
+          clipboard = { editorContent[selection.start[2]]:sub(selection.start[1] + 1, selection.stop[1] + 1) }
         else
           clipboard[1] = editorContent[selection.start[2]]:sub(selection.start[1] + 1)
           for i = selection.start[2] + 1, selection.stop[2] - 1 do
@@ -581,7 +621,8 @@ return function(context)
         end
 
         if #clipboard == 1 then
-          editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) .. clipboard[1] .. editorContent[cursorLine]:sub(cursorPos + 1)
+          editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) ..
+              clipboard[1] .. editorContent[cursorLine]:sub(cursorPos + 1)
           updateCursor(cursorPos + #clipboard[1], cursorLine)
           highlighter.setLine(cursorLine, editorContent[cursorLine])
         else
@@ -606,16 +647,16 @@ return function(context)
       checkDrawBounds()
     elseif key == "s" and modifiers.key.ctrl then
       cursorBlinkTimer = -1
-      mediator:publish({"menu", "execute"}, "Save")
+      mediator:publish({ "menu", "execute" }, "Save")
     elseif key == "f" and modifiers.key.ctrl then
       cursorBlinkTimer = -1
-      mediator:publish({"menu", "misc"}, "openFind", findText)
+      mediator:publish({ "menu", "misc" }, "openFind", findText)
     elseif key == "g" and modifiers.key.ctrl then
       cursorBlinkTimer = -1
-      mediator:publish({"menu", "execute"}, "Goto")
+      mediator:publish({ "menu", "execute" }, "Goto")
     elseif key == "w" and modifiers.key.ctrl and modifiers.key.alt then
       cursorBlinkTimer = -1
-      mediator:publish({"menu", "execute"}, "Exit")
+      mediator:publish({ "menu", "execute" }, "Exit")
     elseif key == "f3" then
       findNext()
     end
@@ -692,7 +733,8 @@ return function(context)
       else
         if modifiers.key.ctrl then
           if cursorPos > 0 then
-            editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos - 1) .. editorContent[cursorLine]:sub(cursorPos + 1)
+            editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos - 1) ..
+                editorContent[cursorLine]:sub(cursorPos + 1)
             updateCursor(cursorPos - 1, cursorLine)
             highlighter.setLine(cursorLine, editorContent[cursorLine])
           elseif cursorLine > 1 then
@@ -710,27 +752,29 @@ return function(context)
             local let = editorContent[cursorLine]:sub(cursorPos, cursorPos) or ""
             if charType == 0 then
               charType =
-                   (let:match("%s") and 3)
-                or (let:match("%w") and 2)
-                or (let:match("%W") and 1)
-                or 0
+                  (let:match("%s") and 3)
+                  or (let:match("%w") and 2)
+                  or (let:match("%W") and 1)
+                  or 0
             end
 
-            if    ((charType == 3 and let:match("%S"))
-                or (charType == 2 and let:match("%W"))
-                or (charType == 1 and let:match("[%w%s]"))) then
+            if ((charType == 3 and let:match("%S"))
+                  or (charType == 2 and let:match("%W"))
+                  or (charType == 1 and let:match("[%w%s]"))) then
               break
             end
 
             if cursorPos > 0 then
-              editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos - 1) .. editorContent[cursorLine]:sub(cursorPos + 1)
+              editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos - 1) ..
+                  editorContent[cursorLine]:sub(cursorPos + 1)
               updateCursor(cursorPos - 1, cursorLine)
               highlighter.setLine(cursorLine, editorContent[cursorLine])
             end
           end
         else
           if cursorPos > 0 then
-            editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos - 1) .. editorContent[cursorLine]:sub(cursorPos + 1)
+            editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos - 1) ..
+                editorContent[cursorLine]:sub(cursorPos + 1)
             updateCursor(cursorPos - 1, cursorLine)
             highlighter.setLine(cursorLine, editorContent[cursorLine])
           elseif cursorLine > 1 then
@@ -751,7 +795,8 @@ return function(context)
       else
         if modifiers.key.ctrl then
           if cursorPos < #editorContent[cursorLine] then
-            editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) .. editorContent[cursorLine]:sub(cursorPos + 2)
+            editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) ..
+                editorContent[cursorLine]:sub(cursorPos + 2)
             highlighter.setLine(cursorLine, editorContent[cursorLine])
           elseif cursorLine < #editorContent then
             editorContent[cursorLine] = editorContent[cursorLine] .. tableRemove(editorContent, cursorLine + 1)
@@ -764,23 +809,25 @@ return function(context)
           local let = editorContent[cursorLine]:sub(cursorPos + 1, cursorPos + 1) or ""
 
           local charType =
-               (let:match("%s") and 3)
-            or (let:match("%w") and 2)
-            or (let:match("%W") and 1)
-            or 0
+              (let:match("%s") and 3)
+              or (let:match("%w") and 2)
+              or (let:match("%W") and 1)
+              or 0
 
           while cursorPos < #editorContent[cursorLine]
-              and ((charType == 3 and let:match("%s"))
-                or (charType == 2 and let:match("%w"))
-                or (charType == 1 and let:match("[^%w%s]"))) do
-            editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) .. editorContent[cursorLine]:sub(cursorPos + 2)
+            and ((charType == 3 and let:match("%s"))
+              or (charType == 2 and let:match("%w"))
+              or (charType == 1 and let:match("[^%w%s]"))) do
+            editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) ..
+                editorContent[cursorLine]:sub(cursorPos + 2)
             highlighter.setLine(cursorLine, editorContent[cursorLine])
 
             let = editorContent[cursorLine]:sub(cursorPos + 1, cursorPos + 1) or ""
           end
         else
           if cursorPos < #editorContent[cursorLine] then
-            editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) .. editorContent[cursorLine]:sub(cursorPos + 2)
+            editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) ..
+                editorContent[cursorLine]:sub(cursorPos + 2)
             highlighter.setLine(cursorLine, editorContent[cursorLine])
           elseif cursorLine < #editorContent then
             editorContent[cursorLine] = editorContent[cursorLine] .. tableRemove(editorContent, cursorLine + 1)
@@ -799,7 +846,7 @@ return function(context)
       local localIndent = editorContent[cursorLine]:find("%S")
       localIndent = localIndent and localIndent - 1 or #editorContent[cursorLine]
       editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos)
-      tableInsert(editorContent, cursorLine + 1, (" "):rep(localIndent)..cont)
+      tableInsert(editorContent, cursorLine + 1, (" "):rep(localIndent) .. cont)
       highlighter.setLine(cursorLine, editorContent[cursorLine])
       highlighter.insertLine(cursorLine + 1, editorContent[cursorLine + 1])
       updateCursor(localIndent, cursorLine + 1)
@@ -825,7 +872,8 @@ return function(context)
           updateCursor(cursorPos - 2, cursorLine)
           highlighter.setLine(cursorLine, editorContent[cursorLine])
         else
-          editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) .. "  " .. editorContent[cursorLine]:sub(cursorPos + 1)
+          editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) ..
+              "  " .. editorContent[cursorLine]:sub(cursorPos + 1)
           updateCursor(cursorPos + 2, cursorLine)
           highlighter.setLine(cursorLine, editorContent[cursorLine])
         end
@@ -852,7 +900,7 @@ return function(context)
         selection.active = true
         updateSelection(modifiers, true)
       else
-        selection.start = {posX, posY}
+        selection.start = { posX, posY }
       end
     elseif not move or scrolling then
       -- Scrollbar
@@ -883,10 +931,13 @@ return function(context)
   end
 
   local function onDisplayModifiers(modifiers)
-    lineNumbers = modifiers.key.alt
-    activeWidth = viewportWidth - getDrawOffset()
+    if lineNumbers ~= modifiers.key.alt then
+      lineNumbers = modifiers.key.alt
+      activeWidth = viewportWidth - getDrawOffset()
+      checkDrawBounds(true)
+    end
 
-    checkDrawBounds(true)
+    shouldScrollX = modifiers.key.shift
   end
 
   function editor:onKey(modifiers, key)
@@ -906,21 +957,45 @@ return function(context)
       removeSelection()
     end
 
-    editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) .. char .. editorContent[cursorLine]:sub(cursorPos + 1)
+    editorContent[cursorLine] = editorContent[cursorLine]:sub(1, cursorPos) ..
+        char .. editorContent[cursorLine]:sub(cursorPos + 1)
     updateCursor(cursorPos + 1, cursorLine)
     highlighter.setLine(cursorLine, editorContent[cursorLine])
     checkDrawBounds()
   end
 
   function editor:onMouseWheel(modifiers, direction)
-    for _ = 1, math.abs(direction) do
-      if direction > 0 then
-        if scrollY > 0 then
-          scrollY = scrollY - 1
+    if shouldScrollX then
+      -- TODO: Should probably cache this
+      local largestLineLength = 0
+      for i = 1, #editorContent do
+        local lineLength = #editorContent[i]
+        if lineLength > largestLineLength then
+          largestLineLength = lineLength
         end
-      else
-        if scrollY < #editorContent - 1 then
-          scrollY = scrollY + 1
+      end
+
+      for _ = 1, math.abs(direction) do
+        if direction > 0 then
+          if scrollX < 0 then
+            scrollX = scrollX + 1
+          end
+        else
+          if scrollX > -(largestLineLength - 1) then
+            scrollX = scrollX - 1
+          end
+        end
+      end
+    else
+      for _ = 1, math.abs(direction) do
+        if direction > 0 then
+          if scrollY > 0 then
+            scrollY = scrollY - 1
+          end
+        else
+          if scrollY < #editorContent - 1 then
+            scrollY = scrollY + 1
+          end
         end
       end
     end
