@@ -14,18 +14,14 @@ return function(filename, args, env)
   end
 
   setfenv(func, env)
-  local ret = {pcall(func, unpack(args))}
+  local ret = { pcall(func, unpack(args)) }
   local s
   s, e = ret[1], ret[2]
 
   if not s then
     if e then
       if type(e) ~= "string" then
-        if type(e) == "table" and e.stack then
-          return false, tostring(e) .. "\n" .. e.stack
-        else
-          return false, tostring(e)
-        end
+        return false, tostring(e)
       end
 
       local xt = e:match("%[.+%](.+)")
