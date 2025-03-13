@@ -68,6 +68,28 @@ namespace riko::timer {
         return 1;
     }
 
+    // Lua function: os.cancelTimer(timerId)
+    static int os_cancelTimer(lua_State *L) {
+        int timerId = luaL_checkinteger(L, 1);
+
+        // Check if the timer exists
+        auto it = activeTimers.find(timerId);
+        if (it == activeTimers.end()) {
+            lua_pushboolean(L, false);
+            return 1;  // Timer not found
+        }
+
+        // Cancel the timer
+        SDL_bool success = SDL_RemoveTimer(it->second);
+
+        // Remove from active timers
+        activeTimers.erase(it);
+
+        // Return success status
+        lua_pushboolean(L, success == SDL_TRUE);
+        return 1;
+    }
+
     int init() {
         // Initialize the timer system
         nextTimerId = 1;
@@ -95,6 +117,11 @@ namespace riko::timer {
         lua_getglobal(L, "os");
         lua_pushcfunction(L, os_setTimer);
         lua_setfield(L, -2, "setTimer");
+
+        // Add os.cancelTimer function
+        lua_pushcfunction(L, os_cancelTimer);
+        lua_setfield(L, -2, "cancelTimer");
+
         lua_pop(L, 1);
 
         return 0;
