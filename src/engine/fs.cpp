@@ -71,6 +71,7 @@ std::vector<std::string> split(const std::string &s, char delim) {
 
 typedef intptr_t ssize_t;
 
+#ifdef __WINDOWS__
 ssize_t getline(char **lineptr, size_t *n, FILE *stream) {
     size_t pos;
     int c;
@@ -118,6 +119,7 @@ ssize_t getline(char **lineptr, size_t *n, FILE *stream) {
     (*lineptr)[pos] = '\0';
     return pos;
 }
+#endif
 
 bool checkPath(const char *luaInput, char *varName, size_t varSize) {
     // Normalize the path
@@ -559,7 +561,7 @@ static int fsObjRead(lua_State *L) {
 
                 lua_pushlstring(L, line, lineSize);
                 free(line);
-
+                return 1;
             } else {
                 return luaL_argerror(L, 2, "invalid mode");
             }
