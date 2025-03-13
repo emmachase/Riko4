@@ -1,11 +1,11 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #ifndef CALLBACK
-#  if defined(_ARM_)
-#    define CALLBACK
-#  else
-#    define CALLBACK __stdcall
-#  endif
+#if defined(_ARM_)
+#define CALLBACK
+#else
+#define CALLBACK __stdcall
+#endif
 #endif
 
 #include <cstdint>
@@ -58,13 +58,13 @@ namespace riko::gfx {
             windowWidth = winW;
             windowHeight = winH;
 
-            drawX = (windowWidth - pixelScale*SCRN_WIDTH) / 2;
-            drawY = (windowHeight - pixelScale*SCRN_HEIGHT) / 2;
+            drawX = (windowWidth - pixelScale * SCRN_WIDTH) / 2;
+            drawY = (windowHeight - pixelScale * SCRN_HEIGHT) / 2;
 
             GPU_SetWindowResolution(winW, winH);
         }
     }
-}
+}  // namespace riko::gfx
 
 #define off(o, t) (float)((o) - riko::gfx::drawOffX), (float)((t) - riko::gfx::drawOffY)
 
@@ -95,10 +95,9 @@ namespace riko::gpu {
         int y = luaL_checkint(L, 2);
 
         GPU_Rect rect = {
-                off(x, y),
-                (float) luaL_checkint(L, 3),
-                (float) luaL_checkint(L, 4)
-        };
+            off(x, y),
+            (float)luaL_checkint(L, 3),
+            (float)luaL_checkint(L, 4)};
 
         SDL_Color colorS = {riko::gfx::palette[color][0], riko::gfx::palette[color][1], riko::gfx::palette[color][2],
                             255};
@@ -126,7 +125,7 @@ namespace riko::gpu {
             if (!lua_isnumber(L, -1)) {
                 luaL_error(L, "Index %d is non-numeric", i);
             }
-            int color = (int) lua_tointeger(L, -1) - 1;
+            int color = (int)lua_tointeger(L, -1) - 1;
             if (color == -1) {
                 lua_pop(L, 1);
                 continue;
@@ -138,10 +137,9 @@ namespace riko::gpu {
             int yp = (i - 1) / w;
 
             GPU_Rect rect = {
-                    off(x + xp,
-                        y + yp),
-                    1, 1
-            };
+                off(x + xp,
+                    y + yp),
+                1, 1};
 
             SDL_Color colorS = {riko::gfx::palette[color][0], riko::gfx::palette[color][1],
                                 riko::gfx::palette[color][2], 255};
@@ -159,10 +157,10 @@ namespace riko::gpu {
             return 0;
         }
 
-        auto x = static_cast<Sint16>luaL_checkint(L, 1);
-        auto y = static_cast<Sint16>luaL_checkint(L, 2);
-        auto w = static_cast<Uint16>luaL_checkint(L, 3);
-        auto h = static_cast<Uint16>luaL_checkint(L, 4);
+        auto x = static_cast<Sint16> luaL_checkint(L, 1);
+        auto y = static_cast<Sint16> luaL_checkint(L, 2);
+        auto w = static_cast<Uint16> luaL_checkint(L, 3);
+        auto h = static_cast<Uint16> luaL_checkint(L, 4);
 
         GPU_SetClip(riko::gfx::buffer->target, x, y, w, h);
 
@@ -172,9 +170,9 @@ namespace riko::gpu {
     static int gpu_set_palette_color(lua_State *L) {
         int slot = getColor(L, 1);
 
-        auto r = static_cast<Uint8>luaL_checkint(L, 2);
-        auto g = static_cast<Uint8>luaL_checkint(L, 3);
-        auto b = static_cast<Uint8>luaL_checkint(L, 4);
+        auto r = static_cast<Uint8> luaL_checkint(L, 2);
+        auto g = static_cast<Uint8> luaL_checkint(L, 3);
+        auto b = static_cast<Uint8> luaL_checkint(L, 4);
 
         riko::gfx::palette[slot][0] = r;
         riko::gfx::palette[slot][1] = g;
@@ -185,7 +183,7 @@ namespace riko::gpu {
     }
 
     static int gpu_blit_palette(lua_State *L) {
-        auto amt = (char) lua_objlen(L, -1);
+        auto amt = (char)lua_objlen(L, -1);
         if (amt < 1) {
             return 0;
         }
@@ -203,15 +201,15 @@ namespace riko::gpu {
 
             lua_pushnumber(L, 1);
             lua_gettable(L, -2);
-            riko::gfx::palette[i - 1][0] = static_cast<Uint8>luaL_checkint(L, -1);
+            riko::gfx::palette[i - 1][0] = static_cast<Uint8> luaL_checkint(L, -1);
 
             lua_pushnumber(L, 2);
             lua_gettable(L, -3);
-            riko::gfx::palette[i - 1][1] = static_cast<Uint8>luaL_checkint(L, -1);
+            riko::gfx::palette[i - 1][1] = static_cast<Uint8> luaL_checkint(L, -1);
 
             lua_pushnumber(L, 3);
             lua_gettable(L, -4);
-            riko::gfx::palette[i - 1][2] = static_cast<Uint8>luaL_checkint(L, -1);
+            riko::gfx::palette[i - 1][2] = static_cast<Uint8> luaL_checkint(L, -1);
 
             lua_pop(L, 4);
         }
@@ -239,8 +237,8 @@ namespace riko::gpu {
     }
 
     static int gpu_get_pixel(lua_State *L) {
-        auto x = static_cast<Sint16>luaL_checkint(L, 1);
-        auto y = static_cast<Sint16>luaL_checkint(L, 2);
+        auto x = static_cast<Sint16> luaL_checkint(L, 1);
+        auto y = static_cast<Sint16> luaL_checkint(L, 2);
         SDL_Color col = GPU_GetPixel(riko::gfx::buffer->target, x, y);
         for (int i = 0; i < COLOR_LIMIT; i++) {
             Uint8 *pCol = riko::gfx::palette[i];
@@ -250,7 +248,7 @@ namespace riko::gpu {
             }
         }
 
-        lua_pushinteger(L, 1); // Should never happen
+        lua_pushinteger(L, 1);  // Should never happen
         return 1;
     }
 
@@ -282,7 +280,7 @@ namespace riko::gpu {
     static int gpu_push(lua_State *L) {
         if (tStackUsed == tStackSize) {
             tStackSize *= 2;
-            translateStack = (int *) realloc(translateStack, tStackSize * sizeof(int));
+            translateStack = (int *)realloc(translateStack, tStackSize * sizeof(int));
         }
 
         translateStack[tStackUsed] = riko::gfx::drawOffX;
@@ -332,8 +330,8 @@ namespace riko::gpu {
         riko::shader::updateShader();
 
         GPU_BlitScale(riko::gfx::buffer, nullptr, riko::gfx::renderer,
-            riko::gfx::windowWidth / 2, riko::gfx::windowHeight / 2,
-            riko::gfx::pixelScale, riko::gfx::pixelScale);
+                      riko::gfx::windowWidth / 2, riko::gfx::windowHeight / 2,
+                      riko::gfx::pixelScale, riko::gfx::pixelScale);
 
         GPU_Flip(riko::gfx::renderer);
 
@@ -343,22 +341,21 @@ namespace riko::gpu {
     }
 
     static const luaL_Reg gpuLib[] = {
-            {"setPaletteColor", gpu_set_palette_color},
-            {"blitPalette",     gpu_blit_palette},
-            {"getPalette",      gpu_get_palette},
-            {"drawPixel",       gpu_draw_pixel},
-            {"drawRectangle",   gpu_draw_rectangle},
-            {"blitPixels",      gpu_blit_pixels},
-            {"translate",       gpu_translate},
-            {"push",            gpu_push},
-            {"pop",             gpu_pop},
-            {"setFullscreen",   gpu_set_fullscreen},
-            {"getPixel",        gpu_get_pixel},
-            {"clear",           gpu_clear},
-            {"swap",            gpu_swap},
-            {"clip",            gpu_set_clipping},
-            {nullptr,           nullptr}
-    };
+        {"setPaletteColor", gpu_set_palette_color},
+        {"blitPalette", gpu_blit_palette},
+        {"getPalette", gpu_get_palette},
+        {"drawPixel", gpu_draw_pixel},
+        {"drawRectangle", gpu_draw_rectangle},
+        {"blitPixels", gpu_blit_pixels},
+        {"translate", gpu_translate},
+        {"push", gpu_push},
+        {"pop", gpu_pop},
+        {"setFullscreen", gpu_set_fullscreen},
+        {"getPixel", gpu_get_pixel},
+        {"clear", gpu_clear},
+        {"swap", gpu_swap},
+        {"clip", gpu_set_clipping},
+        {nullptr, nullptr}};
 
     int openLua(lua_State *L) {
         translateStack = new int[32];
@@ -370,6 +367,6 @@ namespace riko::gpu {
         lua_setfield(L, -2, "height");
         return 1;
     }
-}
+}  // namespace riko::gpu
 
 #pragma clang diagnostic pop

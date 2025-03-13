@@ -2,11 +2,11 @@
 
 #ifdef __EMSCRIPTEN__
 extern "C" {
-#  include "Lua/lauxlib.h"
-#  include "Lua/lua.h"
-#  include "Lua/lualib.h"
+#include "Lua/lauxlib.h"
+#include "Lua/lua.h"
+#include "Lua/lualib.h"
 }
 #else
-#  include <lua.hpp>
-#  include <lauxlib.h>
+#include <lua.hpp>
+#include <lauxlib.h>
 #endif

@@ -19,30 +19,27 @@
 
 namespace riko::lua {
     static const luaL_Reg lj_lib_load[] = {
-            {"", luaopen_base},
-            {LUA_TABLIBNAME, luaopen_table},
-            {LUA_OSLIBNAME, luaopen_os},
-            {LUA_STRLIBNAME, luaopen_string},
-            {LUA_MATHLIBNAME, luaopen_math},
-            {LUA_DBLIBNAME, luaopen_debug},
+        {"", luaopen_base},
+        {LUA_TABLIBNAME, luaopen_table},
+        {LUA_OSLIBNAME, luaopen_os},
+        {LUA_STRLIBNAME, luaopen_string},
+        {LUA_MATHLIBNAME, luaopen_math},
+        {LUA_DBLIBNAME, luaopen_debug},
 #ifndef __EMSCRIPTEN__
-            {LUA_LOADLIBNAME, luaopen_package},
-            {LUA_BITLIBNAME, luaopen_bit},
-            {LUA_JITLIBNAME, luaopen_jit},
+        {LUA_LOADLIBNAME, luaopen_package},
+        {LUA_BITLIBNAME, luaopen_bit},
+        {LUA_JITLIBNAME, luaopen_jit},
 #else
-    { LUA_COLIBNAME,   luaopen_coroutine },
-    { LUA_BITLIBNAME,  luaopen_bit32 },
+        {LUA_COLIBNAME, luaopen_coroutine},
+        {LUA_BITLIBNAME, luaopen_bit32},
 #endif
-            {nullptr, nullptr}
-    };
+        {nullptr, nullptr}};
 
 #ifndef __EMSCRIPTEN__
     static const luaL_Reg lj_lib_preload[] = {
-            {LUA_FFILIBNAME, luaopen_ffi},
-            {nullptr,        nullptr}
-    };
+        {LUA_FFILIBNAME, luaopen_ffi},
+        {nullptr, nullptr}};
 #endif
-
 
     void printLuaError(lua_State *L, int result) {
         printf("%s\n", lua_tostring(L, -1));
@@ -73,13 +70,12 @@ namespace riko::lua {
         // Meh, io is probably safe
         luaL_openlibs(state);
 
-
         lua_State *L = lua_newthread(state);
 
         int result = luaL_loadfile(L, filename);
 
         if (result != 0) {
-            L = lua_newthread(state); // To clear out failed load
+            L = lua_newthread(state);  // To clear out failed load
 
             std::string appPath = SDL_GetPrefPath("riko4", "app");
             luaL_loadfile(L, (appPath + filename).c_str());
@@ -98,7 +94,7 @@ namespace riko::lua {
 #ifdef __EMSCRIPTEN__
         for (lib = lj_lib_load; lib->func; lib++) {
             luaL_requiref(state, lib->name, lib->func, 1);
-            lua_pop(state, 1);  /* remove lib */
+            lua_pop(state, 1); /* remove lib */
         }
 #else
         for (lib = lj_lib_load; lib->func; lib++) {
@@ -158,4 +154,4 @@ namespace riko::lua {
         riko::audio::closeAudio();
         lua_close(L);
     }
-}
+}  // namespace riko::lua

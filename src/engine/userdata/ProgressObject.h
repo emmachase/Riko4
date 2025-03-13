@@ -1,14 +1,13 @@
 #ifndef RIKO4_PROGRESSOBJECT_H
 #define RIKO4_PROGRESSOBJECT_H
 
-
 namespace riko::net {
     class ProgressObject {
-    private:
+       private:
         double currentAmt;
         double totalAmt;
 
-    public:
+       public:
         ProgressObject(double currentAmt, double totalAmt) : currentAmt(currentAmt), totalAmt(totalAmt) {}
 
         double getCurrentAmt() const {
@@ -19,7 +18,6 @@ namespace riko::net {
             return totalAmt;
         }
     };
-}
+}  // namespace riko::net
 
-
-#endif //RIKO4_PROGRESSOBJECT_H
+#endif  // RIKO4_PROGRESSOBJECT_H

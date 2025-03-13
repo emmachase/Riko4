@@ -8,4 +8,4 @@ namespace riko::net {
     void cleanup();
 
     int openLua(lua_State *L);
-}
+}  // namespace riko::net

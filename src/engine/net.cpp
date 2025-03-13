@@ -5,13 +5,13 @@
 #include <set>
 
 #ifndef __EMSCRIPTEN__
-#  include <curlpp/cURLpp.hpp>
-#  include <curlpp/Easy.hpp>
-#  include <curlpp/Multi.hpp>
-#  include <curlpp/Options.hpp>
-#  include <functional>
+#include <curlpp/cURLpp.hpp>
+#include <curlpp/Easy.hpp>
+#include <curlpp/Multi.hpp>
+#include <curlpp/Options.hpp>
+#include <functional>
 #else
-#  include "emscripten.h"
+#include "emscripten.h"
 #endif
 #include <riko.h>
 
@@ -42,7 +42,7 @@ namespace riko::net {
         riko::events::NET_SUCCESS = SDL_RegisterEvents(3);
         riko::events::NET_FAILURE = riko::events::NET_SUCCESS + 1;
         riko::events::NET_PROGRESS = riko::events::NET_SUCCESS + 2;
-        if (riko::events::NET_SUCCESS == ((Uint32) - 1)) {
+        if (riko::events::NET_SUCCESS == ((Uint32)-1)) {
             return 2;
         }
 
@@ -116,9 +116,9 @@ namespace riko::net {
 
             using namespace std::placeholders;
             cURLpp::types::ProgressFunctionFunctor progressFunctor(
-                    [=](auto a, auto b, auto c, auto d) {
-                        return progressCallback(thread_id, url, a, b, c, d);
-                    });
+                [=](auto a, auto b, auto c, auto d) {
+                    return progressCallback(thread_id, url, a, b, c, d);
+                });
 
             request.setOpt<cURLpp::options::ProgressFunction>(progressFunctor);
             request.setOpt<cURLpp::options::NoProgress>(false);
@@ -199,8 +199,7 @@ namespace riko::net {
     static const luaL_Reg netLib[] = {
         {"request", netRequest},
         {"cancel", netCancel},
-        {nullptr, nullptr}
-    };
+        {nullptr, nullptr}};
 
     int openLua(lua_State *L) {
         ResponseHandle::initMetatable(L);
@@ -208,4 +207,4 @@ namespace riko::net {
         luaL_openlib(L, RIKO_NET_NAME, netLib, 0);
         return 1;
     }
-}
+}  // namespace riko::net

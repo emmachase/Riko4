@@ -9,4 +9,4 @@ namespace riko::audio {
 
     int openLua(lua_State *L);
     void closeAudio();
-}
+}  // namespace riko::audio

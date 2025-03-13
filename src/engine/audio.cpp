@@ -43,39 +43,40 @@ namespace riko::audio {
     };
 
     struct Node {
-        Sound* data;
-        struct Node* next;
+        Sound *data;
+        struct Node *next;
     };
 
     struct Queue {
-        Node* head;
-        Node* tail;
+        Node *head;
+        Node *tail;
     };
 
-    Queue* constructQueue() {
+    Queue *constructQueue() {
         auto *newQueue = new Queue;
         newQueue->head = nullptr;
         newQueue->tail = nullptr;
         return newQueue;
     }
 
-    void pushToQueue(Queue* wQueue, Sound* snd) {
-        auto* nxtNode = new Node;
+    void pushToQueue(Queue *wQueue, Sound *snd) {
+        auto *nxtNode = new Node;
         nxtNode->data = snd;
         nxtNode->next = nullptr;
         if (wQueue->head != nullptr)
             wQueue->head->next = nxtNode;
-        else  wQueue->tail = nxtNode;
+        else
+            wQueue->tail = nxtNode;
         wQueue->head = nxtNode;
     }
 
-    Sound* popFromQueue(Queue* wQueue) {
+    Sound *popFromQueue(Queue *wQueue) {
         if (wQueue->tail == nullptr) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Attempt to pop from empty queue (%p)", (void*)wQueue);
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Attempt to pop from empty queue (%p)", (void *)wQueue);
             return nullptr;
         }
-        Sound* data = wQueue->tail->data;
-        Node* old = wQueue->tail;
+        Sound *data = wQueue->tail->data;
+        Node *old = wQueue->tail;
         if (old == wQueue->head) {
             wQueue->head = nullptr;
             wQueue->tail = nullptr;
@@ -88,7 +89,7 @@ namespace riko::audio {
         return data;
     }
 
-    void falloutQueue(Queue* wQueue) {
+    void falloutQueue(Queue *wQueue) {
         if (wQueue->tail == nullptr) {
             if (wQueue->head != wQueue->tail) {
                 puts("WARN: Queue has dangling head! Some elements may not be freed correctly!\n");
@@ -98,7 +99,7 @@ namespace riko::audio {
         }
 
         while (wQueue->tail->next != nullptr) {
-            Sound* snd = popFromQueue(wQueue);
+            Sound *snd = popFromQueue(wQueue);
             delete snd;
 
             if (wQueue->tail == nullptr) {
@@ -130,8 +131,8 @@ namespace riko::audio {
     const int sequenceCount = 64;
     // const int queueSize = 512;
     static Sequence *sequenceMap[sequenceCount];
-    static Queue* audioQueues[channelCount];
-    static Sound* playingAudio[channelCount];
+    static Queue *audioQueues[channelCount];
+    static Sound *playingAudio[channelCount];
     static bool channelHasSnd[channelCount];
     static double streamPhase[channelCount];
     float lstRnd = 0;
@@ -139,7 +140,7 @@ namespace riko::audio {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
     void audioCallback(void *userdata, uint8_t *byteStream, int len) {
-        auto* floatStream = (float*) byteStream;
+        auto *floatStream = (float *)byteStream;
 
         for (int i = 0; i < channelCount; i++) {
             if (!channelHasSnd[i] && audioQueues[i]->tail != nullptr) {
@@ -247,7 +248,7 @@ namespace riko::audio {
                         }
                     }
 
-                    double dutyFactor = PI/4;
+                    double dutyFactor = PI / 4;
                     if (playingAudio[i]->dutySequence != -1) {
                         Sequence *dutySequence = sequenceMap[playingAudio[i]->dutySequence];
                         if (playingAudio[i]->totalCycles % sequenceRate == 0) {
@@ -264,13 +265,13 @@ namespace riko::audio {
                         int arpValue = dutySequence->getData()[playingAudio[i]->dutyIndex];
                         switch (arpValue) {
                             case 0:
-                                dutyFactor = PI/8;
+                                dutyFactor = PI / 8;
                                 break;
                             case 2:
-                                dutyFactor = PI/2;
+                                dutyFactor = PI / 2;
                                 break;
                             case 3:
-                                dutyFactor = 3*PI/4;
+                                dutyFactor = 3 * PI / 4;
                                 break;
                             default:
                                 break;
@@ -305,7 +306,8 @@ namespace riko::audio {
                             floatStream[z] += lstRnd;
 
                             break;
-                        default:break;
+                        default:
+                            break;
                     }
 
                     playingAudio[i]->remainingCycles--;
@@ -438,18 +440,18 @@ namespace riko::audio {
                     interface.throwError("invalid sequence (loadSequence first)");
             }
 
-
             auto *pulse = new Sound;
             if (chan == 5) {
                 pulse->frequency = (110 - (12 * (log(pow(2, 1.0 / 12) * freq / 16.35) / log(2))));
                 pulse->frequencyShift = ((110 - (12 * (log(pow(2, 1.0 / 12) * (freq + freqShift) / 16.35) / log(2)))) -
-                                         pulse->frequency) / (sampleRate * time);
+                                         pulse->frequency) /
+                                        (sampleRate * time);
             } else {
                 pulse->frequency = freq;
-                pulse->frequencyShift = (double) freqShift / (sampleRate * time);
+                pulse->frequencyShift = (double)freqShift / (sampleRate * time);
             }
 
-            pulse->volume = vol < 0 ? 0 : (vol > 1 ? 1 : (float) vol);
+            pulse->volume = vol < 0 ? 0 : (vol > 1 ? 1 : (float)vol);
             pulse->totalTime = time;
             pulse->attack = atK;
             pulse->release = rls;
@@ -463,7 +465,7 @@ namespace riko::audio {
             pulse->dutyIndex = 0;
             pulse->volumeIndex = 0;
 
-            pulse->remainingCycles = (unsigned long long) (time * sampleRate);
+            pulse->remainingCycles = (unsigned long long)(time * sampleRate);
             pushToQueue(audioQueues[chan - 1], pulse);
         } catch (const LuaError &e) {
             luaL_error(L, e.what());
@@ -495,12 +497,11 @@ namespace riko::audio {
     }
 
     static const luaL_Reg audLib[] = {
-            {"play",         aud_play},
-            {"stopChannel",  aud_stopChan},
-            {"stopAll",      aud_stopAll},
-            {"loadSequence", loadSequence},
-            {nullptr,        nullptr}
-    };
+        {"play", aud_play},
+        {"stopChannel", aud_stopChan},
+        {"stopAll", aud_stopAll},
+        {"loadSequence", loadSequence},
+        {nullptr, nullptr}};
 
     int openLua(lua_State *L) {
         for (int i = 0; i < channelCount; i++) {
@@ -519,8 +520,7 @@ namespace riko::audio {
             want.callback = audioCallback;
             want.userdata = nullptr;
 
-
-            dev = SDL_OpenAudioDevice(nullptr, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE); // NOLINT
+            dev = SDL_OpenAudioDevice(nullptr, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE);  // NOLINT
             if (dev == 0) {
                 SDL_Log("Failed to open audio: %s", SDL_GetError());
             } else {
@@ -556,4 +556,4 @@ namespace riko::audio {
 
         audioInitialized = false;
     }
-}
+}  // namespace riko::audio

@@ -13,7 +13,7 @@
 #include "events.h"
 
 #if SDL_PATCHLEVEL <= 4
-#define OLDSDL 
+#define OLDSDL
 #endif
 
 namespace riko::events {
@@ -99,27 +99,26 @@ namespace riko::events {
         char *end;
 
         if (key & SDLK_SCANCODE_MASK) {
-            return
-                sane_GetScancodeName((SDL_Scancode)(key & ~SDLK_SCANCODE_MASK));
+            return sane_GetScancodeName((SDL_Scancode)(key & ~SDLK_SCANCODE_MASK));
         }
 
         switch (key) {
-        case SDLK_RETURN:
-            return sane_GetScancodeName(SDL_SCANCODE_RETURN);
-        case SDLK_ESCAPE:
-            return sane_GetScancodeName(SDL_SCANCODE_ESCAPE);
-        case SDLK_BACKSPACE:
-            return sane_GetScancodeName(SDL_SCANCODE_BACKSPACE);
-        case SDLK_TAB:
-            return sane_GetScancodeName(SDL_SCANCODE_TAB);
-        case SDLK_SPACE:
-            return sane_GetScancodeName(SDL_SCANCODE_SPACE);
-        case SDLK_DELETE:
-            return sane_GetScancodeName(SDL_SCANCODE_DELETE);
-        default:
-            end = sane_UCS4ToUTF8((Uint32)key, name);
-            *end = '\0';
-            return name;
+            case SDLK_RETURN:
+                return sane_GetScancodeName(SDL_SCANCODE_RETURN);
+            case SDLK_ESCAPE:
+                return sane_GetScancodeName(SDL_SCANCODE_ESCAPE);
+            case SDLK_BACKSPACE:
+                return sane_GetScancodeName(SDL_SCANCODE_BACKSPACE);
+            case SDLK_TAB:
+                return sane_GetScancodeName(SDL_SCANCODE_TAB);
+            case SDLK_SPACE:
+                return sane_GetScancodeName(SDL_SCANCODE_SPACE);
+            case SDLK_DELETE:
+                return sane_GetScancodeName(SDL_SCANCODE_DELETE);
+            default:
+                end = sane_UCS4ToUTF8((Uint32)key, name);
+                *end = '\0';
+                return name;
         }
     }
 
@@ -127,10 +126,10 @@ namespace riko::events {
         if (event.type == NET_SUCCESS) {
             lua_pushstring(riko::mainThread, "netSuccess");
 
-            auto *url = (std::string *) event.user.data1;
+            auto *url = (std::string *)event.user.data1;
             lua_pushlstring(riko::mainThread, url->c_str(), url->length());
 
-            ((riko::net::ResponseHandle *) event.user.data2)->constructUserdata(riko::mainThread);
+            ((riko::net::ResponseHandle *)event.user.data2)->constructUserdata(riko::mainThread);
 
             pushedArgs = 3;
 
@@ -138,10 +137,10 @@ namespace riko::events {
         } else if (event.type == NET_FAILURE) {
             lua_pushstring(riko::mainThread, "netFailure");
 
-            auto *url = (std::string *) event.user.data1;
+            auto *url = (std::string *)event.user.data1;
             lua_pushlstring(riko::mainThread, url->c_str(), url->length());
 
-            auto *errorStr = (std::string*) event.user.data2;
+            auto *errorStr = (std::string *)event.user.data2;
             lua_pushlstring(riko::mainThread, errorStr->c_str(), errorStr->length());
 
             pushedArgs = 3;
@@ -152,10 +151,10 @@ namespace riko::events {
         } else if (event.type == NET_PROGRESS) {
             lua_pushstring(riko::mainThread, "netProgress");
 
-            auto *url = (std::string *) event.user.data1;
+            auto *url = (std::string *)event.user.data1;
             lua_pushlstring(riko::mainThread, url->c_str(), url->length());
 
-            auto *progObj = (riko::net::ProgressObject*) event.user.data2;
+            auto *progObj = (riko::net::ProgressObject *)event.user.data2;
             lua_pushnumber(riko::mainThread, progObj->getCurrentAmt());
             lua_pushnumber(riko::mainThread, progObj->getTotalAmt());
             delete progObj;
@@ -189,138 +188,135 @@ namespace riko::events {
                 readyForProp = true;
 
                 switch (event.type) {
-                case SDL_QUIT:
-                    break;
-                case SDL_TEXTINPUT:
-                    lua_pushstring(riko::mainThread, "char");
-                    lua_pushstring(riko::mainThread, event.text.text);
-                    pushedArgs = 2;
-                    break;
-                case SDL_KEYDOWN:
-                    lua_pushstring(riko::mainThread, "key");
-                    lua_pushstring(riko::mainThread, riko::events::cleanKeyName(event.key.keysym.sym));
-                    pushedArgs = 2;
+                    case SDL_QUIT:
+                        break;
+                    case SDL_TEXTINPUT:
+                        lua_pushstring(riko::mainThread, "char");
+                        lua_pushstring(riko::mainThread, event.text.text);
+                        pushedArgs = 2;
+                        break;
+                    case SDL_KEYDOWN:
+                        lua_pushstring(riko::mainThread, "key");
+                        lua_pushstring(riko::mainThread, riko::events::cleanKeyName(event.key.keysym.sym));
+                        pushedArgs = 2;
 
-                    if (event.key.keysym.scancode == SDL_SCANCODE_LCTRL) {
-                        ctrlMod = true;
-                    }
-                    else if (event.key.keysym.scancode == SDL_SCANCODE_R) {
-                        holdR = true;
-                    }
-                    if (holdL == 0 && ctrlMod && holdR) {
-                        holdL = clock();
-                    }
-                    break;
-                case SDL_KEYUP:
-                    lua_pushstring(riko::mainThread, "keyUp");
-                    lua_pushstring(riko::mainThread, riko::events::cleanKeyName(event.key.keysym.sym));
-                    pushedArgs = 2;
+                        if (event.key.keysym.scancode == SDL_SCANCODE_LCTRL) {
+                            ctrlMod = true;
+                        } else if (event.key.keysym.scancode == SDL_SCANCODE_R) {
+                            holdR = true;
+                        }
+                        if (holdL == 0 && ctrlMod && holdR) {
+                            holdL = clock();
+                        }
+                        break;
+                    case SDL_KEYUP:
+                        lua_pushstring(riko::mainThread, "keyUp");
+                        lua_pushstring(riko::mainThread, riko::events::cleanKeyName(event.key.keysym.sym));
+                        pushedArgs = 2;
 
-                    if (event.key.keysym.scancode == SDL_SCANCODE_LCTRL) {
-                        ctrlMod = false;
-                        holdL = 0;
-                    }
-                    else if (event.key.keysym.scancode == SDL_SCANCODE_R) {
-                        holdR = false;
-                        holdL = 0;
-                    }
-                    break;
-                case SDL_MOUSEWHEEL:
-                    lua_pushstring(riko::mainThread, "mouseWheel");
+                        if (event.key.keysym.scancode == SDL_SCANCODE_LCTRL) {
+                            ctrlMod = false;
+                            holdL = 0;
+                        } else if (event.key.keysym.scancode == SDL_SCANCODE_R) {
+                            holdR = false;
+                            holdL = 0;
+                        }
+                        break;
+                    case SDL_MOUSEWHEEL:
+                        lua_pushstring(riko::mainThread, "mouseWheel");
 
-                    mult = (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) ? -1 : 1;
+                        mult = (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) ? -1 : 1;
 
-                    lua_pushnumber(riko::mainThread, event.wheel.y * mult);
-                    lua_pushnumber(riko::mainThread, event.wheel.x * mult);
-                    lua_pushnumber(riko::mainThread, lastMoveX);
-                    lua_pushnumber(riko::mainThread, lastMoveY);
-                    pushedArgs = 5;
-                    break;
-                case SDL_MOUSEMOTION:
-                    screenToRiko(event.motion.x, event.motion.y, cx, cy);
-                    if (cx != lastMoveX || cy != lastMoveY) {
-                        lua_pushstring(riko::mainThread, "mouseMoved");
+                        lua_pushnumber(riko::mainThread, event.wheel.y * mult);
+                        lua_pushnumber(riko::mainThread, event.wheel.x * mult);
+                        lua_pushnumber(riko::mainThread, lastMoveX);
+                        lua_pushnumber(riko::mainThread, lastMoveY);
+                        pushedArgs = 5;
+                        break;
+                    case SDL_MOUSEMOTION:
+                        screenToRiko(event.motion.x, event.motion.y, cx, cy);
+                        if (cx != lastMoveX || cy != lastMoveY) {
+                            lua_pushstring(riko::mainThread, "mouseMoved");
+                            lua_pushnumber(riko::mainThread, cx);
+                            lua_pushnumber(riko::mainThread, cy);
+                            lua_pushnumber(riko::mainThread, cx - lastMoveX);
+                            lua_pushnumber(riko::mainThread, cy - lastMoveY);
+                            lastMoveX = cx;
+                            lastMoveY = cy;
+                            readyForProp = true;
+                            pushedArgs = 5;
+                        } else {
+                            readyForProp = false;
+                        }
+                        break;
+                    case SDL_MOUSEBUTTONDOWN:
+                        lua_pushstring(riko::mainThread, "mousePressed");
+                        screenToRiko(event.button.x, event.button.y, cx, cy);
                         lua_pushnumber(riko::mainThread, cx);
                         lua_pushnumber(riko::mainThread, cy);
-                        lua_pushnumber(riko::mainThread, cx - lastMoveX);
-                        lua_pushnumber(riko::mainThread, cy - lastMoveY);
-                        lastMoveX = cx;
-                        lastMoveY = cy;
-                        readyForProp = true;
-                        pushedArgs = 5;
-                    }
-                    else {
-                        readyForProp = false;
-                    }
-                    break;
-                case SDL_MOUSEBUTTONDOWN:
-                    lua_pushstring(riko::mainThread, "mousePressed");
-                    screenToRiko(event.button.x, event.button.y, cx, cy);
-                    lua_pushnumber(riko::mainThread, cx);
-                    lua_pushnumber(riko::mainThread, cy);
-                    lua_pushnumber(riko::mainThread, event.button.button);
-                    pushedArgs = 4;
-                    break;
-                case SDL_MOUSEBUTTONUP:
-                    lua_pushstring(riko::mainThread, "mouseReleased");
-                    screenToRiko(event.button.x, event.button.y, cx, cy);
-                    lua_pushnumber(riko::mainThread, cx);
-                    lua_pushnumber(riko::mainThread, cy);
-                    lua_pushnumber(riko::mainThread, event.button.button);
-                    pushedArgs = 4;
-                    break;
-                case SDL_JOYAXISMOTION:
-                    lua_pushstring(riko::mainThread, "joyAxis");
-                    lua_pushnumber(riko::mainThread, event.caxis.axis);
-                    lua_pushnumber(riko::mainThread, event.caxis.value);
-                    lua_pushnumber(riko::mainThread, event.caxis.which);
-                    pushedArgs = 4;
-                    break;
-                case SDL_JOYBUTTONDOWN:
-                    lua_pushstring(riko::mainThread, "joyButtonDown");
-                    lua_pushnumber(riko::mainThread, event.cbutton.button);
-                    lua_pushnumber(riko::mainThread, event.caxis.which);
-                    pushedArgs = 3;
-                    break;
-                case SDL_JOYBUTTONUP:
-                    lua_pushstring(riko::mainThread, "joyButtonUp");
-                    lua_pushnumber(riko::mainThread, event.cbutton.button);
-                    lua_pushnumber(riko::mainThread, event.caxis.which);
-                    pushedArgs = 3;
-                    break;
-                case SDL_JOYHATMOTION:
-                    lua_pushstring(riko::mainThread, "joyHat");
-                    lua_pushnumber(riko::mainThread, event.jhat.value);
-                    lua_pushnumber(riko::mainThread, event.jhat.hat);
-                    lua_pushnumber(riko::mainThread, event.jhat.which);
-                    pushedArgs = 4;
-                    break;
-                case SDL_JOYBALLMOTION:
-                    lua_pushstring(riko::mainThread, "joyBall");
-                    lua_pushnumber(riko::mainThread, event.jball.xrel);
-                    lua_pushnumber(riko::mainThread, event.jball.yrel);
-                    lua_pushnumber(riko::mainThread, event.jball.ball);
-                    lua_pushnumber(riko::mainThread, event.jball.which);
-                    pushedArgs = 5;
-                    break;
-                case SDL_WINDOWEVENT:
-                    switch (event.window.event) {
-                    case SDL_WINDOWEVENT_MOVED:
-                        riko::gfx::lastWindowX = event.window.data1;
-                        riko::gfx::lastWindowY = event.window.data2;
+                        lua_pushnumber(riko::mainThread, event.button.button);
+                        pushedArgs = 4;
                         break;
-                    case SDL_WINDOWEVENT_EXPOSED:
-                    case SDL_WINDOWEVENT_SIZE_CHANGED:
-                    case SDL_WINDOWEVENT_RESIZED:
-                        riko::gfx::assessWindow();
+                    case SDL_MOUSEBUTTONUP:
+                        lua_pushstring(riko::mainThread, "mouseReleased");
+                        screenToRiko(event.button.x, event.button.y, cx, cy);
+                        lua_pushnumber(riko::mainThread, cx);
+                        lua_pushnumber(riko::mainThread, cy);
+                        lua_pushnumber(riko::mainThread, event.button.button);
+                        pushedArgs = 4;
+                        break;
+                    case SDL_JOYAXISMOTION:
+                        lua_pushstring(riko::mainThread, "joyAxis");
+                        lua_pushnumber(riko::mainThread, event.caxis.axis);
+                        lua_pushnumber(riko::mainThread, event.caxis.value);
+                        lua_pushnumber(riko::mainThread, event.caxis.which);
+                        pushedArgs = 4;
+                        break;
+                    case SDL_JOYBUTTONDOWN:
+                        lua_pushstring(riko::mainThread, "joyButtonDown");
+                        lua_pushnumber(riko::mainThread, event.cbutton.button);
+                        lua_pushnumber(riko::mainThread, event.caxis.which);
+                        pushedArgs = 3;
+                        break;
+                    case SDL_JOYBUTTONUP:
+                        lua_pushstring(riko::mainThread, "joyButtonUp");
+                        lua_pushnumber(riko::mainThread, event.cbutton.button);
+                        lua_pushnumber(riko::mainThread, event.caxis.which);
+                        pushedArgs = 3;
+                        break;
+                    case SDL_JOYHATMOTION:
+                        lua_pushstring(riko::mainThread, "joyHat");
+                        lua_pushnumber(riko::mainThread, event.jhat.value);
+                        lua_pushnumber(riko::mainThread, event.jhat.hat);
+                        lua_pushnumber(riko::mainThread, event.jhat.which);
+                        pushedArgs = 4;
+                        break;
+                    case SDL_JOYBALLMOTION:
+                        lua_pushstring(riko::mainThread, "joyBall");
+                        lua_pushnumber(riko::mainThread, event.jball.xrel);
+                        lua_pushnumber(riko::mainThread, event.jball.yrel);
+                        lua_pushnumber(riko::mainThread, event.jball.ball);
+                        lua_pushnumber(riko::mainThread, event.jball.which);
+                        pushedArgs = 5;
+                        break;
+                    case SDL_WINDOWEVENT:
+                        switch (event.window.event) {
+                            case SDL_WINDOWEVENT_MOVED:
+                                riko::gfx::lastWindowX = event.window.data1;
+                                riko::gfx::lastWindowY = event.window.data2;
+                                break;
+                            case SDL_WINDOWEVENT_EXPOSED:
+                            case SDL_WINDOWEVENT_SIZE_CHANGED:
+                            case SDL_WINDOWEVENT_RESIZED:
+                                riko::gfx::assessWindow();
+                                break;
+                            default:
+                                break;
+                        }
                         break;
                     default:
-                        break;
-                    }
-                    break;
-                default:
-                    if (!pushNonStandard(event))
-                        readyForProp = false;
+                        if (!pushNonStandard(event))
+                            readyForProp = false;
                 }
             } else {
                 if (canRun) {
@@ -333,8 +329,7 @@ namespace riko::events {
                     if (result == 0) {
                         printf("Script finished!\n");
                         canRun = false;
-                    }
-                    else if (result != LUA_YIELD) {
+                    } else if (result != LUA_YIELD) {
                         riko::lua::printLuaError(riko::mainThread, result);
                         puts(lua_tostring(riko::mainThread, -1));
 
@@ -360,8 +355,7 @@ namespace riko::events {
                     if (result == 0) {
                         printf("Script finished!\n");
                         canRun = false;
-                    }
-                    else if (result != LUA_YIELD) {
+                    } else if (result != LUA_YIELD) {
                         riko::lua::printLuaError(riko::mainThread, result);
                         puts(lua_tostring(riko::mainThread, -1));
 
@@ -375,4 +369,4 @@ namespace riko::events {
             pushedArgs = 0;
         }
     }
-}
+}  // namespace riko::events

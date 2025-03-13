@@ -13,7 +13,7 @@
 namespace riko::gfx {
     extern GPU_Target *renderer;
     extern bool shaderOn;
-}
+}  // namespace riko::gfx
 
 namespace riko::shader {
     int glslOverride = 0;
@@ -50,7 +50,7 @@ namespace riko::shader {
             if (renderer->max_shader_version >= 150)
                 glslVersion = 150;
             else
-                glslVersion = 110; // Maybe this is good enough?
+                glslVersion = 110;  // Maybe this is good enough?
 
             if (glslOverride > 0) {
                 if (glslOverride > renderer->max_shader_version) {
@@ -79,7 +79,7 @@ namespace riko::shader {
         source += header;
 
         // Read in source code
-        SDL_RWread(rwops, (void *) (source.c_str() + strlen(source.c_str())), 1, file_size);
+        SDL_RWread(rwops, (void *)(source.c_str() + strlen(source.c_str())), 1, file_size);
         source[header_size + file_size] = '\0';
 
         // Compile the shader
@@ -115,17 +115,16 @@ namespace riko::shader {
         GPU_ShaderBlock block = GPU_LoadShaderBlock(*p, "gpu_Vertex", "gpu_TexCoord", "gpu_Color",
                                                     "gpu_ModelViewProjectionMatrix");
 
-        #ifndef __APPLE__
+#ifndef __APPLE__
         GPU_ActivateShaderProgram(*p, &block);
-        #endif
+#endif
 
         return block;
-
     }
 
-//    void freeShader(Uint32 p) {
-//        GPU_FreeShaderProgram(p);
-//    }
+    //    void freeShader(Uint32 p) {
+    //        GPU_FreeShaderProgram(p);
+    //    }
 
     Uint32 screenShader;
     GPU_ShaderBlock screenBlock;
@@ -139,11 +138,11 @@ namespace riko::shader {
     }
 
     void updateShader() {
-        #ifndef __APPLE__
+#ifndef __APPLE__
         GPU_DeactivateShaderProgram();
         GPU_ActivateShaderProgram(screenShader, &screenBlock);
-        #endif
+#endif
     }
-}
+}  // namespace riko::shader
 
 #pragma clang diagnostic pop

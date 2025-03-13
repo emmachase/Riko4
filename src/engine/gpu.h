@@ -24,7 +24,7 @@ namespace riko::gfx {
     extern int lastWindowY;
 
     void assessWindow();
-}
+}  // namespace riko::gfx
 
 namespace riko::gpu {
     int openLua(lua_State *L);

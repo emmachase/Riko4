@@ -1,21 +1,20 @@
 #ifndef RIKO4_SEQUENCE_H
 #define RIKO4_SEQUENCE_H
 
-
 #include <cstdlib>
 
 #include "misc/luaIncludes.h"
 #include "util/TableInterface.h"
 
 class Sequence {
-private:
+   private:
     size_t size;
     int *data;
 
     bool loop = false;
     size_t loopPoint = 0;
 
-public:
+   public:
     explicit Sequence(lua_State *L, int arg = 1);
 
     virtual ~Sequence();
@@ -37,5 +36,4 @@ public:
     }
 };
 
-
-#endif //RIKO4_SEQUENCE_H
+#endif  // RIKO4_SEQUENCE_H

@@ -1,13 +1,12 @@
 #ifndef RIKO4_TABLEINTERFACE_H
 #define RIKO4_TABLEINTERFACE_H
 
-
 #include "misc/luaIncludes.h"
 
 #include "LuaError.h"
 
 class TableInterface {
-private:
+   private:
     lua_State *state;
     int offset;
     int arg;
@@ -18,7 +17,7 @@ private:
     void popToStack(std::string key);
     void popToStack(int key);
 
-public:
+   public:
     TableInterface(lua_State *state, int arg);
 
     void throwError(std::string desc = "");
@@ -43,5 +42,4 @@ public:
     std::string getNextString();
 };
 
-
-#endif //RIKO4_TABLEINTERFACE_H
+#endif  // RIKO4_TABLEINTERFACE_H

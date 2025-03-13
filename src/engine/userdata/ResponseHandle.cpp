@@ -21,9 +21,7 @@ namespace riko::net {
         return stream->str();
     }
 
-
-
-    static ResponseHandle *checkUData (lua_State *L) {
+    static ResponseHandle *checkUData(lua_State *L) {
         void *ud = luaL_checkudata(L, 1, "Riko.Net.ResponseHandle");
         luaL_argcheck(L, ud != nullptr, 1, "`ResponseHandle' expected");
         return *(ResponseHandle **)ud;
@@ -47,15 +45,14 @@ namespace riko::net {
     }
 
     static const luaL_Reg luaBinding[] = {
-            {"readAll", luaReadAll},
-            {nullptr, nullptr}
-    };
+        {"readAll", luaReadAll},
+        {nullptr, nullptr}};
 
     void ResponseHandle::initMetatable(lua_State *L) {
         luaL_newmetatable(L, "Riko.Net.ResponseHandle");
 
         lua_pushstring(L, "__index");
-        lua_pushvalue(L, -2);  /* pushes the metatable */
+        lua_pushvalue(L, -2); /* pushes the metatable */
         lua_settable(L, -3);  /* metatable.__index = metatable */
         lua_pushstring(L, "__gc");
         lua_pushcfunction(L, luaClose);
@@ -63,4 +60,4 @@ namespace riko::net {
 
         luaL_openlib(L, nullptr, luaBinding, 0);
     }
-}
+}  // namespace riko::net

@@ -5,7 +5,7 @@
 namespace riko::shader {
     void initShader();
     void updateShader();
-//    void freeShader(Uint32 p);
+    //    void freeShader(Uint32 p);
 
     extern int glslOverride;
-}
+}  // namespace riko::shader

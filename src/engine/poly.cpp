@@ -3,10 +3,10 @@
 #include "poly.h"
 
 #define REPLACE_TABLE_FUNCTION(L, table, name, func) \
-    lua_getglobal(L, table); \
-    lua_pushstring(L, name); \
-    lua_pushcfunction(L, func); \
-    lua_settable(L, -3); \
+    lua_getglobal(L, table);                         \
+    lua_pushstring(L, name);                         \
+    lua_pushcfunction(L, func);                      \
+    lua_settable(L, -3);                             \
     lua_pop(L, 1)
 
 namespace riko::poly {
@@ -22,7 +22,6 @@ namespace riko::poly {
         const char *msg = NULL;
         int level = 1;
 
-        
         if (nArgs > 0) {
             int type = lua_type(L, 1);
             if (type == LUA_TSTRING || type == LUA_TNIL) {
@@ -35,7 +34,7 @@ namespace riko::poly {
                 }
             } else if (type == LUA_TTHREAD) {
                 L1 = lua_tothread(L, 1);
-                
+
                 if (nArgs > 1) {
                     msg = lua_tostring(L, 2);
 
@@ -56,4 +55,4 @@ namespace riko::poly {
 
         return 1;
     }
-}
+}  // namespace riko::poly

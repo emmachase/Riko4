@@ -6,7 +6,7 @@
 
 namespace riko::net {
     class ResponseHandle {
-    public:
+       public:
         explicit ResponseHandle(std::stringstream *stream);
 
         static void initMetatable(lua_State *L);
@@ -16,4 +16,4 @@ namespace riko::net {
 
         std::stringstream *stream;
     };
-}
+}  // namespace riko::net

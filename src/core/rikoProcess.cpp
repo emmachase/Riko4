@@ -4,7 +4,7 @@
 #include "SDL2/SDL_gpu.h"
 
 #ifndef __WINDOWS__
-#  include <getopt.h>
+#include <getopt.h>
 #endif
 
 #include "engine/audio.h"
@@ -29,7 +29,7 @@
 #ifdef _MSC_VER
 #include <direct.h>
 #include "util/Xdirent.h"
-#define S_ISDIR(mode) (S_IFDIR&mode)
+#define S_ISDIR(mode) (S_IFDIR & mode)
 #define mkdir _mkdir
 #else
 #include <dirent.h>
@@ -78,15 +78,13 @@ namespace riko::process {
         while (true) {
             int optionIndex = 0;
             static option longOptions[] = {
-                    {"noaud", no_argument,       nullptr, 0},
-                    {"glsl",  optional_argument, nullptr, 'g'},
-                    {"dir",   required_argument, nullptr, 'd'},
-                    {nullptr, 0,                 nullptr, 0}
-            };
+                {"noaud", no_argument, nullptr, 0},
+                {"glsl", optional_argument, nullptr, 'g'},
+                {"dir", required_argument, nullptr, 'd'},
+                {nullptr, 0, nullptr, 0}};
 
             int c = getopt_long(argc, argv, "g::d:", longOptions, &optionIndex);
             if (c == -1) break;
-
 
             switch (c) {
                 case 0:
@@ -212,7 +210,6 @@ namespace riko::process {
     }
 
     void copyDir(const char *inputDir, const std::string &outDir) {
-
         DIR *pDIR;
         struct dirent *entry;
         std::string tmpStr, tmpStrPath, outStrPath, inputDir_str = inputDir;
@@ -222,9 +219,8 @@ namespace riko::process {
             return;
         }
 
-
         if ((pDIR = opendir(inputDir_str.c_str()))) {
-            while ((entry = readdir(pDIR))) { // get folders and files names
+            while ((entry = readdir(pDIR))) {  // get folders and files names
                 tmpStr = entry->d_name;
                 if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
                     tmpStrPath = inputDir_str;
@@ -275,12 +271,11 @@ namespace riko::process {
         }
         printf("Riko4 path: '%s'\n", riko::fs::appPath);
 
-
         size_t nChars = strlen(riko::fs::appPath) + 8;
         riko::fs::scriptsPath = new char[nChars];
         snprintf(riko::fs::scriptsPath, nChars, "%sscripts", riko::fs::appPath);
 
-        struct stat statbuf {};
+        struct stat statbuf{};
         if (stat(riko::fs::scriptsPath, &statbuf) != 0) {
             // Create standard directory as first time setup
 #ifdef __WINDOWS__
@@ -300,7 +295,6 @@ namespace riko::process {
         int lh = INT_MAX;
 
         for (int i = 0; i < SDL_GetNumVideoDisplays(); ++i) {
-
             int should_be_zero = SDL_GetCurrentDisplayMode(i, &current);
 
             if (should_be_zero != 0) {
@@ -314,20 +308,18 @@ namespace riko::process {
         }
 
         riko::window = SDL_CreateWindow(
-                "Riko4",
-                SDL_WINDOWPOS_CENTERED,
-                SDL_WINDOWPOS_CENTERED,
-                SCRN_WIDTH * riko::gfx::pixelScale,
-                SCRN_HEIGHT * riko::gfx::pixelScale,
-                SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
-        );
+            "Riko4",
+            SDL_WINDOWPOS_CENTERED,
+            SDL_WINDOWPOS_CENTERED,
+            SCRN_WIDTH * riko::gfx::pixelScale,
+            SCRN_HEIGHT * riko::gfx::pixelScale,
+            SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
         GPU_SetInitWindow(SDL_GetWindowID(riko::window));
         riko::gfx::renderer = GPU_Init(
-                static_cast<Uint16>(SCRN_WIDTH * riko::gfx::pixelScale),
-                static_cast<Uint16>(SCRN_HEIGHT * riko::gfx::pixelScale),
-                GPU_DEFAULT_INIT_FLAGS | GPU_INIT_ENABLE_VSYNC
-        );
+            static_cast<Uint16>(SCRN_WIDTH * riko::gfx::pixelScale),
+            static_cast<Uint16>(SCRN_HEIGHT * riko::gfx::pixelScale),
+            GPU_DEFAULT_INIT_FLAGS | GPU_INIT_ENABLE_VSYNC);
 
         SDL_GetWindowSize(riko::window, &riko::gfx::windowWidth, &riko::gfx::windowHeight);
 
@@ -371,4 +363,4 @@ namespace riko::process {
         GPU_Quit();
         SDL_Quit();
     }
-}
+}  // namespace riko::process

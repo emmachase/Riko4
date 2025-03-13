@@ -14,4 +14,4 @@ namespace riko::events {
     extern Uint32 NET_PROGRESS;
 
     extern bool ready;
-}
+}  // namespace riko::events
