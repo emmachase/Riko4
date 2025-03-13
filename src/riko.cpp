@@ -2,31 +2,30 @@
 #pragma ide diagnostic ignored "OCUnusedMacroInspection"
 #define _CRT_SECURE_NO_WARNINGS
 
-#if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) \
- || defined(__TOS_WIN__) || defined(__WINDOWS__)
+#if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(__TOS_WIN__) || defined(__WINDOWS__)
 /* Compiling for Windows */
-#  ifndef __WINDOWS__
-#    define __WINDOWS__
-#  endif
+#ifndef __WINDOWS__
+#define __WINDOWS__
+#endif
 
-#  include <windows.h>
+#include <windows.h>
 
-#endif/* Predefined Windows macros */
+#endif /* Predefined Windows macros */
 
 #ifndef CALLBACK
-#  if defined(_ARM_)
-#    define CALLBACK
-#  else
-#    define CALLBACK __stdcall
-#  endif
+#if defined(_ARM_)
+#define CALLBACK
+#else
+#define CALLBACK __stdcall
+#endif
 #endif
 
 #ifdef __EMSCRIPTEN__
-#  include "emscripten.h"
+#include "emscripten.h"
 #endif
 
 #ifndef __WINDOWS__
-#  include <ftw.h>
+#include <ftw.h>
 #endif
 
 #include <iostream>
@@ -35,6 +34,7 @@
 
 #include "core/events.h"
 #include "engine/fs.h"
+#include "engine/timer.h"
 #include "misc/luaIncludes.h"
 #include "core/luaMachine.h"
 #include "core/rikoProcess.h"
@@ -49,7 +49,7 @@ namespace riko {
 
     lua_State *mainThread;
     SDL_Window *window;
-}
+}  // namespace riko
 
 #ifdef __WINDOWS__
 #undef main
@@ -72,6 +72,10 @@ int main(int argc, char *argv[]) {
 
     int windowStatus = riko::process::setupWindow();
     if (windowStatus != 0) return windowStatus;
+
+    // Initialize timer system
+    int timerStatus = riko::timer::init();
+    if (timerStatus != 0) return timerStatus;
 
     std::string bootLoc = riko::fs::scriptsPath + std::string("/boot.lua");
     riko::mainThread = riko::lua::createLuaInstance(bootLoc.c_str(), "@boot.lua");

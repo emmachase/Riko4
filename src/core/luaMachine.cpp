@@ -14,6 +14,7 @@
 #include "engine/image.h"
 #include "engine/net.h"
 #include "engine/poly.h"
+#include "engine/timer.h"
 
 #include "luaMachine.h"
 
@@ -122,6 +123,7 @@ namespace riko::lua {
         riko::audio::openLua(state);
         riko::image::openLua(state);
         riko::net::openLua(state);
+        riko::timer::openLua(state);
 
         lua_pushstring(state, _RIKO_VERSION_);
         lua_setglobal(state, "riko");

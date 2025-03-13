@@ -13,6 +13,7 @@
 #include "engine/gpu.h"
 #include "luaMachine.h"
 #include "engine/net.h"
+#include "engine/timer.h"
 #include "riko.h"
 #include "shader.h"
 
@@ -353,6 +354,7 @@ namespace riko::process {
 
     void cleanup() {
         riko::net::cleanup();
+        riko::timer::cleanup();
 
         SDL_free(riko::fs::appPath);
 

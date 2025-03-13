@@ -37,6 +37,8 @@ namespace riko::events {
 
     bool ready = false;
 
+    Uint32 TIMER_EVENT = 0;
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wconversion"
     /* Taken from SDL_iconv() */
@@ -160,6 +162,13 @@ namespace riko::events {
             delete progObj;
 
             pushedArgs = 4;
+
+            return true;
+        } else if (event.type == TIMER_EVENT) {
+            lua_pushstring(riko::mainThread, "timer");
+            lua_pushnumber(riko::mainThread, (intptr_t)event.user.data1);
+
+            pushedArgs = 2;
 
             return true;
         }
