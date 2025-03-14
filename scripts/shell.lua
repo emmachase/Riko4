@@ -865,8 +865,7 @@ function shell.erun(cenv, name, ...)
     local words = { ... }
 
     local env = newEnv(
-      fs.getBaseDir(fs.combine(fs.getCWD(), name)),
-      fs.getBaseDir(fs.getCWD())
+      fs.getBaseDir(fs.combine(fs.getCWD(), name))
     )
     for k, v in pairs(cenv) do
       env[k] = v
