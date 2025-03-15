@@ -24,7 +24,8 @@ if jit and (jit.os == "Linux" or jit.os == "OSX" or jit.os == "BSD" or jit.os ==
 
   local start
   do
-    local a = ffi.new("struct timeval") ffi.C.gettimeofday(a, nil)
+    local a = ffi.new("struct timeval")
+    ffi.C.gettimeofday(a, nil)
     start = (tonumber(a.tv_sec) + (tonumber(a.tv_usec) / 1000000))
   end
 
@@ -97,7 +98,7 @@ net.get = function(url)
     if e == "netSuccess" and eUrl == url then
       return handle
     elseif e == "netFailure" and eUrl == url then
-      return false,  handle
+      return false, handle
     end
   end
 end
@@ -192,8 +193,8 @@ fs.combine = function(path1, path2, hardJoin)
   return (fromRoot and "/" or "") .. ("../"):rep(negativeDepth) .. table.concat(builtPath, "/")
 end
 
-io = setmetatable({}, {__index = fs})
-local pipeMeta = {__index = io}
+io = setmetatable({}, { __index = fs })
+local pipeMeta = { __index = io }
 
 io.write = function(file, ...)
   if type(file) ~= "userdata" then
@@ -245,7 +246,7 @@ io.close = function(handle)
   end
 end
 io.popen = function(fstr)
-  local pipe = setmetatable({inStream = "", outStream = ""}, pipeMeta)
+  local pipe = setmetatable({ inStream = "", outStream = "" }, pipeMeta)
   local function readFromStream(streamKey, mode)
     if tonumber(mode) then
       local n = tonumber(mode)
@@ -320,7 +321,7 @@ io.type = function(obj)
 end
 
 table.pack = function(...)
-  local t = {...}
+  local t = { ... }
   t.n = select("#", ...)
 
   return t
@@ -382,8 +383,8 @@ function gpu.cacheFont(fnt, scale)
       fontCache[fnt][scale][k] = {}
       for c = 1, 16 do
         local img = image.newImage(fnt.w * scale, fnt.h * scale)
-        for j=1, fnt.w do
-          for kk=1, fnt.h do
+        for j = 1, fnt.w do
+          for kk = 1, fnt.h do
             if v[j][kk] then
               img:drawRectangle((j - 1) * scale, (kk - 1) * scale, scale, scale, c)
             end
@@ -395,11 +396,12 @@ function gpu.cacheFont(fnt, scale)
     end
   end
 end
+
 gpu.cacheFont(coreFont.data, 1)
 gpu.cacheFont(coreFont.data, 2)
 gpu.cacheFont(coreFont.data, 3)
 
-local imageMetatable = getmetatable(image.newImage(0,0))
+local imageMetatable = getmetatable(image.newImage(0, 0))
 write = function(t, x, y, col, target, scale)
   scale = scale or 1
   local fnt = gpu.font.data
@@ -409,7 +411,7 @@ write = function(t, x, y, col, target, scale)
   t = tostring(t)
   col = col or 16
   local xoff = 0
-  for i=1, #t do
+  for i = 1, #t do
     local text = t:sub(i, i)
     local c = string.byte(text)
     if fnt[c] then
@@ -418,8 +420,8 @@ write = function(t, x, y, col, target, scale)
       elseif targetIsImage and cachedFont then
         cachedFont[c][col]:copy(target, x + xoff, y)
       else
-        for j=1, fnt.w do
-          for k=1, fnt.h do
+        for j = 1, fnt.w do
+          for k = 1, fnt.h do
             if fnt[c][j][k] then
               local dx = x + xoff + j
               local dy = y + k
@@ -446,7 +448,7 @@ writeWidth = function(t)
 
   local xoff = 0
   local w = 0
-  for i=1, #t do
+  for i = 1, #t do
     local text = t:sub(i, i)
     local c = string.byte(text)
     if fnt[c] then

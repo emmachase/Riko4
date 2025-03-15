@@ -9,16 +9,21 @@ local rif = {}
 local version = 2
 
 local stub = "RIV"
+local stubTable = {
+  ("R"):byte(),
+  ("I"):byte(),
+  ("V"):byte(),
+}
 -- Encodes a RIF string from a 1D or 2D array of colors
 function rif.encode(pixels, w, h)
   local output = stub
-  .. string.char(version) -- RIF Version
-  .. string.char(  bit.rshift(bit.band(w, 65280), 8)  )  -- width/256
-  .. string.char(  bit.band(w, 255)                   )  -- width/1
-  .. string.char(  bit.rshift(bit.band(h, 65280), 8)  )  -- height/256
-  .. string.char(  bit.band(h, 255)                   )  -- height/1
-  .. string.char(1) -- Transparency flag
-  .. (string.char(0)):rep(10) -- Leave extra room for future headers
+      .. string.char(version)                           -- RIF Version
+      .. string.char(bit.rshift(bit.band(w, 65280), 8)) -- width/256
+      .. string.char(bit.band(w, 255))                  -- width/1
+      .. string.char(bit.rshift(bit.band(h, 65280), 8)) -- height/256
+      .. string.char(bit.band(h, 255))                  -- height/1
+      .. string.char(1)                                 -- Transparency flag
+      .. (string.char(0)):rep(10)                       -- Leave extra room for future headers
 
 
   local transmap = {}
@@ -111,8 +116,8 @@ function rif.decode1D(rifData)
 
   local outTable = {}
 
-  local w = string.byte(rifData:sub(5, 5))*256 + string.byte(rifData:sub(6, 6))
-  local h = string.byte(rifData:sub(7, 7))*256 + string.byte(rifData:sub(8, 8))
+  local w = string.byte(rifData:sub(5, 5)) * 256 + string.byte(rifData:sub(6, 6))
+  local h = string.byte(rifData:sub(7, 7)) * 256 + string.byte(rifData:sub(8, 8))
 
   for i = 1, math.ceil(w * h / 2) do
     local byte = string.byte(rifData:sub(19 + i, 19 + i))
@@ -132,6 +137,49 @@ function rif.decode1D(rifData)
     local max = 19 + math.ceil(w * h / 2)
     for i = 1, math.ceil(w * h / 8) do
       local byte = string.byte(rifData:sub(max + i, max + i))
+      for j = 1, 8 do
+        if bit.band(byte, 2 ^ (j - 1)) ~= 0 then
+          outTable[(i - 1) * 8 + j] = -1
+        end
+      end
+    end
+  end
+
+  return outTable, w, h
+end
+
+function rif.decode1DTable(rifData)
+  if rifData[1] ~= stubTable[1] or rifData[2] ~= stubTable[2] or rifData[3] ~= stubTable[3] then
+    error("Data does not contain correct RIF signature, possibly corrupted data", 2)
+  end
+
+  if rifData[4] ~= version then
+    print("WARN: RIF data has different version, image may not look right")
+  end
+
+  local outTable = {}
+
+  local w = rifData[5] * 256 + rifData[6]
+  local h = rifData[7] * 256 + rifData[8]
+
+  for i = 1, math.ceil(w * h / 2) do
+    local byte = rifData[19 + i]
+    local fp = bit.rshift(bit.band(byte, 240), 4)
+    local sp = bit.band(byte, 15)
+
+    outTable[#outTable + 1] = fp + 1
+    outTable[#outTable + 1] = sp + 1
+  end
+
+  if (w * h) % 2 == 1 then
+    outTable[#outTable] = nil -- Remove padding
+  end
+
+  if rifData[9] == 1 then
+    -- Transparency map
+    local max = 19 + math.ceil(w * h / 2)
+    for i = 1, math.ceil(w * h / 8) do
+      local byte = rifData[max + i]
       for j = 1, 8 do
         if bit.band(byte, 2 ^ (j - 1)) ~= 0 then
           outTable[(i - 1) * 8 + j] = -1

@@ -178,10 +178,15 @@ end
 
 -- Shell Library
 shell = { config = config, term = term }
-local shell = shell -- For performance
+local shell = shell               -- For performance
+local currentRunningProgram = nil -- Track the currently running program
 
 function shell.updateMouse(mx, my)
   mousePos = { mx, my }
+end
+
+function shell.getRunningProgram()
+  return currentRunningProgram
 end
 
 function shell.write(text, fg, bg, x, y)
@@ -864,6 +869,10 @@ function shell.erun(cenv, name, ...)
   else
     local words = { ... }
 
+    -- Set the currently running program
+    local previousProgram = currentRunningProgram
+    currentRunningProgram = name
+
     local env = newEnv(
       fs.getBaseDir(fs.combine(fs.getCWD(), name))
     )
@@ -890,6 +899,8 @@ function shell.erun(cenv, name, ...)
       end
 
       if not e and e2 then
+        -- Restore the previous running program
+        currentRunningProgram = previousProgram
         return false, e2
       end
 
@@ -900,6 +911,8 @@ function shell.erun(cenv, name, ...)
       end
     end
 
+    -- Restore the previous running program
+    currentRunningProgram = previousProgram
     return true
   end
 end
