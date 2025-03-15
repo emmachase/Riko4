@@ -119,12 +119,7 @@ namespace riko::image {
 
         return 0;
     }
-
-    static int renderImage(lua_State *L) {
-        imageType *data = checkImage(L);
-        if (!freeCheck(L, data))
-            return 0;
-
+    static void applyPaletteChanges(imageType *data) {
         if (data->lastRenderNum != riko::gfx::paletteNum || data->remapped) {
             Uint32 rectColor = SDL_MapRGBA(data->surface->format, 0, 0, 0, 0);
             SDL_FillRect(data->surface, nullptr, rectColor);
@@ -144,6 +139,14 @@ namespace riko::image {
             data->lastRenderNum = riko::gfx::paletteNum;
             data->remapped = false;
         }
+    }
+
+    static int renderImage(lua_State *L) {
+        imageType *data = checkImage(L);
+        if (!freeCheck(L, data))
+            return 0;
+
+        applyPaletteChanges(data);
 
         int x = luaL_checkint(L, 2);
         int y = luaL_checkint(L, 3);
@@ -359,6 +362,8 @@ namespace riko::image {
         int y = luaL_checkint(L, 4);
         int wi;
         int he;
+
+        applyPaletteChanges(src);
 
         SDL_Rect srcRect;
 
