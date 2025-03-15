@@ -9,6 +9,7 @@
 #include "engine/gpu.h"
 #include "../engine/userdata/ResponseHandle.h"
 #include "../engine/userdata/ProgressObject.h"
+#include "../engine/userdata/ChunkData.h"
 
 #include "events.h"
 
@@ -130,6 +131,7 @@ namespace riko::events {
 
             auto *url = (std::string *)event.user.data1;
             lua_pushlstring(riko::mainThread, url->c_str(), url->length());
+            delete url;
 
             ((riko::net::ResponseHandle *)event.user.data2)->constructUserdata(riko::mainThread);
 
@@ -141,6 +143,7 @@ namespace riko::events {
 
             auto *url = (std::string *)event.user.data1;
             lua_pushlstring(riko::mainThread, url->c_str(), url->length());
+            delete url;
 
             auto *errorStr = (std::string *)event.user.data2;
             lua_pushlstring(riko::mainThread, errorStr->c_str(), errorStr->length());
@@ -155,6 +158,7 @@ namespace riko::events {
 
             auto *url = (std::string *)event.user.data1;
             lua_pushlstring(riko::mainThread, url->c_str(), url->length());
+            delete url;
 
             auto *progObj = (riko::net::ProgressObject *)event.user.data2;
             lua_pushnumber(riko::mainThread, progObj->getCurrentAmt());
@@ -162,6 +166,18 @@ namespace riko::events {
             delete progObj;
 
             pushedArgs = 4;
+
+            return true;
+        } else if (event.type == NET_CHUNK) {
+            lua_pushstring(riko::mainThread, "netChunk");
+
+            auto *url = (std::string *)event.user.data1;
+            lua_pushlstring(riko::mainThread, url->c_str(), url->length());
+            delete url;
+
+            ((riko::net::ChunkData *)event.user.data2)->constructUserdata(riko::mainThread);
+
+            pushedArgs = 3;
 
             return true;
         } else if (event.type == TIMER_EVENT) {

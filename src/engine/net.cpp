@@ -22,10 +22,12 @@
 #include "net.h"
 #include "userdata/ResponseHandle.h"
 #include "userdata/ProgressObject.h"
+#include "userdata/ChunkData.h"
 
 Uint32 riko::events::NET_SUCCESS = 0;
 Uint32 riko::events::NET_FAILURE = 0;
 Uint32 riko::events::NET_PROGRESS = 0;
+Uint32 riko::events::NET_CHUNK = 0;
 
 namespace riko::net {
     int requestHandleCounter = 0;
@@ -39,9 +41,10 @@ namespace riko::net {
         openThreads = 0;
         activeThreadIDs = std::set<int>();
 
-        riko::events::NET_SUCCESS = SDL_RegisterEvents(3);
+        riko::events::NET_SUCCESS = SDL_RegisterEvents(4);
         riko::events::NET_FAILURE = riko::events::NET_SUCCESS + 1;
         riko::events::NET_PROGRESS = riko::events::NET_SUCCESS + 2;
+        riko::events::NET_CHUNK = riko::events::NET_SUCCESS + 3;
         if (riko::events::NET_SUCCESS == ((Uint32)-1)) {
             return 2;
         }
@@ -88,6 +91,28 @@ namespace riko::net {
         return 0;
     }
 
+    void dispatchChunkEvent(std::string *url, const char *chunk, size_t chunkSize) {
+        SDL_Event chunkEvent;
+        SDL_memset(&chunkEvent, 0, sizeof(chunkEvent));
+        chunkEvent.type = riko::events::NET_CHUNK;
+        chunkEvent.user.data1 = new std::string(*url);
+        chunkEvent.user.data2 = new ChunkData(std::string(chunk, chunkSize));
+        SDL_PushEvent(&chunkEvent);
+    }
+
+    size_t writeCallback(int thread_id, std::string *url, char *ptr, size_t size, size_t nmemb, std::stringstream *stream) {
+        if (activeThreadIDs.count(thread_id) == 0) {
+            return 0;  // Cancel transfer
+        }
+
+        size_t realSize = size * nmemb;
+        if (realSize > 0) {
+            stream->write(ptr, realSize);
+            dispatchChunkEvent(url, ptr, realSize);
+        }
+        return realSize;
+    }
+
     void getThread(int thread_id, std::string *url, std::string *postData, std::list<std::string> *headers) {
         auto *dataStream = new std::stringstream;
 
@@ -112,7 +137,13 @@ namespace riko::net {
             request.setOpt<cURLpp::options::FollowLocation>(true);
             request.setOpt<cURLpp::options::MaxRedirs>(16L);
 
-            request.setOpt<cURLpp::options::WriteStream>(dataStream);
+            // Set up custom write callback to handle chunks
+            using namespace std::placeholders;
+            cURLpp::types::WriteFunctionFunctor writeFunctor(
+                [=](char *ptr, size_t size, size_t nmemb) -> size_t {
+                    return writeCallback(thread_id, url, ptr, size, nmemb, dataStream);
+                });
+            request.setOpt<cURLpp::options::WriteFunction>(writeFunctor);
 
             using namespace std::placeholders;
             cURLpp::types::ProgressFunctionFunctor progressFunctor(
@@ -203,6 +234,7 @@ namespace riko::net {
 
     int openLua(lua_State *L) {
         ResponseHandle::initMetatable(L);
+        ChunkData::initMetatable(L);
 
         luaL_openlib(L, RIKO_NET_NAME, netLib, 0);
         return 1;

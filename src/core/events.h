@@ -12,6 +12,7 @@ namespace riko::events {
     extern Uint32 NET_SUCCESS;
     extern Uint32 NET_FAILURE;
     extern Uint32 NET_PROGRESS;
+    extern Uint32 NET_CHUNK;
     extern Uint32 TIMER_EVENT;
 
     extern bool ready;
