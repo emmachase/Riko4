@@ -185,6 +185,10 @@ function shell.updateMouse(mx, my)
   mousePos = { mx, my }
 end
 
+function shell.getCoopMousePos()
+  return mousePos[1], mousePos[2]
+end
+
 function shell.getRunningProgram()
   return currentRunningProgram
 end
@@ -753,6 +757,7 @@ local function newEnv(...)
   end
 
   local requireCache = {}
+  local loadingStack = {}    -- Stack to track modules currently being loaded
 
   function env.require(file) -- luacheck: ignore
     local paths = resolveFile(file)
@@ -764,19 +769,49 @@ local function newEnv(...)
         path = path .. "/init.lua"
       end
 
+      -- Check if we're in a circular import
+      for j = 1, #loadingStack do
+        if loadingStack[j] == path then
+          -- Create error message showing the circular path
+          local circularPath = ""
+          for k = 1, #loadingStack do
+            circularPath = circularPath .. loadingStack[k]
+            if k < #loadingStack then
+              circularPath = circularPath .. " -> "
+            end
+          end
+          circularPath = circularPath .. " -> " .. path
+          return error("Circular module dependency detected:\n" .. circularPath, 0)
+        end
+      end
+
       if requireCache[path] then
         return requireCache[path]
       elseif fs.exists(path) then
         if not fs.isDir(path) then
+          -- Add this module to the loading stack
+          table.insert(loadingStack, path)
+
           local chunk, err = env.loadfile(path, env)
 
           if chunk == nil then
+            -- Remove from loading stack if there was an error
+            table.remove(loadingStack)
             return error("Error loading file " .. path .. ":\n" .. (err or "N/A"), 0)
           end
 
-          requireCache[path] = chunk()
+          -- Execute the chunk with protection to ensure we clean up the stack
+          local success, result = pcall(chunk)
 
-          return requireCache[path]
+          -- Remove this module from the loading stack
+          table.remove(loadingStack)
+
+          if not success then
+            return error(result, 0)
+          end
+
+          requireCache[path] = result
+          return result
         end
       end
     end
