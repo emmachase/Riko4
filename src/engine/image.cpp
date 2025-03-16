@@ -225,9 +225,10 @@ namespace riko::image {
         int y = luaL_checkint(L, 3);
 
         if (x < data->width && x >= 0 && y < data->height && y >= 0) {
-            lua_pushinteger(L, data->internalRep[x][y] + 1);
+            int color = data->internalRep[x][y];
+            lua_pushinteger(L, color == -1 ? -1 : color + 1);
         } else {
-            lua_pushinteger(L, 0);
+            lua_pushinteger(L, -1);
         }
 
         return 1;
