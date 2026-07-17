@@ -6,6 +6,7 @@
 #include "SDL2/SDL_gpu.h"
 #include "misc/consts.h"
 #include "misc/luaIncludes.h"
+#include "engine/luagpu_bridge.h"
 
 #define clamp(v, min, max) (float)((v) < (min) ? (min) : ((v) > (max) ? (max) : (v)))
 
@@ -153,6 +154,7 @@ namespace riko::image {
 
         GPU_Rect rect = {off(x, y)};
 
+        float rw, rh;
         int top = lua_gettop(L);
         if (top > 7) {
             GPU_Rect srcRect = {
@@ -165,7 +167,10 @@ namespace riko::image {
 
             rect.w = srcRect.w * scale;
             rect.h = srcRect.h * scale;
+            rw = rect.w; rh = rect.h;
 
+            riko::luagpu_bridge::beginFrame(L);
+            riko::luagpu_bridge::setDrawUniforms(0, (float)x, (float)y, rw, rh);
             GPU_BlitRect(data->texture, &srcRect, riko::gfx::bufferTarget, &rect);
         } else if (top > 6) {
             GPU_Rect srcRect = {
@@ -176,19 +181,28 @@ namespace riko::image {
 
             rect.w = srcRect.w;
             rect.h = srcRect.h;
+            rw = rect.w; rh = rect.h;
 
+            riko::luagpu_bridge::beginFrame(L);
+            riko::luagpu_bridge::setDrawUniforms(0, (float)x, (float)y, rw, rh);
             GPU_BlitRect(data->texture, &srcRect, riko::gfx::bufferTarget, &rect);
         } else if (top > 3) {
             GPU_Rect srcRect = {0, 0, (float)luaL_checkint(L, 4), (float)luaL_checkint(L, 5)};
 
             rect.w = srcRect.w;
             rect.h = srcRect.h;
+            rw = rect.w; rh = rect.h;
 
+            riko::luagpu_bridge::beginFrame(L);
+            riko::luagpu_bridge::setDrawUniforms(0, (float)x, (float)y, rw, rh);
             GPU_BlitRect(data->texture, &srcRect, riko::gfx::bufferTarget, &rect);
         } else {
             rect.w = data->width;
             rect.h = data->height;
+            rw = rect.w; rh = rect.h;
 
+            riko::luagpu_bridge::beginFrame(L);
+            riko::luagpu_bridge::setDrawUniforms(0, (float)x, (float)y, rw, rh);
             GPU_BlitRect(data->texture, nullptr, riko::gfx::bufferTarget, &rect);
         }
 

@@ -15,6 +15,9 @@
 #include "engine/net.h"
 #include "engine/poly.h"
 #include "engine/timer.h"
+#include "engine/luagpu_bridge.h"
+
+#include "ShaderCompiler.h"
 
 #include "luaMachine.h"
 
@@ -124,6 +127,10 @@ namespace riko::lua {
         riko::image::openLua(state);
         riko::net::openLua(state);
         riko::timer::openLua(state);
+
+        // luaGPU: register shader()/shaderlib() globals and gpu.setShader().
+        register_shader_functions(state);
+        riko::luagpu_bridge::openLua(state);
 
         lua_pushstring(state, _RIKO_VERSION_);
         lua_setglobal(state, "riko");

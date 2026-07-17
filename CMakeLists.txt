@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 4.3)
 
 project(riko4)
 
@@ -36,6 +36,43 @@ find_package(unofficial-curlpp CONFIG REQUIRED)
 target_link_libraries(riko4 unofficial::curlpp::curlpp)
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
+
+# ── luaGPU submodule (compiler + host static libs) ────────────────────────────
+# Build only the libraries we need — not the standalone luagpu executable,
+# tests, or tools. The host lib needs LuaJIT headers; reuse the PkgConfig
+# target already found above.
+
+file(GLOB LUAGPU_COMPILER_SOURCES
+    ${CMAKE_SOURCE_DIR}/extern/luaGPU/src/compiler/*.cpp)
+add_library(luagpu_compiler STATIC ${LUAGPU_COMPILER_SOURCES})
+target_include_directories(luagpu_compiler PUBLIC
+    ${CMAKE_SOURCE_DIR}/extern/luaGPU/src/compiler)
+target_compile_features(luagpu_compiler PUBLIC cxx_std_17)
+# Silence strict warnings that are errors in luaGPU's own build but aren't
+# our concern in a host-project context.
+if (MSVC)
+    target_compile_options(luagpu_compiler PRIVATE /W3)
+else()
+    target_compile_options(luagpu_compiler PRIVATE -w)
+endif()
+
+file(GLOB LUAGPU_HOST_SOURCES
+    ${CMAKE_SOURCE_DIR}/extern/luaGPU/src/host/*.cpp)
+add_library(luagpu_host STATIC ${LUAGPU_HOST_SOURCES})
+target_include_directories(luagpu_host PUBLIC
+    ${CMAKE_SOURCE_DIR}/extern/luaGPU/src/host
+    ${CMAKE_SOURCE_DIR}/extern/luaGPU/src/compiler)
+target_link_libraries(luagpu_host PUBLIC
+    luagpu_compiler
+    PkgConfig::LuaJIT)
+target_compile_features(luagpu_host PUBLIC cxx_std_17)
+if (MSVC)
+    target_compile_options(luagpu_host PRIVATE /W3)
+else()
+    target_compile_options(luagpu_host PRIVATE -w)
+endif()
+
+target_link_libraries(riko4 luagpu_host)
 
 if (WIN32)
     target_sources(riko4 PRIVATE ${CMAKE_SOURCE_DIR}/src/resources/icon.rc)

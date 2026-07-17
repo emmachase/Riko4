@@ -17,5 +17,9 @@ namespace riko::fs {
     extern char* appPath;
     extern char* scriptsPath;
 
+    // Resolves a virtual Lua path to a real host OS path.
+    // Returns true on success (out filled), false if the path escapes the sandbox.
+    bool checkPath(const char *luaInput, char *out, size_t outSize);
+
     int openLua(lua_State* L);
 }  // namespace riko::fs

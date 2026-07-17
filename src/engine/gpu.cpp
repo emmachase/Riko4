@@ -17,6 +17,7 @@
 #include "misc/luaIncludes.h"
 #include "riko.h"
 #include "core/shader.h"
+#include "engine/luagpu_bridge.h"
 
 #include "gpu.h"
 
@@ -83,6 +84,10 @@ namespace riko::gpu {
         SDL_Color colorS = {riko::gfx::palette[color][0], riko::gfx::palette[color][1], riko::gfx::palette[color][2],
                             255};
 
+        riko::luagpu_bridge::beginFrame(L);
+        riko::luagpu_bridge::setDrawUniforms(color,
+            (float)x, (float)y, 1.f, 1.f);
+
         GPU_RectangleFilled(riko::gfx::bufferTarget, off(x, y), off(x + 1, y + 1), colorS);
 
         return 0;
@@ -93,14 +98,21 @@ namespace riko::gpu {
 
         int x = luaL_checkint(L, 1);
         int y = luaL_checkint(L, 2);
+        int w = luaL_checkint(L, 3);
+        int h = luaL_checkint(L, 4);
 
         GPU_Rect rect = {
             off(x, y),
-            (float)luaL_checkint(L, 3),
-            (float)luaL_checkint(L, 4)};
+            (float)w,
+            (float)h};
 
         SDL_Color colorS = {riko::gfx::palette[color][0], riko::gfx::palette[color][1], riko::gfx::palette[color][2],
                             255};
+
+        riko::luagpu_bridge::beginFrame(L);
+        riko::luagpu_bridge::setDrawUniforms(color,
+            (float)x, (float)y, (float)w, (float)h);
+
         GPU_RectangleFilled2(riko::gfx::bufferTarget, rect, colorS);
 
         return 0;
@@ -111,6 +123,8 @@ namespace riko::gpu {
         int y = luaL_checkint(L, 2);
         int w = luaL_checkint(L, 3);
         int h = luaL_checkint(L, 4);
+
+        riko::luagpu_bridge::beginFrame(L);
 
         unsigned long long amt = lua_objlen(L, -1);
         int len = w * h;
@@ -143,6 +157,9 @@ namespace riko::gpu {
 
             SDL_Color colorS = {riko::gfx::palette[color][0], riko::gfx::palette[color][1],
                                 riko::gfx::palette[color][2], 255};
+
+            riko::luagpu_bridge::setDrawUniforms(color,
+                (float)(x + xp), (float)(y + yp), 1.f, 1.f);
             GPU_RectangleFilled2(riko::gfx::bufferTarget, rect, colorS);
 
             lua_pop(L, 1);
@@ -324,6 +341,9 @@ namespace riko::gpu {
     }
 
     static int gpu_swap(lua_State *L) {
+        // Deactivate the luaGPU draw shader before blitting the buffer.
+        riko::luagpu_bridge::endFrame();
+
         SDL_Color colorS = {riko::gfx::palette[0][0], riko::gfx::palette[0][1], riko::gfx::palette[0][2], 255};
         GPU_ClearColor(riko::gfx::renderer, colorS);
 
